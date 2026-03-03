@@ -28,11 +28,11 @@ export const mockVendorStats: VendorStats = {
   previousMonthRevenue: 3620000,
   revenueChangePercent: 18.3,
   topProducts: [
-    { rank: 1, name: "Savon Noir Africain", emoji: "🧼", sold: 589, revenue: 883500, rating: 4.6 },
-    { rank: 2, name: "Beurre de Karité Pur", emoji: "🧴", sold: 412, revenue: 1318400, rating: 4.8 },
-    { rank: 3, name: "Huile de Palme Bio", emoji: "🫒", sold: 234, revenue: 1053000, rating: 4.7 },
-    { rank: 4, name: "Épices Soumbala", emoji: "🌶️", sold: 178, revenue: 623000, rating: 4.4 },
-    { rank: 5, name: "Café Arabica Premium", emoji: "☕", sold: 156, revenue: 1388400, rating: 4.9 },
+    { rank: 1, name: "Savon Noir Africain", image: "🧼", sold: 589, revenue: 883500, rating: 4.6 },
+    { rank: 2, name: "Beurre de Karité Pur", image: "🧴", sold: 412, revenue: 1318400, rating: 4.8 },
+    { rank: 3, name: "Huile de Palme Bio", image: "🫒", sold: 234, revenue: 1053000, rating: 4.7 },
+    { rank: 4, name: "Épices Soumbala", image: "🌶️", sold: 178, revenue: 623000, rating: 4.4 },
+    { rank: 5, name: "Café Arabica Premium", image: "☕", sold: 156, revenue: 1388400, rating: 4.9 },
   ],
   categorySales: [
     { name: "Alimentaire", percent: 38, revenue: 1628300, color: "bg-sugu-500" },
