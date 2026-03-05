@@ -305,14 +305,27 @@ export async function getTicketMessages(ticketId: string): Promise<TicketMessage
 
 /**
  * Create a new support ticket.
+ * Automatically resolves the seller's store_id if not provided.
  */
 export async function createTicket(
   data: CreateTicketRequest,
 ): Promise<{ message: string; ticket: { id: string; ticket_number: string; status: string } }> {
+  let payload: Record<string, unknown> = { ...data };
+
+  // The backend requires store_id — fetch it from settings if not provided
+  if (!payload.store_id) {
+    const settings = await api.get<{ success: boolean; data: { storeId?: string } }>(
+      "sellers/settings",
+    );
+    if (settings.data?.storeId) {
+      payload.store_id = settings.data.storeId;
+    }
+  }
+
   return api.post<{
     message: string;
     ticket: { id: string; ticket_number: string; status: string };
-  }>("sellers/support/tickets", data);
+  }>("sellers/support/tickets", payload);
 }
 
 /**
