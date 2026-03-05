@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
       email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
       created_at: backendUser.created_at ?? new Date().toISOString(),
       delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
+      business_name: _extractBusinessName(backendUser),
     };
 
     const responseData = {
@@ -98,4 +99,19 @@ function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" {
   const roles = backendUser.roles as string[] | undefined;
   if (roles?.includes("delivery_partner")) return "agency";
   return "vendor";
+}
+
+/**
+ * Extract the business name (store or agency) from the backend user.
+ */
+function _extractBusinessName(backendUser: Record<string, unknown>): string | null {
+  const store = backendUser.store as Record<string, unknown> | undefined;
+  if (store?.name) return String(store.name);
+  const agency = backendUser.agency as Record<string, unknown> | undefined;
+  if (agency?.company_name) return String(agency.company_name);
+  if (agency?.name) return String(agency.name);
+  const dp = backendUser.delivery_partner as Record<string, unknown> | undefined;
+  if (dp?.company_name) return String(dp.company_name);
+  if (dp?.name) return String(dp.name);
+  return null;
 }
