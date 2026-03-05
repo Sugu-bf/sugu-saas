@@ -140,22 +140,7 @@ export function LoginForm() {
         {loginMutation.isPending ? "Connexion…" : "Se connecter"}
       </button>
 
-      {/* Demo credentials */}
-      <div className="mt-6 rounded-lg border border-sugu-200 bg-sugu-50/50 p-4 dark:border-sugu-900/40 dark:bg-sugu-950/20">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-sugu-600 dark:text-sugu-400">
-          Comptes démo
-        </p>
-        <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-          <p>
-            <span className="font-medium text-gray-900 dark:text-gray-200">Vendeur :</span>{" "}
-            seller@sugu.pro / 12345678
-          </p>
-          <p>
-            <span className="font-medium text-gray-900 dark:text-gray-200">Agence :</span>{" "}
-            courier1@sugu.pro / 12345678
-          </p>
-        </div>
-      </div>
+
     </form>
   );
 }
