@@ -13,8 +13,8 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https: https://res.cloudinary.com",
-      "connect-src 'self' http://localhost:8000 https://api.mysugu.com https://res.cloudinary.com",
+      "img-src 'self' data: blob: https: http:",
+      "connect-src 'self' http://localhost:8000 https://api.mysugu.com https://*.mysugu.com https://pro.sugu.pro https://*.sugu.pro https://res.cloudinary.com https://*.cloudinary.com",
     ].join("; "),
   },
 ];
