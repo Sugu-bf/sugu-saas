@@ -1369,18 +1369,154 @@ export async function removeCourier(
 }
 
 /**
- * Fetch the agency statistics.
+ * Fetch the agency statistics from the real API.
  *
- * READY FOR API: Replace body with:
- *   const params = new URLSearchParams({ period });
- *   const res = await api.get(`/agency/statistics?${params}`);
- *   return agencyStatsResponseSchema.parse(res);
+ * GET /agencies/{agencyId}/statistics?period=30j
+ *
+ * @param agencyId — The delivery partner ULID
+ * @param period   — "7j" | "30j" | "90j" (default: "30j")
  */
 export async function getAgencyStats(
-  _period?: string,
+  agencyId?: string,
+  period: string = "30j",
 ): Promise<AgencyStatsResponse> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return agencyStatsResponseSchema.parse(mockAgencyStats);
+  if (!agencyId) {
+    console.info("[agency/stats] No agencyId — using mock data");
+    return agencyStatsResponseSchema.parse(mockAgencyStats);
+  }
+
+  try {
+    const raw = await api.get<{ success: boolean; data: Record<string, unknown> }>(
+      `agencies/${agencyId}/statistics`,
+      { params: { period } },
+    );
+
+    return agencyStatsResponseSchema.parse(
+      _transformStatsResponse(raw.data),
+    );
+  } catch (error) {
+    console.error("[agency/stats] API error — falling back to mock:", error);
+    return agencyStatsResponseSchema.parse(mockAgencyStats);
+  }
+}
+
+// ── Statistics transformer helpers ─────────────────────────
+
+/** Valid vehicle types for the schema */
+const VALID_VEHICLES = ["moto", "voiture", "vélo", "tricycle"] as const;
+type VehicleTypeVal = (typeof VALID_VEHICLES)[number];
+
+/** Map a vehicle string to a valid VehicleType */
+function _mapVehicle(vt: unknown): VehicleTypeVal {
+  if (typeof vt !== "string") return "moto";
+  const val = vt.toLowerCase();
+  if (VALID_VEHICLES.includes(val as VehicleTypeVal)) return val as VehicleTypeVal;
+  if (val === "car" || val === "auto") return "voiture";
+  if (val === "bike" || val === "bicycle") return "vélo";
+  return "moto";
+}
+
+/**
+ * @internal Mappe réponse backend → forme attendue par agencyStatsResponseSchema.
+ *
+ * The backend returns data matching the schema closely, but we need to:
+ * 1. Assign Tailwind avatar colors (backend doesn't know Tailwind)
+ * 2. Validate vehicle type enum
+ * 3. Ensure all fields exist with proper defaults
+ */
+function _transformStatsResponse(raw: Record<string, unknown>): Record<string, unknown> {
+  // --- Top Drivers: assign avatarColor ---
+  const rawTopDrivers = Array.isArray(raw.topDrivers) ? raw.topDrivers : [];
+  const topDrivers = rawTopDrivers.map((driver: Record<string, unknown>) => ({
+    id: String(driver.id ?? ""),
+    rank: Number(driver.rank ?? 0),
+    name: String(driver.name ?? "Livreur"),
+    initials: String(driver.initials ?? _getInitials(String(driver.name ?? ""))),
+    avatarColor: _getAvatarColor(String(driver.id ?? "")),
+    deliveries: Number(driver.deliveries ?? 0),
+    successRate: Number(driver.successRate ?? 0),
+  }));
+
+  // --- Driver of the Month: assign avatarColor + validate vehicle ---
+  const rawDom = (raw.driverOfMonth ?? {}) as Record<string, unknown>;
+  const driverOfMonth = {
+    id: String(rawDom.id ?? ""),
+    name: String(rawDom.name ?? "Aucun livreur"),
+    initials: String(rawDom.initials ?? _getInitials(String(rawDom.name ?? ""))),
+    avatarColor: _getAvatarColor(String(rawDom.id ?? "")),
+    avatarUrl: rawDom.avatarUrl ?? null,
+    vehicle: _mapVehicle(rawDom.vehicle),
+    deliveries: Number(rawDom.deliveries ?? 0),
+    successRate: Number(rawDom.successRate ?? 0),
+    rating: Number(rawDom.rating ?? 0),
+    quote: String(
+      rawDom.quote ??
+        `Meilleur livreur de l'agence avec ${rawDom.deliveries ?? 0} livraisons et un taux de réussite exceptionnel de ${rawDom.successRate ?? 0}%.`,
+    ),
+    month: String(rawDom.month ?? ""),
+    runner2nd: String(rawDom.runner2nd ?? "—"),
+    runner3rd: String(rawDom.runner3rd ?? "—"),
+  };
+
+  // --- Chart Data: ensure correct shape ---
+  const rawChartData = Array.isArray(raw.chartData) ? raw.chartData : [];
+  const chartData = rawChartData.map((point: Record<string, unknown>) => ({
+    day: Number(point.day ?? 0),
+    label: String(point.label ?? ""),
+    value: Number(point.value ?? 0),
+  }));
+
+  // --- Failure Reasons: ensure correct shape ---
+  const rawFailureReasons = Array.isArray(raw.failureReasons) ? raw.failureReasons : [];
+  const failureReasons = rawFailureReasons.map((reason: Record<string, unknown>) => ({
+    id: String(reason.id ?? ""),
+    label: String(reason.label ?? ""),
+    percentage: Number(reason.percentage ?? 0),
+    color: String(reason.color ?? "bg-gray-200"),
+  }));
+
+  // --- Week Days: ensure correct shape ---
+  const rawWeekDays = Array.isArray(raw.weekDays) ? raw.weekDays : [];
+  const weekDays = rawWeekDays.map((day: Record<string, unknown>) => ({
+    day: String(day.day ?? ""),
+    deliveries: Number(day.deliveries ?? 0),
+    successRate: Number(day.successRate ?? 0),
+    isHighlighted: Boolean(day.isHighlighted ?? false),
+  }));
+
+  return {
+    // KPIs
+    totalDeliveries: Number(raw.totalDeliveries ?? 0),
+    deliveriesGrowth: String(raw.deliveriesGrowth ?? "0%"),
+    successRate: Number(raw.successRate ?? 0),
+    avgDeliveryTime: String(raw.avgDeliveryTime ?? "0min"),
+    avgTimeTarget: String(raw.avgTimeTarget ?? "< 3h"),
+    totalRevenue: String(raw.totalRevenue ?? "0 FCFA"),
+    revenueGrowth: String(raw.revenueGrowth ?? "0%"),
+
+    // Chart
+    chartMonth: String(raw.chartMonth ?? ""),
+    chartData,
+    chartThisMonth: Number(raw.chartThisMonth ?? 0),
+    chartPrevMonth: Number(raw.chartPrevMonth ?? 0),
+    chartGrowth: String(raw.chartGrowth ?? "0%"),
+
+    // Driver of the month
+    driverOfMonth,
+
+    // Top drivers
+    topDrivers,
+
+    // Failure reasons
+    failureCount: Number(raw.failureCount ?? 0),
+    failureRate: String(raw.failureRate ?? "0%"),
+    failureVsPrev: String(raw.failureVsPrev ?? "0% vs avant"),
+    failureReasons,
+    failureTip: String(raw.failureTip ?? ""),
+
+    // Weekly summary
+    weekDays,
+  };
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import { useSession } from "@/features/auth/hooks";
 import * as agencyService from "./service";
@@ -376,3 +376,29 @@ export function useAvailableCouriers(filters?: { search?: string }) {
     staleTime: 30 * 1000,
   });
 }
+
+// ============================================================
+// Statistics Hook
+// ============================================================
+
+/**
+ * Hook: Agency statistics page (KPIs, chart, top drivers, failures, weekly).
+ *
+ * Uses `keepPreviousData` so switching periods doesn't flash blank.
+ * 3-minute staleTime — statistical data doesn't change rapidly.
+ *
+ * @param period — "7j" | "30j" | "90j"
+ */
+export function useAgencyStats(period?: string) {
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useQuery({
+    queryKey: queryKeys.agency.statistics(period),
+    queryFn: () => agencyService.getAgencyStats(agencyId, period),
+    staleTime: 3 * 60 * 1000,
+    enabled: !!agencyId,
+    placeholderData: keepPreviousData,
+  });
+}
+

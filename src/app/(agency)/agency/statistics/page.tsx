@@ -1,19 +1,41 @@
-import type { Metadata } from "next";
-import { getAgencyStats } from "@/features/agency/service";
-import { StatisticsContent } from "./statistics-content";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Statistiques | SUGUPro Agence",
-  description:
-    "Tableau de bord analytique — livraisons, taux de réussite, revenus, top livreurs et raisons d'échec.",
-};
+import { useState } from "react";
+import { useAgencyStats } from "@/features/agency/hooks";
+import { StatisticsContent } from "./statistics-content";
+import StatisticsLoading from "./loading";
+import StatisticsError from "./error";
+
+type Period = "7j" | "30j" | "90j";
 
 /**
- * Agency statistics page — Server Component.
+ * Agency statistics page — Client Component.
  *
- * READY FOR API: Replace only getAgencyStats() body in service.ts.
+ * Uses `useAgencyStats(period)` so changing period triggers a real refetch.
+ * The hook uses `keepPreviousData` to avoid white flash on period change.
  */
-export default async function AgencyStatisticsPage() {
-  const data = await getAgencyStats();
-  return <StatisticsContent data={data} />;
+export default function AgencyStatisticsPage() {
+  const [period, setPeriod] = useState<Period>("30j");
+  const { data, isLoading, isError, error, refetch } = useAgencyStats(period);
+
+  if (isLoading && !data) return <StatisticsLoading />;
+
+  if (isError && !data) {
+    return (
+      <StatisticsError
+        error={error as Error & { digest?: string }}
+        reset={() => void refetch()}
+      />
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <StatisticsContent
+      data={data}
+      period={period}
+      onPeriodChange={setPeriod}
+    />
+  );
 }

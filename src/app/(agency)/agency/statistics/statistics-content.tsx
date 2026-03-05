@@ -172,8 +172,15 @@ function AreaChart({
 // Main Component
 // ────────────────────────────────────────────────────────────
 
-export function StatisticsContent({ data }: { data: AgencyStatsResponse }) {
-  const [period, setPeriod] = useState<Period>("30j");
+export function StatisticsContent({
+  data,
+  period,
+  onPeriodChange,
+}: {
+  data: AgencyStatsResponse;
+  period: Period;
+  onPeriodChange: (p: Period) => void;
+}) {
 
   return (
     <div className="space-y-4">
@@ -187,7 +194,7 @@ export function StatisticsContent({ data }: { data: AgencyStatsResponse }) {
             {PERIOD_OPTIONS.map((p) => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => onPeriodChange(p)}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
                   period === p
