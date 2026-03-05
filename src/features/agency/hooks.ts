@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { queryKeys } from "@/lib/query";
 import { useSession } from "@/features/auth/hooks";
 import * as agencyService from "./service";
-import type { DeliveryFilters, DriverFilters } from "./service";
+import type { DeliveryFilters, DriverFilters, UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./service";
+import type { AgencySettingsResponse } from "./schema";
 import { useEffect } from "react";
 
 /**
@@ -39,8 +40,9 @@ export function useAgencyDashboard() {
 
   return useQuery({
     queryKey: queryKeys.agency.dashboard(),
-    queryFn: () => agencyService.getAgencyDashboard(agencyId),
+    queryFn: () => agencyService.getAgencyDashboard(agencyId!),
     staleTime: 2 * 60 * 1000,
+    enabled: !!agencyId,
   });
 }
 
@@ -59,8 +61,9 @@ export function useAgencyDeliveries(filters?: DeliveryFilters) {
 
   return useQuery({
     queryKey: queryKeys.agency.deliveries(filters as Record<string, unknown>),
-    queryFn: () => agencyService.getAgencyDeliveries(agencyId, filters),
-    staleTime: 30 * 1000, // 30s — deliveries should be fresh
+    queryFn: () => agencyService.getAgencyDeliveries(agencyId!, filters),
+    staleTime: 30 * 1000,
+    enabled: !!agencyId,
   });
 }
 
@@ -238,8 +241,9 @@ export function useAgencyDrivers(filters?: DriverFilters) {
 
   return useQuery({
     queryKey: queryKeys.agency.drivers(filters as Record<string, unknown>),
-    queryFn: () => agencyService.getAgencyDrivers(agencyId, filters),
-    staleTime: 60 * 1000, // 1 min
+    queryFn: () => agencyService.getAgencyDrivers(agencyId!, filters),
+    staleTime: 60 * 1000,
+    enabled: !!agencyId,
   });
 }
 
@@ -395,10 +399,96 @@ export function useAgencyStats(period?: string) {
 
   return useQuery({
     queryKey: queryKeys.agency.statistics(period),
-    queryFn: () => agencyService.getAgencyStats(agencyId, period),
+    queryFn: () => agencyService.getAgencyStats(agencyId!, period),
     staleTime: 3 * 60 * 1000,
     enabled: !!agencyId,
     placeholderData: keepPreviousData,
+  });
+}
+
+// ============================================================
+// Settings Hooks
+// ============================================================
+
+/**
+ * Hook: Fetch agency settings for the settings page.
+ *
+ * 5-minute staleTime — settings change rarely.
+ * Falls back to mock automatically via the service layer.
+ */
+export function useAgencySettings() {
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useQuery({
+    queryKey: queryKeys.agency.settings(),
+    queryFn: () => agencyService.getAgencySettings(agencyId!),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!agencyId,
+  });
+}
+
+/**
+ * Hook: Update agency settings (onglet "Mon agence").
+ *
+ * Implements optimistic updates: merges partial data into the cache
+ * immediately, then reconciles on server response.
+ */
+export function useUpdateAgencySettings() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (data: UpdateAgencySettingsPayload) =>
+      agencyService.updateAgencySettings(agencyId, data),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.agency.settings() });
+      const previous = queryClient.getQueryData(queryKeys.agency.settings());
+      queryClient.setQueryData(
+        queryKeys.agency.settings(),
+        (old: AgencySettingsResponse | undefined) =>
+          old ? { ...old, ...newData } : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.agency.settings(), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
+  });
+}
+
+/**
+ * Hook: Change the user's password (onglet "Sécurité").
+ */
+export function useUpdatePassword() {
+  return useMutation({
+    mutationFn: (data: UpdatePasswordPayload) =>
+      agencyService.updatePassword(data),
+  });
+}
+
+/**
+ * Hook: Delete the agency (onglet "Supprimer").
+ *
+ * Clears all agency cache and redirects on success.
+ */
+export function useDeleteAgency() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (confirm: string) =>
+      agencyService.deleteAgency(agencyId, confirm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.all });
+    },
   });
 }
 

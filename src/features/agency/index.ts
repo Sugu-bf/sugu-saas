@@ -16,6 +16,9 @@ export {
   removeCourier,
   getAgencyStats,
   getAgencySettings,
+  updateAgencySettings,
+  updatePassword,
+  deleteAgency,
   addShipmentNote,
   createDelivery,
 } from "./service";
@@ -25,6 +28,8 @@ export type {
   CreateDeliveryPayload,
   DriverFilters,
   AddCourierPayload,
+  UpdateAgencySettingsPayload,
+  UpdatePasswordPayload,
 } from "./service";
 
 export type {

@@ -19,11 +19,7 @@ import {
   type DeliveryDetailRow,
   type DeliveryTimelineStep,
 } from "./schema";
-import { mockAgencyDashboard } from "./mocks/dashboard";
-import { mockAgencyDeliveries } from "./mocks/deliveries";
-import { mockAgencyDrivers } from "./mocks/drivers";
-import { mockDriverProfile } from "./mocks/driver-profile";
-import { mockAgencyStats } from "./mocks/statistics";
+
 
 // ============================================================
 // Agency Domain — Service Layer
@@ -590,32 +586,15 @@ function _transformDashboard(raw: BackendDashboardData): AgencyDashboardData {
  * @param agencyId — The delivery partner ULID
  */
 export async function getAgencyDashboard(
-  agencyId?: string,
+  agencyId: string,
 ): Promise<AgencyDashboardData> {
-  // Fallback to mock if no agencyId (dev/design preview)
-  if (!agencyId) {
-    console.info("[agency/dashboard] No agencyId — using mock data");
-    return agencyDashboardSchema.parse(mockAgencyDashboard);
-  }
+  const raw = await api.get<z.infer<typeof backendDashboardResponseSchema>>(
+    `agencies/${agencyId}/dashboard`,
+  );
 
-  try {
-    const raw = await api.get<z.infer<typeof backendDashboardResponseSchema>>(
-      `agencies/${agencyId}/dashboard`,
-    );
-
-    // Validate the raw backend response
-    const validated = backendDashboardResponseSchema.parse(raw);
-
-    // Transform backend shape → frontend schema
-    const transformed = _transformDashboard(validated.data);
-
-    // Validate final shape against the strict frontend schema
-    return agencyDashboardSchema.parse(transformed);
-  } catch (error) {
-    console.error("[agency/dashboard] API error — falling back to mock:", error);
-    // Graceful degradation: show mock data if API fails
-    return agencyDashboardSchema.parse(mockAgencyDashboard);
-  }
+  const validated = backendDashboardResponseSchema.parse(raw);
+  const transformed = _transformDashboard(validated.data);
+  return agencyDashboardSchema.parse(transformed);
 }
 
 // ── Deliveries filters type ────────────────────────────────
@@ -638,62 +617,48 @@ export interface DeliveryFilters {
  * @param filters  — Optional filters (status, search, courier_id, date, priority, sort, per_page, page)
  */
 export async function getAgencyDeliveries(
-  agencyId?: string,
+  agencyId: string,
   filters?: DeliveryFilters,
 ): Promise<AgencyDeliveriesResponse> {
-  // Fallback to mock if no agencyId (dev/design preview)
-  if (!agencyId) {
-    console.info("[agency/deliveries] No agencyId — using mock data");
-    return agencyDeliveriesResponseSchema.parse(mockAgencyDeliveries);
-  }
+  // Build query params (strip undefined values)
+  const params: Record<string, string | number | boolean | undefined> = {};
+  if (filters?.status) params.status = filters.status;
+  if (filters?.search) params.search = filters.search;
+  if (filters?.courier_id) params.courier_id = filters.courier_id;
+  if (filters?.date) params.date = filters.date;
+  if (filters?.priority) params.priority = filters.priority;
+  if (filters?.sort) params.sort = filters.sort;
+  if (filters?.per_page) params.per_page = filters.per_page;
+  if (filters?.page) params.page = filters.page;
 
-  try {
-    // Build query params (strip undefined values)
-    const params: Record<string, string | number | boolean | undefined> = {};
-    if (filters?.status) params.status = filters.status;
-    if (filters?.search) params.search = filters.search;
-    if (filters?.courier_id) params.courier_id = filters.courier_id;
-    if (filters?.date) params.date = filters.date;
-    if (filters?.priority) params.priority = filters.priority;
-    if (filters?.sort) params.sort = filters.sort;
-    if (filters?.per_page) params.per_page = filters.per_page;
-    if (filters?.page) params.page = filters.page;
+  const raw = await api.get<z.infer<typeof backendShipmentsResponseSchema>>(
+    `agencies/${agencyId}/shipments`,
+    { params },
+  );
 
-    const raw = await api.get<z.infer<typeof backendShipmentsResponseSchema>>(
-      `agencies/${agencyId}/shipments`,
-      { params },
-    );
+  const validated = backendShipmentsResponseSchema.parse(raw);
+  const d = validated.data;
 
-    // Validate raw backend response
-    const validated = backendShipmentsResponseSchema.parse(raw);
-    const d = validated.data;
+  const transformed: AgencyDeliveriesResponse = {
+    summary: d.summary,
+    rows: d.shipments.map(_transformShipment),
+    statusCounts: {
+      all: d.statusCounts.all,
+      pending: d.statusCounts.pending,
+      pickup: d.statusCounts.assigned,
+      en_route: d.statusCounts.in_transit,
+      delivered: d.statusCounts.delivered,
+      failed: d.statusCounts.delivery_failed,
+    },
+    pagination: {
+      currentPage: d.pagination.current_page,
+      totalPages: d.pagination.last_page,
+      perPage: d.pagination.per_page,
+      totalItems: d.pagination.total,
+    },
+  };
 
-    // Transform backend status counts → frontend status counts
-    const transformed: AgencyDeliveriesResponse = {
-      summary: d.summary,
-      rows: d.shipments.map(_transformShipment),
-      statusCounts: {
-        all: d.statusCounts.all,
-        pending: d.statusCounts.pending,
-        pickup: d.statusCounts.assigned,
-        en_route: d.statusCounts.in_transit,
-        delivered: d.statusCounts.delivered,
-        failed: d.statusCounts.delivery_failed,
-      },
-      pagination: {
-        currentPage: d.pagination.current_page,
-        totalPages: d.pagination.last_page,
-        perPage: d.pagination.per_page,
-        totalItems: d.pagination.total,
-      },
-    };
-
-    // Validate final shape
-    return agencyDeliveriesResponseSchema.parse(transformed);
-  } catch (error) {
-    console.error("[agency/deliveries] API error — falling back to mock:", error);
-    return agencyDeliveriesResponseSchema.parse(mockAgencyDeliveries);
-  }
+  return agencyDeliveriesResponseSchema.parse(transformed);
 }
 
 /**
@@ -1059,11 +1024,21 @@ function _transformCouriersListResponse(
   const completedDel = couriers.reduce((sum, c) => sum + (c.completed_deliveries ?? 0), 0);
   const aggregateSuccessRate = totalDel > 0 ? Math.round((completedDel / totalDel) * 1000) / 10 : 0;
 
-  // Build detail for the first driver
+  // Build detail for the first driver (or a minimal empty placeholder)
   const firstCourier = sorted[0];
   const driverDetail = firstCourier
     ? _transformCourierToDetail(firstCourier, 0)
-    : mockAgencyDrivers.driverDetail;
+    : {
+        id: "", name: "Aucun livreur", phone: "", email: "",
+        initials: "—", avatarColor: "bg-gray-100 text-gray-400",
+        avatarUrl: null, rank: null, status: "offline" as const,
+        age: "—", quartier: "—", vehicle: "moto" as const,
+        vehicleId: "—", permis: "—", joinedDate: "—", verified: false,
+        totalDeliveries: 0, successRate: 0, rating: 0, avgTime: "—",
+        monthlyProgress: 0, todayDeliveries: 0, todayCompleted: 0,
+        todayFailed: 0, todayRevenue: "—", todayHours: "—",
+        recentDeliveries: [],
+      };
 
   return {
     summary: {
@@ -1220,35 +1195,24 @@ export interface DriverFilters {
  * GET /agencies/{agencyId}/couriers
  */
 export async function getAgencyDrivers(
-  agencyId?: string,
+  agencyId: string,
   filters?: DriverFilters,
 ): Promise<AgencyDriversResponse> {
-  // Fallback to mock if no agencyId (dev/design preview)
-  if (!agencyId) {
-    console.info("[agency/drivers] No agencyId — using mock data");
-    return agencyDriversResponseSchema.parse(mockAgencyDrivers);
-  }
+  const params: Record<string, string | number | boolean | undefined> = {
+    per_page: 50,
+  };
+  if (filters?.status) params.status = filters.status;
+  if (filters?.search) params.search = filters.search;
+  if (filters?.sort_by) params.sort_by = filters.sort_by;
 
-  try {
-    const params: Record<string, string | number | boolean | undefined> = {
-      per_page: 50, // Fetch all couriers for summary computation
-    };
-    if (filters?.status) params.status = filters.status;
-    if (filters?.search) params.search = filters.search;
-    if (filters?.sort_by) params.sort_by = filters.sort_by;
+  const raw = await api.get<z.infer<typeof backendDriversListResponseSchema>>(
+    `agencies/${agencyId}/couriers`,
+    { params },
+  );
 
-    const raw = await api.get<z.infer<typeof backendDriversListResponseSchema>>(
-      `agencies/${agencyId}/couriers`,
-      { params },
-    );
-
-    const validated = backendDriversListResponseSchema.parse(raw);
-    const transformed = _transformCouriersListResponse(validated);
-    return agencyDriversResponseSchema.parse(transformed);
-  } catch (error) {
-    console.error("[agency/drivers] API error — falling back to mock:", error);
-    return agencyDriversResponseSchema.parse(mockAgencyDrivers);
-  }
+  const validated = backendDriversListResponseSchema.parse(raw);
+  const transformed = _transformCouriersListResponse(validated);
+  return agencyDriversResponseSchema.parse(transformed);
 }
 
 /**
@@ -1257,26 +1221,16 @@ export async function getAgencyDrivers(
  * GET /agencies/{agencyId}/couriers/{courierId}
  */
 export async function getDriverProfile(
-  agencyId?: string,
-  courierId?: string,
+  agencyId: string,
+  courierId: string,
 ): Promise<DriverProfile> {
-  if (!agencyId || !courierId) {
-    console.info("[agency/driver-profile] No agencyId/courierId — using mock data");
-    return driverProfileSchema.parse(mockDriverProfile);
-  }
+  const raw = await api.get<z.infer<typeof backendCourierDetailResponseSchema>>(
+    `agencies/${agencyId}/couriers/${courierId}`,
+  );
 
-  try {
-    const raw = await api.get<z.infer<typeof backendCourierDetailResponseSchema>>(
-      `agencies/${agencyId}/couriers/${courierId}`,
-    );
-
-    const validated = backendCourierDetailResponseSchema.parse(raw);
-    const transformed = _transformCourierToProfile(validated.data.courier, validated.data.stats);
-    return driverProfileSchema.parse(transformed);
-  } catch (error) {
-    console.error("[agency/driver-profile] API error — falling back to mock:", error);
-    return driverProfileSchema.parse(mockDriverProfile);
-  }
+  const validated = backendCourierDetailResponseSchema.parse(raw);
+  const transformed = _transformCourierToProfile(validated.data.courier, validated.data.stats);
+  return driverProfileSchema.parse(transformed);
 }
 
 /**
@@ -1377,27 +1331,17 @@ export async function removeCourier(
  * @param period   — "7j" | "30j" | "90j" (default: "30j")
  */
 export async function getAgencyStats(
-  agencyId?: string,
+  agencyId: string,
   period: string = "30j",
 ): Promise<AgencyStatsResponse> {
-  if (!agencyId) {
-    console.info("[agency/stats] No agencyId — using mock data");
-    return agencyStatsResponseSchema.parse(mockAgencyStats);
-  }
+  const raw = await api.get<{ success: boolean; data: Record<string, unknown> }>(
+    `agencies/${agencyId}/statistics`,
+    { params: { period } },
+  );
 
-  try {
-    const raw = await api.get<{ success: boolean; data: Record<string, unknown> }>(
-      `agencies/${agencyId}/statistics`,
-      { params: { period } },
-    );
-
-    return agencyStatsResponseSchema.parse(
-      _transformStatsResponse(raw.data),
-    );
-  } catch (error) {
-    console.error("[agency/stats] API error — falling back to mock:", error);
-    return agencyStatsResponseSchema.parse(mockAgencyStats);
-  }
+  return agencyStatsResponseSchema.parse(
+    _transformStatsResponse(raw.data),
+  );
 }
 
 // ── Statistics transformer helpers ─────────────────────────
@@ -1519,17 +1463,224 @@ function _transformStatsResponse(raw: Record<string, unknown>): Record<string, u
   };
 }
 
+// ============================================================
+// Settings — API + transformer + mutations
+// ============================================================
+
+// ── Country code → name + flag mapping ─────────────────────
+
+const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
+  ML: { name: "Mali", flag: "🇲🇱" },
+  BF: { name: "Burkina Faso", flag: "🇧🇫" },
+  CI: { name: "Côte d'Ivoire", flag: "🇨🇮" },
+  SN: { name: "Sénégal", flag: "🇸🇳" },
+  GN: { name: "Guinée", flag: "🇬🇳" },
+  NE: { name: "Niger", flag: "🇳🇪" },
+  TG: { name: "Togo", flag: "🇹🇬" },
+  BJ: { name: "Bénin", flag: "🇧🇯" },
+  GH: { name: "Ghana", flag: "🇬🇭" },
+  NG: { name: "Nigeria", flag: "🇳🇬" },
+};
+
+/**
+ * Transform backend settings (DB columns + metadata) → frontend AgencySettingsResponse.
+ *
+ * The backend returns a shape close to the DeliveryPartner model:
+ * { name, code, contact_email, contact_phone, country_code, metadata: {...}, ... }
+ *
+ * Many fields live in the `metadata` JSON column.
+ */
+function _transformSettingsResponse(raw: Record<string, unknown>): Record<string, unknown> {
+  const meta = (raw.metadata ?? {}) as Record<string, unknown>;
+  const countryCode = String(raw.country_code ?? meta.country_code ?? "ML");
+  const country = COUNTRY_MAP[countryCode] ?? { name: countryCode, flag: "🏳️" };
+
+  // Format created_at to French date
+  let createdAt = String(raw.created_at ?? "");
+  try {
+    const d = new Date(createdAt);
+    if (!isNaN(d.getTime())) {
+      const frMonths = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+      ];
+      createdAt = `${d.getDate()} ${frMonths[d.getMonth()]} ${d.getFullYear()}`;
+    }
+  } catch {
+    // keep as-is
+  }
+
+  // Format updated_at to relative French
+  let lastSaved = "—";
+  const updatedAt = raw.updated_at ?? raw.last_saved;
+  if (typeof updatedAt === "string" && updatedAt) {
+    lastSaved = _formatRelativeDate(updatedAt);
+  }
+
+  // Default schedule if not in metadata
+  const defaultSchedule = [
+    { day: "Lundi", enabled: true, openTime: "07:00", closeTime: "21:00" },
+    { day: "Mardi", enabled: true, openTime: "07:00", closeTime: "21:00" },
+    { day: "Mercredi", enabled: true, openTime: "07:00", closeTime: "21:00" },
+    { day: "Jeudi", enabled: true, openTime: "07:00", closeTime: "21:00" },
+    { day: "Vendredi", enabled: true, openTime: "07:00", closeTime: "19:00" },
+    { day: "Samedi", enabled: true, openTime: "08:00", closeTime: "18:00" },
+    { day: "Dimanche", enabled: false, openTime: "", closeTime: "" },
+  ];
+
+  // Default vehicles
+  const defaultVehicles = [
+    { type: "Moto", icon: "🛵", selected: true },
+    { type: "Voiture", icon: "🚗", selected: true },
+    { type: "Vélo", icon: "🚲", selected: false },
+    { type: "Camionnette", icon: "🚐", selected: false },
+  ];
+
+  // Default social links
+  const defaultSocialLinks = [
+    { id: "sl-1", platform: "WhatsApp Business", value: "", icon: "whatsapp", enabled: false, visibleOnSugu: false },
+    { id: "sl-2", platform: "Facebook", value: "", icon: "facebook", enabled: false, visibleOnSugu: false },
+    { id: "sl-3", platform: "Site web", value: "", icon: "globe", enabled: false, visibleOnSugu: false },
+  ];
+
+  // Determine emailVerified from the nested owner or direct flag
+  const ownerMeta = raw.owner as Record<string, unknown> | undefined;
+  const emailVerified = Boolean(
+    raw.email_verified ??
+    meta.email_verified ??
+    (ownerMeta?.email_verified_at ? true : false),
+  );
+
+  return {
+    agencyName: String(raw.name ?? raw.agencyName ?? ""),
+    shortName: String(raw.code ?? raw.shortName ?? ""),
+    email: String(raw.contact_email ?? raw.email ?? ""),
+    emailVerified,
+    phonePrimary: String(raw.contact_phone ?? raw.phonePrimary ?? ""),
+    phoneSecondary: String(meta.phone_secondary ?? raw.phoneSecondary ?? ""),
+    rccm: String(meta.rccm ?? raw.legal_name ?? raw.rccm ?? ""),
+    createdAt: String(raw.createdAt ?? createdAt),
+    logoUrl: (raw.logo_url ?? raw.logoUrl ?? null) as string | null,
+
+    address: String(raw.address_line1 ?? raw.address ?? ""),
+    city: String(raw.city ?? ""),
+    quartier: String(meta.quartier ?? raw.address_line2 ?? raw.quartier ?? ""),
+    country: country.name,
+    countryFlag: country.flag,
+    locationDescription: String(meta.location_description ?? raw.locationDescription ?? ""),
+
+    agencyType: String(meta.agency_type ?? raw.agencyType ?? "Livraison express"),
+    dailyCapacity: String(meta.daily_capacity ?? raw.dailyCapacity ?? ""),
+    vehicles: Array.isArray(meta.vehicles) ? meta.vehicles
+      : Array.isArray(raw.vehicles) ? raw.vehicles
+      : defaultVehicles,
+    description: String(raw.description ?? ""),
+
+    schedule: Array.isArray(meta.schedule) ? meta.schedule
+      : Array.isArray(raw.schedule) ? raw.schedule
+      : defaultSchedule,
+    sameHoursWeekdays: Boolean(meta.same_hours_weekdays ?? raw.sameHoursWeekdays ?? false),
+    acceptAfterHours: Boolean(meta.accept_after_hours ?? raw.acceptAfterHours ?? false),
+    afterHoursSurcharge: String(meta.after_hours_surcharge ?? raw.afterHoursSurcharge ?? "50%"),
+
+    socialLinks: Array.isArray(meta.social_links) ? meta.social_links
+      : Array.isArray(raw.socialLinks) ? raw.socialLinks
+      : defaultSocialLinks,
+
+    lastSaved: String(raw.lastSaved ?? lastSaved),
+  };
+}
+
 /**
  * Fetch the agency settings.
  *
- * READY FOR API: Replace body with:
- *   const res = await api.get("/agency/settings");
- *   return agencySettingsResponseSchema.parse(res);
+ * Tries to load from the real API endpoint `GET /agencies/{agencyId}/settings`.
+ * Falls back gracefully to mock data if the endpoint is unavailable.
+ *
+ * @param agencyId — The delivery partner ULID (optional — mock if missing)
  */
-export async function getAgencySettings(): Promise<AgencySettingsResponse> {
-  const { mockAgencySettings } = await import("./mocks/settings");
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return agencySettingsResponseSchema.parse(mockAgencySettings);
+export async function getAgencySettings(
+  agencyId: string,
+): Promise<AgencySettingsResponse> {
+  const raw = await api.get<{ success: boolean; data: Record<string, unknown> }>(
+    `agencies/${agencyId}/settings`,
+  );
+
+  return agencySettingsResponseSchema.parse(
+    _transformSettingsResponse(raw.data),
+  );
+}
+
+// ── Settings mutation payloads ─────────────────────────────
+
+export interface UpdateAgencySettingsPayload {
+  agencyName?: string;
+  shortName?: string;
+  email?: string;
+  phonePrimary?: string;
+  phoneSecondary?: string;
+  rccm?: string;
+  address?: string;
+  city?: string;
+  quartier?: string;
+  locationDescription?: string;
+  agencyType?: string;
+  dailyCapacity?: string;
+  vehicles?: Array<{ type: string; icon: string; selected: boolean }>;
+  description?: string;
+  schedule?: Array<{ day: string; enabled: boolean; openTime: string; closeTime: string }>;
+  sameHoursWeekdays?: boolean;
+  acceptAfterHours?: boolean;
+  afterHoursSurcharge?: string;
+  socialLinks?: Array<{ id: string; platform: string; value: string; icon: string; enabled: boolean; visibleOnSugu: boolean }>;
+}
+
+/**
+ * Update agency settings via PUT /agencies/{agencyId}/settings.
+ *
+ * The backend maps these frontend field names to DB columns + metadata JSON.
+ */
+export async function updateAgencySettings(
+  agencyId: string,
+  data: UpdateAgencySettingsPayload,
+): Promise<AgencySettingsResponse> {
+  const raw = await api.put<{ success: boolean; data: Record<string, unknown> }>(
+    `agencies/${agencyId}/settings`,
+    data,
+  );
+  return agencySettingsResponseSchema.parse(
+    _transformSettingsResponse(raw.data),
+  );
+}
+
+export interface UpdatePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/**
+ * Change the authenticated user's password.
+ *
+ * PUT /auth/password
+ */
+export async function updatePassword(data: UpdatePasswordPayload): Promise<void> {
+  await api.put("auth/password", data);
+}
+
+/**
+ * Delete an agency permanently.
+ *
+ * DELETE /agencies/{agencyId}
+ * Requires body `{ confirm: "SUPPRIMER" }` for safety.
+ */
+export async function deleteAgency(
+  agencyId: string,
+  confirm: string,
+): Promise<void> {
+  await api.delete(`agencies/${agencyId}`, {
+    headers: { "X-Confirm-Delete": confirm },
+  });
 }
 
 // ============================================================
@@ -1537,7 +1688,7 @@ export async function getAgencySettings(): Promise<AgencySettingsResponse> {
 // ============================================================
 
 import type { AvailableDriver } from "@/app/(agency)/agency/deliveries/new/_components/types";
-import { MOCK_DRIVERS } from "@/app/(agency)/agency/deliveries/new/_components/types";
+
 
 // ── Backend courier list item schema ──
 
@@ -1608,25 +1759,18 @@ export async function getAvailableCouriers(
   agencyId: string,
   filters?: { search?: string },
 ): Promise<AvailableDriver[]> {
-  if (!agencyId) return MOCK_DRIVERS;
+  const params: Record<string, string | number | boolean | undefined> = {
+    per_page: 50,
+  };
+  if (filters?.search) params.search = filters.search;
 
-  try {
-    const params: Record<string, string | number | boolean | undefined> = {
-      per_page: 50,
-    };
-    if (filters?.search) params.search = filters.search;
+  const raw = await api.get<z.infer<typeof backendCouriersResponseSchema>>(
+    `agencies/${agencyId}/couriers`,
+    { params },
+  );
 
-    const raw = await api.get<z.infer<typeof backendCouriersResponseSchema>>(
-      `agencies/${agencyId}/couriers`,
-      { params },
-    );
-
-    const validated = backendCouriersResponseSchema.parse(raw);
-    return validated.data.couriers.map(_transformCourierToAvailableDriver);
-  } catch (error) {
-    console.error("[agency/couriers] API error — falling back to mock:", error);
-    return MOCK_DRIVERS;
-  }
+  const validated = backendCouriersResponseSchema.parse(raw);
+  return validated.data.couriers.map(_transformCourierToAvailableDriver);
 }
 
 // ============================================================

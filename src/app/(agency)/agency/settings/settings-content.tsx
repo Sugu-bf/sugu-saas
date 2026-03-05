@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -20,8 +20,10 @@ import {
   Globe,
   MessageCircle,
   Facebook,
+  Loader2,
 } from "lucide-react";
 import type { AgencySettingsResponse } from "@/features/agency/schema";
+import { useUpdateAgencySettings } from "@/features/agency/hooks";
 import { AccountTab } from "./tabs/account-tab";
 import { VehiclesTab } from "./tabs/vehicles-tab";
 import { ZonesTab } from "./tabs/zones-tab";
@@ -124,14 +126,17 @@ function FieldInput({
   value,
   disabled,
   className,
+  name,
 }: {
   value: string;
   disabled?: boolean;
   className?: string;
+  name?: string;
 }) {
   return (
     <input
       type="text"
+      name={name}
       defaultValue={value}
       disabled={disabled}
       className={cn(
@@ -164,7 +169,13 @@ function SocialIcon({ icon }: { icon: string }) {
 // Mon agence tab content
 // ────────────────────────────────────────────────────────────
 
-function AgencyTab({ data }: { data: AgencySettingsResponse }) {
+function AgencyTab({
+  data,
+  onFieldChange,
+}: {
+  data: AgencySettingsResponse;
+  onFieldChange: () => void;
+}) {
   const [scheduleState, setScheduleState] = useState(data.schedule);
   const [vehicles, setVehicles] = useState(data.vehicles);
   const [sameHours, setSameHours] = useState(data.sameHoursWeekdays);
@@ -206,16 +217,16 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
             <div className="flex-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <FieldLabel required>Nom de l&apos;agence</FieldLabel>
-                <FieldInput value={data.agencyName} />
+                <FieldInput value={data.agencyName} name="agencyName" />
               </div>
               <div>
                 <FieldLabel>Sigle / Nom court</FieldLabel>
-                <FieldInput value={data.shortName} />
+                <FieldInput value={data.shortName} name="shortName" />
               </div>
               <div className="sm:col-span-2">
                 <FieldLabel required>Email de l&apos;agence</FieldLabel>
                 <div className="relative">
-                  <FieldInput value={data.email} />
+                  <FieldInput value={data.email} name="email" />
                   {data.emailVerified && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-bold text-green-600 dark:bg-green-950/30">
                       <CheckCircle2 className="h-3 w-3" />
@@ -228,16 +239,16 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                 <FieldLabel required>Téléphone principal</FieldLabel>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm">🇲🇱</span>
-                  <FieldInput value={data.phonePrimary} className="pl-8" />
+                  <FieldInput value={data.phonePrimary} className="pl-8" name="phonePrimary" />
                 </div>
               </div>
               <div>
                 <FieldLabel>Téléphone secondaire</FieldLabel>
-                <FieldInput value={data.phoneSecondary} />
+                <FieldInput value={data.phoneSecondary} name="phoneSecondary" />
               </div>
               <div>
                 <FieldLabel required>Numéro RCCM / NIF</FieldLabel>
-                <FieldInput value={data.rccm} />
+                <FieldInput value={data.rccm} name="rccm" />
               </div>
               <div>
                 <FieldLabel>Date de création</FieldLabel>
@@ -256,15 +267,15 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="sm:col-span-3">
               <FieldLabel required>Adresse du siège</FieldLabel>
-              <FieldInput value={data.address} />
+              <FieldInput value={data.address} name="address" />
             </div>
             <div>
               <FieldLabel required>Ville</FieldLabel>
-              <FieldInput value={data.city} />
+              <FieldInput value={data.city} name="city" />
             </div>
             <div>
               <FieldLabel required>Quartier</FieldLabel>
-              <FieldInput value={data.quartier} />
+              <FieldInput value={data.quartier} name="quartier" />
             </div>
             <div>
               <FieldLabel>Pays</FieldLabel>
@@ -276,10 +287,12 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
             <div className="sm:col-span-3">
               <FieldLabel>Description de l&apos;emplacement</FieldLabel>
               <textarea
+                name="locationDescription"
                 defaultValue={data.locationDescription}
                 placeholder="Description de l'emplacement"
                 rows={2}
                 className="form-input py-2 text-sm resize-none"
+                onChange={onFieldChange}
               />
             </div>
           </div>
@@ -294,7 +307,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <FieldLabel required>Type d&apos;agence</FieldLabel>
-              <select defaultValue={data.agencyType} className="form-input py-2 text-sm">
+              <select name="agencyType" defaultValue={data.agencyType} className="form-input py-2 text-sm" onChange={onFieldChange}>
                 <option>Livraison express</option>
                 <option>Livraison standard</option>
                 <option>Coursier</option>
@@ -302,7 +315,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
             </div>
             <div>
               <FieldLabel>Capacité journalière</FieldLabel>
-              <FieldInput value={data.dailyCapacity} />
+              <FieldInput value={data.dailyCapacity} name="dailyCapacity" />
             </div>
           </div>
 
@@ -315,6 +328,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                   const next = [...vehicles];
                   next[i] = { ...next[i], selected: !next[i].selected };
                   setVehicles(next);
+                  onFieldChange();
                 }}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
@@ -332,9 +346,11 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
           <div className="mt-3">
             <FieldLabel>Description de l&apos;agence</FieldLabel>
             <textarea
+              name="description"
               defaultValue={data.description}
               rows={3}
               className="form-input py-2 text-sm resize-none"
+              onChange={onFieldChange}
             />
           </div>
         </section>
@@ -361,6 +377,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                     const next = [...scheduleState];
                     next[i] = { ...next[i], enabled: !next[i].enabled };
                     setScheduleState(next);
+                    onFieldChange();
                   }}
                 />
                 {day.enabled ? (
@@ -369,12 +386,24 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                       type="time"
                       defaultValue={day.openTime}
                       className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                      onChange={(e) => {
+                        const next = [...scheduleState];
+                        next[i] = { ...next[i], openTime: e.target.value };
+                        setScheduleState(next);
+                        onFieldChange();
+                      }}
                     />
                     <span className="text-[10px] text-gray-400">à</span>
                     <input
                       type="time"
                       defaultValue={day.closeTime}
                       className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                      onChange={(e) => {
+                        const next = [...scheduleState];
+                        next[i] = { ...next[i], closeTime: e.target.value };
+                        setScheduleState(next);
+                        onFieldChange();
+                      }}
                     />
                   </div>
                 ) : (
@@ -389,7 +418,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
               <input
                 type="checkbox"
                 checked={sameHours}
-                onChange={() => setSameHours(!sameHours)}
+                onChange={() => { setSameHours(!sameHours); onFieldChange(); }}
                 className="h-3.5 w-3.5 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500"
               />
               Appliquer les mêmes horaires Lun-Ven
@@ -399,7 +428,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                 <input
                   type="checkbox"
                   checked={afterHours}
-                  onChange={() => setAfterHours(!afterHours)}
+                  onChange={() => { setAfterHours(!afterHours); onFieldChange(); }}
                   className="h-3.5 w-3.5 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500"
                 />
                 <span>
@@ -410,7 +439,7 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
                   </span>
                 </span>
               </label>
-              <Toggle checked={afterHours} label="Après horaires" onChange={() => setAfterHours(!afterHours)} />
+              <Toggle checked={afterHours} label="Après horaires" onChange={() => { setAfterHours(!afterHours); onFieldChange(); }} />
             </div>
           </div>
         </section>
@@ -448,6 +477,12 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
           </div>
         </section>
       </div>
+
+      {/* Hidden fields for collecting React state on submit */}
+      <input type="hidden" name="__vehicles" value={JSON.stringify(vehicles)} />
+      <input type="hidden" name="__schedule" value={JSON.stringify(scheduleState)} />
+      <input type="hidden" name="__sameHoursWeekdays" value={String(sameHours)} />
+      <input type="hidden" name="__acceptAfterHours" value={String(afterHours)} />
     </div>
   );
 }
@@ -460,9 +495,75 @@ function AgencyTab({ data }: { data: AgencySettingsResponse }) {
 
 export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("agency");
-  const [hasChanges] = useState(true);
+  const [hasChanges, setHasChanges] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const updateMutation = useUpdateAgencySettings();
+
+  // Called by AgencyTab when any field changes
+  const markDirty = useCallback(() => {
+    if (!hasChanges) setHasChanges(true);
+  }, [hasChanges]);
+
+  // Listen for input changes on the form to track dirty state
+  const handleFormChange = useCallback(() => {
+    if (!hasChanges) setHasChanges(true);
+  }, [hasChanges]);
+
+  // Collect form data and submit via mutation
+  const handleSave = useCallback(() => {
+    if (!formRef.current || activeTab !== "agency") return;
+
+    const fd = new FormData(formRef.current);
+
+    // Parse hidden JSON fields for React-controlled state
+    let vehicles = data.vehicles;
+    let schedule = data.schedule;
+    let sameHoursWeekdays = data.sameHoursWeekdays;
+    let acceptAfterHours = data.acceptAfterHours;
+
+    try { vehicles = JSON.parse(fd.get("__vehicles") as string); } catch { /* noop */ }
+    try { schedule = JSON.parse(fd.get("__schedule") as string); } catch { /* noop */ }
+    sameHoursWeekdays = fd.get("__sameHoursWeekdays") === "true";
+    acceptAfterHours = fd.get("__acceptAfterHours") === "true";
+
+    const payload = {
+      agencyName: (fd.get("agencyName") as string) || undefined,
+      shortName: (fd.get("shortName") as string) || undefined,
+      email: (fd.get("email") as string) || undefined,
+      phonePrimary: (fd.get("phonePrimary") as string) || undefined,
+      phoneSecondary: (fd.get("phoneSecondary") as string) || undefined,
+      rccm: (fd.get("rccm") as string) || undefined,
+      address: (fd.get("address") as string) || undefined,
+      city: (fd.get("city") as string) || undefined,
+      quartier: (fd.get("quartier") as string) || undefined,
+      locationDescription: (fd.get("locationDescription") as string) || undefined,
+      agencyType: (fd.get("agencyType") as string) || undefined,
+      dailyCapacity: (fd.get("dailyCapacity") as string) || undefined,
+      description: (fd.get("description") as string) || undefined,
+      vehicles,
+      schedule,
+      sameHoursWeekdays,
+      acceptAfterHours,
+    };
+
+    updateMutation.mutate(payload, {
+      onSuccess: () => {
+        setHasChanges(false);
+      },
+    });
+  }, [activeTab, data, updateMutation]);
+
+  // Reset the form to original values
+  const handleCancel = useCallback(() => {
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    setHasChanges(false);
+  }, []);
 
   const showFooter = hasChanges && activeTab !== "subscription" && activeTab !== "delete";
+  const isSaving = updateMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -476,9 +577,20 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
             Dernière sauvegarde: {data.lastSaved}
             <span className="h-2 w-2 rounded-full bg-green-500" />
           </span>
-          <button className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all">
-            <Save className="h-3.5 w-3.5" />
-            Sauvegarder tout
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !hasChanges}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+              (isSaving || !hasChanges) && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            {isSaving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            {isSaving ? "Sauvegarde…" : "Sauvegarder tout"}
           </button>
         </div>
       </header>
@@ -516,7 +628,11 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
 
         {/* Tab content */}
         <div className="min-w-0 flex-1">
-          {activeTab === "agency" && <AgencyTab data={data} />}
+          {activeTab === "agency" && (
+            <form ref={formRef} onChange={handleFormChange} onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <AgencyTab data={data} onFieldChange={markDirty} />
+            </form>
+          )}
           {activeTab === "account" && <AccountTab />}
           {activeTab === "vehicles" && <VehiclesTab />}
           {activeTab === "zones" && <ZonesTab />}
@@ -528,6 +644,21 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
         </div>
       </div>
 
+      {/* ══ Success toast indicator ══ */}
+      {updateMutation.isSuccess && !hasChanges && (
+        <div className="fixed bottom-6 right-6 z-50 animate-card-enter inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg">
+          <CheckCircle2 className="h-4 w-4" />
+          Paramètres sauvegardés
+        </div>
+      )}
+
+      {/* ══ Error indicator ══ */}
+      {updateMutation.isError && (
+        <div className="fixed bottom-6 right-6 z-50 animate-card-enter inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg">
+          ⚠️ Erreur lors de la sauvegarde
+        </div>
+      )}
+
       {/* ══ Footer bar (unsaved changes) ══ */}
       {showFooter && (
         <footer className="glass-card rounded-2xl px-5 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-card-enter">
@@ -538,12 +669,27 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
             <span className="font-semibold">Modifications non sauvegardées</span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            >
               Annuler les modifications
             </button>
-            <button className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all">
-              <Save className="h-3.5 w-3.5" />
-              Sauvegarder les modifications
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+                isSaving && "opacity-50 cursor-not-allowed",
+              )}
+            >
+              {isSaving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {isSaving ? "Sauvegarde…" : "Sauvegarder les modifications"}
             </button>
           </div>
         </footer>

@@ -77,5 +77,7 @@ export const queryKeys = {
       [...queryKeys.agency.all, "drivers", "detail", id] as const,
     statistics: (period?: string) =>
       [...queryKeys.agency.all, "statistics", period] as const,
+    settings: () =>
+      [...queryKeys.agency.all, "settings"] as const,
   },
 } as const;

@@ -1,12 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Monitor, Smartphone } from "lucide-react";
+import { Monitor, Smartphone, Loader2, CheckCircle2 } from "lucide-react";
+import { useUpdatePassword } from "@/features/agency/hooks";
 
 export function SecurityTab() {
   const [pwStrength, setPwStrength] = useState(0); // 0=empty, 1=weak, 2=medium, 3=strong
   const [twoFa, setTwoFa] = useState(false);
+
+  const currentPwRef = useRef<HTMLInputElement>(null);
+  const newPwRef = useRef<HTMLInputElement>(null);
+  const confirmPwRef = useRef<HTMLInputElement>(null);
+
+  const passwordMutation = useUpdatePassword();
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  const handlePasswordSubmit = () => {
+    setPwError(null);
+    setPwSuccess(false);
+
+    const current_password = currentPwRef.current?.value ?? "";
+    const password = newPwRef.current?.value ?? "";
+    const password_confirmation = confirmPwRef.current?.value ?? "";
+
+    if (!current_password || !password || !password_confirmation) {
+      setPwError("Veuillez remplir tous les champs.");
+      return;
+    }
+    if (password !== password_confirmation) {
+      setPwError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    if (password.length < 8) {
+      setPwError("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+
+    passwordMutation.mutate(
+      { current_password, password, password_confirmation },
+      {
+        onSuccess: () => {
+          setPwSuccess(true);
+          if (currentPwRef.current) currentPwRef.current.value = "";
+          if (newPwRef.current) newPwRef.current.value = "";
+          if (confirmPwRef.current) confirmPwRef.current.value = "";
+          setPwStrength(0);
+        },
+        onError: (err) => {
+          const message = (err as Error).message ?? "Erreur lors du changement de mot de passe.";
+          setPwError(message);
+        },
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -18,11 +66,12 @@ export function SecurityTab() {
         <div className="space-y-3 max-w-md">
           <div>
             <label className="block text-[11px] font-medium text-gray-500 mb-1">Mot de passe actuel</label>
-            <input type="password" placeholder="••••••••" className="form-input py-2 text-sm" />
+            <input ref={currentPwRef} type="password" placeholder="••••••••" className="form-input py-2 text-sm" />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 mb-1">Nouveau mot de passe</label>
             <input
+              ref={newPwRef}
               type="password"
               placeholder="••••••••"
               className="form-input py-2 text-sm"
@@ -58,10 +107,35 @@ export function SecurityTab() {
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 mb-1">Confirmer le mot de passe</label>
-            <input type="password" placeholder="••••••••" className="form-input py-2 text-sm" />
+            <input ref={confirmPwRef} type="password" placeholder="••••••••" className="form-input py-2 text-sm" />
           </div>
-          <button className="rounded-full border border-sugu-300 bg-white px-5 py-2 text-xs font-semibold text-sugu-600 hover:bg-sugu-50 dark:border-sugu-700 dark:bg-gray-900">
-            Mettre à jour
+
+          {pwError && (
+            <p className="text-[11px] font-medium text-red-500">{pwError}</p>
+          )}
+          {pwSuccess && (
+            <p className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600">
+              <CheckCircle2 className="h-3 w-3" />
+              Mot de passe modifié avec succès
+            </p>
+          )}
+
+          <button
+            onClick={handlePasswordSubmit}
+            disabled={passwordMutation.isPending}
+            className={cn(
+              "rounded-full border border-sugu-300 bg-white px-5 py-2 text-xs font-semibold text-sugu-600 hover:bg-sugu-50 dark:border-sugu-700 dark:bg-gray-900",
+              passwordMutation.isPending && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            {passwordMutation.isPending ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Mise à jour…
+              </span>
+            ) : (
+              "Mettre à jour"
+            )}
           </button>
           <p className="text-[10px] text-gray-400">Dernière modification : il y a 2 mois</p>
         </div>
