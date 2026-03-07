@@ -1,4 +1,4 @@
-export { getVendorDashboard, getVendorOrders, getVendorProducts, getVendorProductDetail, getVendorOrderDetail, getVendorClients, getVendorClientDetail, createClientFromClientsPage, exportVendorClients, getVendorInventory, addInventoryStock, exportInventoryCSV, getVendorStats, getVendorSettings, updateSettingsIdentity, updateSettingsContact, buildContactRequest, buildIdentityRequest, updateSettingsLegal, updateSettingsOperations, updateSettingsNotifications, updateSettingsPassword, toggleSettings2FA, revokeSettingsSession, revokeOtherSettingsSessions, deactivateSettingsAccount, deleteSettingsAccount, getVendorMarketing, getVendorTickets, getTicketDetail, getTicketMessages, createTicket, sendTicketMessage, closeTicket, confirmOrder, cancelOrder, requestOrderDelivery, searchVendorProducts, searchVendorCustomers, createVendorCustomer, createVendorOrder, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, toggleCouponStatus, createCoupon, createPromotion, updatePromotion, deletePromotion, getAllVendorProducts } from "./service";
+export { getVendorDashboard, getVendorOrders, getVendorProducts, getVendorProductDetail, getVendorOrderDetail, getVendorClients, getVendorClientDetail, createClientFromClientsPage, exportVendorClients, getVendorInventory, addInventoryStock, exportInventoryCSV, getVendorStats, getVendorSettings, updateSettingsIdentity, updateSettingsContact, buildContactRequest, buildIdentityRequest, updateSettingsLegal, updateSettingsOperations, updateSettingsNotifications, updateSettingsPassword, toggleSettings2FA, revokeSettingsSession, revokeOtherSettingsSessions, deactivateSettingsAccount, deleteSettingsAccount, getVendorMarketing, getVendorTickets, getTicketDetail, getTicketMessages, createTicket, sendTicketMessage, closeTicket, confirmOrder, cancelOrder, requestOrderDelivery, searchVendorProducts, searchVendorCustomers, createVendorCustomer, createVendorOrder, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, toggleCouponStatus, createCoupon, createPromotion, updatePromotion, deletePromotion, getAllVendorProducts, getVendorWallet, requestPayout, getPayoutSettings, submitWithdrawal } from "./service";
 export type {
   VendorDashboardData,
   KpiCard,
@@ -79,4 +79,14 @@ export type {
   UpdatePasswordRequest,
   DeactivateAccountRequest,
   DeleteAccountRequest,
+  VendorWalletData,
+  WalletKpi,
+  WalletEntry,
+  WalletEntryType,
+  PayoutMethod,
+  NextPayout,
+  WalletRevenuePoint,
+  PayoutSetting,
+  WithdrawalRequest,
+  WithdrawalResponse,
 } from "./schema";

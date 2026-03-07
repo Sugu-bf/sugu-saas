@@ -92,6 +92,11 @@ export {
   createTicket,
   sendTicketMessage,
   closeTicket,
+  // Wallet
+  getVendorWallet,
+  requestPayout,
+  getPayoutSettings,
+  submitWithdrawal,
 } from "./services";
 
 export type {

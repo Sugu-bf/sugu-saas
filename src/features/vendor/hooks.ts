@@ -1496,3 +1496,58 @@ export function useCloseTicket() {
   });
 }
 
+// ────────────────────────────────────────────────────────────
+// Wallet
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Hook: Vendor wallet data (KPIs, chart, transactions, payout info).
+ * staleTime 30s for near-realtime balance display.
+ */
+export function useVendorWallet() {
+  return useQuery({
+    queryKey: queryKeys.vendor.wallet(),
+    queryFn: () => vendorService.getVendorWallet(),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook: Request a payout withdrawal.
+ * Invalidates wallet cache on success so balance refreshes.
+ */
+export function useRequestPayout() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (amount: number) => vendorService.requestPayout(amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.vendor.wallet() });
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// Wallet — Payout Settings & Withdrawal
+// ────────────────────────────────────────────────────────────
+
+/** Hook: Fetch payout settings (payment methods). */
+export function usePayoutSettings() {
+  return useQuery({
+    queryKey: queryKeys.vendor.payoutSettings(),
+    queryFn: () => vendorService.getPayoutSettings(),
+  });
+}
+
+/** Hook: Submit withdrawal request. Invalidates wallet cache on success. */
+export function useSubmitWithdrawal() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { amount: number; payoutSettingId: string }) =>
+      vendorService.submitWithdrawal(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.vendor.wallet() });
+    },
+  });
+}

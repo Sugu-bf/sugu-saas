@@ -1377,3 +1377,112 @@ export const imagePreviewResponseSchema = z.object({
 });
 
 export type ImagePreviewResponse = z.infer<typeof imagePreviewResponseSchema>;
+
+// ────────────────────────────────────────────────────────────
+// Wallet Schemas
+// ────────────────────────────────────────────────────────────
+
+/** Wallet entry type */
+export const walletEntryTypeSchema = z.enum(["credit", "debit"]);
+export type WalletEntryType = z.infer<typeof walletEntryTypeSchema>;
+
+/** Single wallet entry (transaction) */
+export const walletEntrySchema = z.object({
+  id: z.string(),
+  type: walletEntryTypeSchema,
+  amount: z.number(),
+  description: z.string(),
+  referenceType: z.string().nullable(),
+  referenceId: z.string().nullable(),
+  status: z.string(),
+  date: z.string(),
+  dateRaw: z.string(),
+});
+export type WalletEntry = z.infer<typeof walletEntrySchema>;
+
+/** Wallet KPI */
+export const walletKpiSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),
+  subValue: z.string().optional(),
+  badge: z.string().optional(),
+  badgeColor: z.string().optional(),
+  icon: z.string(),
+  gradient: z.string(),
+  iconBg: z.string(),
+});
+export type WalletKpi = z.infer<typeof walletKpiSchema>;
+
+/** Payout method */
+export const payoutMethodSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  providerLabel: z.string(),
+  accountMasked: z.string(),
+  isDefault: z.boolean(),
+});
+export type PayoutMethod = z.infer<typeof payoutMethodSchema>;
+
+/** Revenue chart point (wallet) */
+export const walletRevenuePointSchema = z.object({
+  day: z.string(),
+  value: z.number(),
+});
+export type WalletRevenuePoint = z.infer<typeof walletRevenuePointSchema>;
+
+/** Next payout info */
+export const nextPayoutSchema = z.object({
+  amount: z.number(),
+  scheduledDate: z.string(),
+  method: payoutMethodSchema.nullable(),
+  minThreshold: z.number(),
+});
+export type NextPayout = z.infer<typeof nextPayoutSchema>;
+
+/** Full wallet page response */
+export const vendorWalletDataSchema = z.object({
+  kpis: z.array(walletKpiSchema),
+  revenueChart: z.array(walletRevenuePointSchema),
+  nextPayout: nextPayoutSchema,
+  transactions: z.array(walletEntrySchema),
+  payoutMethods: z.array(payoutMethodSchema),
+});
+export type VendorWalletData = z.infer<typeof vendorWalletDataSchema>;
+
+// ────────────────────────────────────────────────────────────
+// Withdrawal Request Schemas
+// ────────────────────────────────────────────────────────────
+
+/** Payout setting (backend model mapped) */
+export const payoutSettingSchema = z.object({
+  id: z.string(),
+  type: z.enum(["mobile_money", "bank_transfer"]),
+  provider: z.string().nullable(),
+  providerLabel: z.string(),
+  accountMasked: z.string(),
+  bankName: z.string().nullable(),
+  isDefault: z.boolean(),
+  status: z.number(),
+  addedDate: z.string(),
+});
+export type PayoutSetting = z.infer<typeof payoutSettingSchema>;
+
+/** Withdrawal request payload */
+export const withdrawalRequestSchema = z.object({
+  amount: z.number().min(10000),
+  payoutSettingId: z.string(),
+  note: z.string().optional(),
+});
+export type WithdrawalRequest = z.infer<typeof withdrawalRequestSchema>;
+
+/** Withdrawal response */
+export const withdrawalResponseSchema = z.object({
+  id: z.string(),
+  amount: z.number(),
+  fee: z.number(),
+  netAmount: z.number(),
+  status: z.string(),
+  estimatedDate: z.string(),
+});
+export type WithdrawalResponse = z.infer<typeof withdrawalResponseSchema>;

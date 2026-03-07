@@ -61,6 +61,12 @@ export const queryKeys = {
       [...queryKeys.vendor.all, "tickets", "messages", ticketId] as const,
     ticketCounts: () =>
       [...queryKeys.vendor.all, "tickets", "counts"] as const,
+    wallet: () =>
+      [...queryKeys.vendor.all, "wallet"] as const,
+    walletTransactions: (filters?: Record<string, unknown>) =>
+      [...queryKeys.vendor.all, "wallet", "transactions", filters] as const,
+    payoutSettings: () =>
+      [...queryKeys.vendor.all, "wallet", "payout-settings"] as const,
   },
   agency: {
     all: ["agency"] as const,

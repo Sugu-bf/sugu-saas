@@ -18,6 +18,7 @@ import {
   Sparkles,
   Megaphone,
   MessageSquare,
+  Wallet,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import type { UserRole } from "@/types";
@@ -47,6 +48,7 @@ const vendorSections: SideNavSection[] = [
       { label: "Clients", href: "/vendor/clients", icon: <Users className="h-5 w-5" /> },
       { label: "Inventaire", href: "/vendor/inventory", icon: <Warehouse className="h-5 w-5" />, badge: 2 },
       { label: "Statistiques", href: "/vendor/statistics", icon: <BarChart3 className="h-5 w-5" /> },
+      { label: "Portefeuille", href: "/vendor/wallet", icon: <Wallet className="h-5 w-5" /> },
       { label: "Marketing", href: "/vendor/marketing", icon: <Megaphone className="h-5 w-5" /> },
     ],
   },
