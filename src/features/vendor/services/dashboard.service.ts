@@ -7,7 +7,7 @@ import {
   type VendorDashboardData,
 } from "../schema";
 import { api } from "@/lib/http/client";
-import { normalizeStatus, STATUS_LABELS, PRODUCT_EMOJIS } from "./_shared";
+import { normalizeStatus, STATUS_LABELS } from "./_shared";
 
 // ── Raw API Types ──────────────────────────────────────────
 
@@ -40,6 +40,7 @@ interface RawDashboardResponse {
     topProducts: Array<{
       id: string;
       name: string;
+      image: string;
       sales: number;
       revenue: number;
     }>;
@@ -156,10 +157,10 @@ function _transformDashboardResponse(
     };
   });
 
-  const topProducts = (raw.topProducts ?? []).map((product, i) => ({
+  const topProducts = (raw.topProducts ?? []).map((product) => ({
     id: product.id,
     name: product.name,
-    emoji: PRODUCT_EMOJIS[i % PRODUCT_EMOJIS.length],
+    image: product.image ?? "",
     salesCount: product.sales,
     revenue: product.revenue,
   }));
@@ -169,7 +170,7 @@ function _transformDashboardResponse(
     .map((s, i) => ({
       id: `stock-alert-${i + 1}`,
       name: s.label,
-      emoji: s.status === "out_of_stock" ? "🚨" : "⚠️",
+      icon: s.status === "out_of_stock" ? "alert-circle" : "alert-triangle",
       remaining: s.count,
       level: s.status === "out_of_stock" ? ("critical" as const) : ("low" as const),
     }));

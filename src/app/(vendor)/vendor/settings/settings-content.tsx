@@ -5,14 +5,12 @@ import { cn } from "@/lib/utils";
 import type {
   VendorSettings,
   SocialLink,
-  BusinessHour,
 } from "@/features/vendor/schema";
 import {
   useVendorSettings,
   useUpdateIdentity,
   useUpdateContact,
   useUpdateProfile,
-  useUpdateBusinessHours,
 } from "@/features/vendor/hooks";
 import {
   buildIdentityRequest,
@@ -44,7 +42,6 @@ import {
   Check,
   AlertTriangle,
   Save,
-  Clock,
   Globe,
   MessageCircle,
   Facebook,
@@ -52,6 +49,9 @@ import {
   Upload,
   Scale,
   Loader2,
+  Phone,
+  Languages,
+  Store,
 } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
@@ -174,16 +174,12 @@ export function SettingsContent({ data }: SettingsContentProps) {
   const [shop, setShop] = useState(data.shop);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(data.socialLinks);
   const [showSocialOnShop, setShowSocialOnShop] = useState(data.showSocialOnShop);
-  const [businessHours, setBusinessHours] = useState<BusinessHour[]>(data.businessHours);
-  const [showHoursOnShop, setShowHoursOnShop] = useState(data.showHoursOnShop);
-  const [sameHoursEveryday, setSameHoursEveryday] = useState(data.sameHoursEveryday);
 
   // Mutation hooks
   const updateIdentityMutation = useUpdateIdentity();
   const updateContactMutation = useUpdateContact();
   const updateProfileMutation = useUpdateProfile();
-  const updateBusinessHoursMutation = useUpdateBusinessHours();
-  const isSaving = updateIdentityMutation.isPending || updateContactMutation.isPending || updateProfileMutation.isPending || updateBusinessHoursMutation.isPending;
+  const isSaving = updateIdentityMutation.isPending || updateContactMutation.isPending || updateProfileMutation.isPending;
 
   const copySlug = () => {
     navigator.clipboard?.writeText(`${shop.baseUrl}${shop.slug}`);
@@ -211,15 +207,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
     setHasChanges(true);
   };
 
-  const toggleBusinessHour = (idx: number) => {
-    setBusinessHours((prev) => prev.map((h, i) => (i === idx ? { ...h, enabled: !h.enabled } : h)));
-    setHasChanges(true);
-  };
 
-  const updateHourField = (idx: number, field: "openTime" | "closeTime", value: string) => {
-    setBusinessHours((prev) => prev.map((h, i) => (i === idx ? { ...h, [field]: value } : h)));
-    setHasChanges(true);
-  };
 
   /** Save profile tab: calls identity + contact + profile + business hours mutations in parallel */
   const handleSaveProfile = async () => {
@@ -228,12 +216,6 @@ export function SettingsContent({ data }: SettingsContentProps) {
         updateIdentityMutation.mutateAsync(buildIdentityRequest(shop)),
         updateContactMutation.mutateAsync(buildContactRequest(profile, shop, socialLinks)),
         updateProfileMutation.mutateAsync(buildProfileRequest(profile)),
-        updateBusinessHoursMutation.mutateAsync({
-          businessHours,
-          showHoursOnShop,
-          sameHoursEveryday,
-          showSocialOnShop,
-        }),
       ]);
       setHasChanges(false);
     } catch (err) {
@@ -247,9 +229,6 @@ export function SettingsContent({ data }: SettingsContentProps) {
     setShop(data.shop);
     setSocialLinks(data.socialLinks);
     setShowSocialOnShop(data.showSocialOnShop);
-    setBusinessHours(data.businessHours);
-    setShowHoursOnShop(data.showHoursOnShop);
-    setSameHoursEveryday(data.sameHoursEveryday);
     setHasChanges(false);
   };
 
@@ -365,7 +344,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                   {/* Phones */}
                   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Téléphone">
-                      <PillInput value={profile.phone} onChange={(v) => updateProfile("phone", v)} prefix="🇲🇱" />
+                      <PillInput value={profile.phone} onChange={(v) => updateProfile("phone", v)} prefix={<Phone className="h-3.5 w-3.5 text-gray-400" />} />
                     </Field>
                     <Field label="Téléphone secondaire">
                       <PillInput value={profile.phoneSecondary ?? ""} onChange={(v) => updateProfile("phoneSecondary", v)} placeholder="Optionnel" />
@@ -375,7 +354,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                   {/* Language & Timezone */}
                   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Langue">
-                      <PillSelect value={profile.language} onChange={(v) => updateProfile("language", v)} prefix="🇫🇷" options={[{ value: "Français", label: "Français" }, { value: "English", label: "English" }]} />
+                      <PillSelect value={profile.language} onChange={(v) => updateProfile("language", v)} prefix={<Languages className="h-3.5 w-3.5 text-gray-400" />} options={[{ value: "Français", label: "Français" }, { value: "English", label: "English" }]} />
                     </Field>
                     <Field label="Fuseau horaire">
                       <PillSelect value={profile.timezone} onChange={(v) => updateProfile("timezone", v)} options={[
@@ -434,7 +413,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Bannière de la boutique</p>
                       <div className="mt-2">
                         <div className="relative h-20 overflow-hidden rounded-xl bg-gradient-to-r from-amber-100 to-sugu-100 dark:from-amber-900/20 dark:to-sugu-900/20">
-                          <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl opacity-40">🏪</span></div>
+                          <div className="absolute inset-0 flex items-center justify-center"><Store className="h-8 w-8 text-gray-400 opacity-40" /></div>
                         </div>
                         <div className="mt-2 flex items-center gap-3">
                           <PillButton variant="outline" size="sm"><Upload className="h-3 w-3" /> Changer la bannière</PillButton>
@@ -500,38 +479,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                   </div>
                 </SectionCard>
 
-                {/* Business Hours */}
-                <SectionCard title="" id="hours-section">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Horaires d&apos;ouverture</h3>
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    {businessHours.map((hour, idx) => (
-                      <div key={hour.day} className="flex items-center gap-3">
-                        <span className="w-20 text-sm font-medium text-gray-700 dark:text-gray-300">{hour.day}</span>
-                        <Toggle checked={hour.enabled} onChange={() => toggleBusinessHour(idx)} label={`${hour.day} ouvert`} />
-                        {hour.enabled ? (
-                          <div className="flex items-center gap-1.5">
-                            <input type="time" value={hour.openTime} onChange={(e) => updateHourField(idx, "openTime", e.target.value)} className="rounded-full border border-white/60 bg-white/50 px-2.5 py-1 text-xs text-gray-700 backdrop-blur focus:border-sugu-300 focus:outline-none focus:ring-1 focus:ring-sugu-500/20 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200" aria-label={`${hour.day} heure ouverture`} />
-                            <span className="text-xs text-gray-400">-</span>
-                            <input type="time" value={hour.closeTime} onChange={(e) => updateHourField(idx, "closeTime", e.target.value)} className="rounded-full border border-white/60 bg-white/50 px-2.5 py-1 text-xs text-gray-700 backdrop-blur focus:border-sugu-300 focus:outline-none focus:ring-1 focus:ring-sugu-500/20 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200" aria-label={`${hour.day} heure fermeture`} />
-                          </div>
-                        ) : (
-                          <span className="text-xs italic text-gray-400 dark:text-gray-500">Fermé</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <label className="mt-4 flex cursor-pointer items-center gap-2.5">
-                    <input type="checkbox" checked={sameHoursEveryday} onChange={() => { setSameHoursEveryday(!sameHoursEveryday); setHasChanges(true); }} className="h-4 w-4 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500 dark:border-gray-600" />
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Appliquer les mêmes horaires à tous les jours</span>
-                  </label>
-                  <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50/80 px-3 py-2.5 dark:bg-gray-800/30">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Afficher les horaires sur ma boutique</span>
-                    <Toggle checked={showHoursOnShop} onChange={() => { setShowHoursOnShop(!showHoursOnShop); setHasChanges(true); }} label="Afficher les horaires" />
-                  </div>
-                </SectionCard>
+
               </aside>
             </div>
           )}

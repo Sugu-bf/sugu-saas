@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SectionCard, Toggle, PillInput, PillButton, Field } from "./settings-ui";
-import { ExternalLink, Loader2, Save } from "lucide-react";
+import { ExternalLink, Loader2, Save, CheckCircle2 } from "lucide-react";
 import { useUpdateLegal, useVendorSettings } from "@/features/vendor/hooks";
 
 // ────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ export function TabLegal() {
           Sauvegarder les informations légales
         </PillButton>
         {saveSuccess && (
-          <span className="text-xs text-green-600">✅ Informations sauvegardées</span>
+          <span className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> Informations sauvegardées</span>
         )}
       </div>
     </div>

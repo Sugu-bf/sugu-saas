@@ -59,7 +59,7 @@ export type RecentOrder = z.infer<typeof recentOrderSchema>;
 export const topProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  emoji: z.string(),
+  image: z.string(),
   salesCount: z.number(),
   revenue: z.number(),
 });
@@ -70,7 +70,7 @@ export type TopProduct = z.infer<typeof topProductSchema>;
 export const stockAlertSchema = z.object({
   id: z.string(),
   name: z.string(),
-  emoji: z.string(),
+  icon: z.string(),
   remaining: z.number(),
   level: z.enum(["low", "critical"]),
 });

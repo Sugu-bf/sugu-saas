@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SectionCard, Toggle, PillInput, PillBadge, PillButton, Field } from "./settings-ui";
-import { Eye, EyeOff, Shield, Key, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Shield, Key, Loader2, Monitor, MapPin, Clock, CheckCircle2, CircleDot, ShieldOff } from "lucide-react";
 import {
   useUpdatePassword,
   useToggle2FA,
@@ -16,12 +16,7 @@ import {
 // Onglet 5 — Sécurité
 // ────────────────────────────────────────────────────────────
 
-// Login history remains illustrative (no backend endpoint for login history yet)
-const LOGINS = [
-  { date: "24 Fév, 08:15", device: "Chrome/Win", location: "Ouagadougou", ip: "196.••.••.12", status: "success" as const },
-  { date: "23 Fév, 19:30", device: "Safari/iOS", location: "Ouagadougou", ip: "196.••.••.45", status: "success" as const },
-  { date: "22 Fév, 14:00", device: "Firefox/And", location: "Bobo-Dioulasso", ip: "197.••.••.78", status: "success" as const },
-];
+// Login history — no backend endpoint yet, shown as empty state
 
 type PasswordStrength = "weak" | "medium" | "strong";
 
@@ -52,7 +47,7 @@ export function TabSecurity() {
 
   const strength = getStrength(newPwd);
   const strengthColors = { weak: "bg-red-500", medium: "bg-amber-500", strong: "bg-green-500" };
-  const strengthLabels = { weak: "Faible", medium: "Moyen", strong: "Fort ✅" };
+  const strengthLabels = { weak: "Faible", medium: "Moyen", strong: "Fort" };
   const strengthWidths = { weak: "33%", medium: "66%", strong: "100%" };
 
   // Get sessions from the transformed VendorSettings data
@@ -158,7 +153,7 @@ export function TabSecurity() {
             <p className="text-xs text-red-500">{passwordError}</p>
           )}
           {passwordSuccess && (
-            <p className="text-xs text-green-600">✅ Mot de passe mis à jour avec succès.</p>
+            <p className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> Mot de passe mis à jour avec succès.</p>
           )}
           <div className="flex flex-wrap items-center justify-between">
             <PillButton
@@ -182,7 +177,7 @@ export function TabSecurity() {
           {/* 2FA state — currently no toggle on backend, only stub */}
           <>
             <div className="flex items-center gap-2">
-              <PillBadge variant="red">🔴 Désactivé</PillBadge>
+              <PillBadge variant="red"><ShieldOff className="inline h-3 w-3" /> Désactivé</PillBadge>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Ajoutez une couche de sécurité supplémentaire à votre compte en activant la vérification par SMS.
@@ -217,14 +212,14 @@ export function TabSecurity() {
           {apiSessions.length > 0 ? (
             apiSessions.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
-                <span className="text-xl">💻</span>
+                <Monitor className="h-5 w-5 text-gray-400" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{s.device}</span>
-                    {s.current && <PillBadge variant="green">🟢 Session actuelle</PillBadge>}
+                    {s.current && <PillBadge variant="green"><CircleDot className="inline h-3 w-3 text-green-500" /> Session actuelle</PillBadge>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    📍 {s.location} • 🕐 {s.time}
+                    <MapPin className="inline h-3 w-3" /> {s.location} • <Clock className="inline h-3 w-3" /> {s.time}
                   </p>
                 </div>
                 {!s.current && (
@@ -270,33 +265,16 @@ export function TabSecurity() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 5: Historique (static) ─── */}
+      {/* ─── Card 5: Historique de connexion ─── */}
       <SectionCard title="Historique de connexion" id="security-history">
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                {["Date", "Appareil", "Localisation", "IP", "Statut"].map((h) => (
-                  <th key={h} className="py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-              {LOGINS.map((log, idx) => (
-                <tr key={idx} className="transition-colors hover:bg-white/30 dark:hover:bg-white/5">
-                  <td className="py-2.5 text-gray-600 dark:text-gray-400">{log.date}</td>
-                  <td className="py-2.5 text-gray-700 dark:text-gray-300">{log.device}</td>
-                  <td className="py-2.5 text-gray-600 dark:text-gray-400">{log.location}</td>
-                  <td className="py-2.5 font-mono text-xs text-gray-400">{log.ip}</td>
-                  <td className="py-2.5">
-                    <PillBadge variant={log.status === "success" ? "green" : "red"}>
-                      {log.status === "success" ? "✅" : "❌"} {log.status === "success" ? "OK" : "Échec"}
-                    </PillBadge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-4 py-6 text-center">
+          <Clock className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            L&apos;historique de connexion n&apos;est pas encore disponible.
+          </p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            Cette fonctionnalité sera bientôt ajoutée.
+          </p>
         </div>
       </SectionCard>
     </div>

@@ -8,6 +8,8 @@ import {
   Package,
   Star,
   Bell,
+  AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
@@ -70,10 +72,7 @@ export default function VendorDashboardPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900 dark:text-white lg:text-2xl">
-            Bienvenue, {data.vendorName}{" "}
-            <span className="inline-block animate-bounce" aria-hidden="true">
-              👋
-            </span>
+            Bienvenue, {data.vendorName}
           </h1>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 lg:text-sm">
             {data.date}
@@ -388,10 +387,18 @@ function OrderRow({ order }: { order: RecentOrder }) {
 function TopProductRow({ product }: { product: TopProduct }) {
   return (
     <div className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 transition-colors active:bg-white/40 dark:active:bg-white/5 lg:gap-3 lg:py-3 lg:hover:bg-white/40 lg:dark:hover:bg-white/5">
-      {/* Emoji avatar */}
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 text-lg dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl lg:text-xl">
-        {product.emoji}
-      </div>
+      {/* Product image */}
+      {product.image ? (
+        <img
+          src={product.image}
+          alt={product.name}
+          className="h-8 w-8 rounded-lg object-cover lg:h-10 lg:w-10 lg:rounded-xl"
+        />
+      ) : (
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl">
+          <Package className="h-4 w-4 text-gray-500 dark:text-gray-400 lg:h-5 lg:w-5" />
+        </div>
+      )}
 
       {/* Name + sales */}
       <div className="flex-1 min-w-0">
@@ -417,9 +424,13 @@ function StockAlertRow({ alert }: { alert: StockAlert }) {
 
   return (
     <div className="flex items-center gap-2.5 rounded-xl bg-white/40 px-3 py-2.5 dark:bg-white/5 lg:gap-3 lg:px-4 lg:py-3">
-      {/* Emoji */}
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 text-lg dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl lg:text-xl">
-        {alert.emoji}
+      {/* Icon */}
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl">
+        {alert.icon === "alert-circle" ? (
+          <AlertCircle className="h-4 w-4 text-red-500 lg:h-5 lg:w-5" />
+        ) : (
+          <AlertTriangle className="h-4 w-4 text-amber-500 lg:h-5 lg:w-5" />
+        )}
       </div>
 
       {/* Name + status */}

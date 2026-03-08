@@ -21,7 +21,6 @@ import {
   type DeactivateAccountRequest,
   type DeleteAccountRequest,
 } from "../schema";
-import { mockVendorSettings } from "../mocks/settings";
 
 // ────────────────────────────────────────────────────────────
 // API Endpoints
@@ -215,29 +214,12 @@ function _transformSocialsToApi(links: VendorSettings["socialLinks"]): Record<st
 // GET — Fetch all settings
 // ────────────────────────────────────────────────────────────
 
-/** Fetch vendor settings from real API, with mock fallback */
+/** Fetch vendor settings from real API — no mock fallback */
 export async function getVendorSettings(): Promise<VendorSettings> {
-  try {
-    const raw = await api.get<unknown>(SETTINGS_BASE);
-    console.log("[settings.service] Raw API response received");
-    const parsed = vendorSettingsApiSchema.parse(raw);
-    console.log("[settings.service] API schema validated successfully");
-    const transformed = _transformSettingsApiToFrontend(parsed.data);
-    const result = vendorSettingsSchema.parse(transformed);
-    console.log("[settings.service] Frontend schema validated, using REAL data");
-    return result;
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error("[settings.service] Failed:", error.message);
-      if ('issues' in error) {
-        console.error("[settings.service] Zod issues:", JSON.stringify((error as { issues: unknown }).issues, null, 2));
-      }
-    } else {
-      console.error("[settings.service] Unknown error:", error);
-    }
-    console.warn("[settings.service] Falling back to mock data");
-    return vendorSettingsSchema.parse(mockVendorSettings);
-  }
+  const raw = await api.get<unknown>(SETTINGS_BASE);
+  const parsed = vendorSettingsApiSchema.parse(raw);
+  const transformed = _transformSettingsApiToFrontend(parsed.data);
+  return vendorSettingsSchema.parse(transformed);
 }
 
 // ────────────────────────────────────────────────────────────

@@ -2,9 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard, Toggle, PillInput, PillBadge, PillButton } from "./settings-ui";
+import { SectionCard, Toggle, PillBadge, PillButton } from "./settings-ui";
 import { useUpdateNotifications, useVendorSettings } from "@/features/vendor/hooks";
-import { Save, Loader2 } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  Smartphone,
+  Mail,
+  Bell,
+  MessageCircle,
+  ShoppingCart,
+  Banknote,
+  Truck,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  CircleOff,
+  Star,
+  MessageSquare,
+  BarChart3,
+  PartyPopper,
+} from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
 // Onglet 4 — Notifications
@@ -12,7 +30,7 @@ import { Save, Loader2 } from "lucide-react";
 
 interface Channel {
   id: string;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   enabled: boolean;
   detail: string;
@@ -20,7 +38,7 @@ interface Channel {
 }
 
 interface EventRow {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   sms: boolean;
   email: boolean;
@@ -37,31 +55,28 @@ export function TabNotifications() {
   const email = settingsData?.profile?.email ?? "";
 
   const [channels, setChannels] = useState<Channel[]>([
-    { id: "sms", icon: "📱", label: "SMS", enabled: true, detail: phone },
-    { id: "email", icon: "📧", label: "Email", enabled: true, detail: email },
-    { id: "push", icon: "🔔", label: "Push (navigateur)", enabled: apiNotifications?.pushNotifications ?? false, detail: "" },
-    { id: "whatsapp", icon: "💬", label: "WhatsApp", enabled: true, detail: phone, pro: true },
+    { id: "sms", icon: <Smartphone className="h-4 w-4" />, label: "SMS", enabled: true, detail: phone },
+    { id: "email", icon: <Mail className="h-4 w-4" />, label: "Email", enabled: true, detail: email },
+    { id: "push", icon: <Bell className="h-4 w-4" />, label: "Push (navigateur)", enabled: apiNotifications?.pushNotifications ?? false, detail: "" },
+    { id: "whatsapp", icon: <MessageCircle className="h-4 w-4" />, label: "WhatsApp", enabled: true, detail: phone, pro: true },
   ]);
 
   // Events state — initialized from API notification preferences
   const [events, setEvents] = useState<EventRow[]>([
-    { icon: "🛒", label: "Nouvelle commande", sms: true, email: apiNotifications?.emailAlerts?.newOrder ?? true, push: true, whatsapp: true },
-    { icon: "💰", label: "Paiement reçu", sms: true, email: true, push: false, whatsapp: false },
-    { icon: "🚚", label: "Commande expédiée", sms: false, email: true, push: false, whatsapp: false },
-    { icon: "✅", label: "Commande livrée", sms: false, email: true, push: false, whatsapp: false },
-    { icon: "❌", label: "Commande annulée", sms: true, email: true, push: true, whatsapp: false },
-    { icon: "⚠️", label: "Stock faible", sms: true, email: apiNotifications?.emailAlerts?.lowStock ?? true, push: true, whatsapp: false },
-    { icon: "🔴", label: "Rupture de stock", sms: true, email: true, push: true, whatsapp: true },
-    { icon: "⭐", label: "Nouvel avis client", sms: false, email: true, push: false, whatsapp: false },
-    { icon: "💬", label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
-    { icon: "📊", label: "Rapport hebdomadaire", sms: false, email: true, push: false, whatsapp: false },
-    { icon: "🎉", label: "Promotion / Offre SUGU", sms: false, email: apiNotifications?.emailAlerts?.marketing ?? false, push: false, whatsapp: false },
+    { icon: <ShoppingCart className="h-4 w-4 text-sugu-500" />, label: "Nouvelle commande", sms: true, email: apiNotifications?.emailAlerts?.newOrder ?? true, push: true, whatsapp: true },
+    { icon: <Banknote className="h-4 w-4 text-green-500" />, label: "Paiement reçu", sms: true, email: true, push: false, whatsapp: false },
+    { icon: <Truck className="h-4 w-4 text-blue-500" />, label: "Commande expédiée", sms: false, email: true, push: false, whatsapp: false },
+    { icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, label: "Commande livrée", sms: false, email: true, push: false, whatsapp: false },
+    { icon: <XCircle className="h-4 w-4 text-red-500" />, label: "Commande annulée", sms: true, email: true, push: true, whatsapp: false },
+    { icon: <AlertTriangle className="h-4 w-4 text-amber-500" />, label: "Stock faible", sms: true, email: apiNotifications?.emailAlerts?.lowStock ?? true, push: true, whatsapp: false },
+    { icon: <CircleOff className="h-4 w-4 text-red-600" />, label: "Rupture de stock", sms: true, email: true, push: true, whatsapp: true },
+    { icon: <Star className="h-4 w-4 text-amber-400" />, label: "Nouvel avis client", sms: false, email: true, push: false, whatsapp: false },
+    { icon: <MessageSquare className="h-4 w-4 text-blue-500" />, label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
+    { icon: <BarChart3 className="h-4 w-4 text-indigo-500" />, label: "Rapport hebdomadaire", sms: false, email: true, push: false, whatsapp: false },
+    { icon: <PartyPopper className="h-4 w-4 text-pink-500" />, label: "Promotion / Offre SUGU", sms: false, email: apiNotifications?.emailAlerts?.marketing ?? false, push: false, whatsapp: false },
   ]);
 
-  const [quietHours, setQuietHours] = useState(false);
-  const [quietFrom, setQuietFrom] = useState("22:00");
-  const [quietTo, setQuietTo] = useState("07:00");
-  const [exceptUrgent, setExceptUrgent] = useState(true);
+
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const updateNotificationsMutation = useUpdateNotifications();
@@ -117,7 +132,7 @@ export function TabNotifications() {
         <div className="mt-4 space-y-2">
           {channels.map((ch) => (
             <div key={ch.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
-              <span className="text-lg">{ch.icon}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">{ch.icon}</span>
               <span className="min-w-[100px] text-sm font-medium text-gray-900 dark:text-white">{ch.label}</span>
               <Toggle checked={ch.enabled} onChange={() => toggleChannel(ch.id)} label={`${ch.label} activé`} />
               {ch.detail ? (
@@ -166,32 +181,7 @@ export function TabNotifications() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 3: Heures silencieuses ─── */}
-      <SectionCard title="Heures silencieuses" id="quiet-hours">
-        <div className="mt-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <Toggle checked={quietHours} onChange={() => setQuietHours(!quietHours)} label="Heures silencieuses" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Activer les heures silencieuses</span>
-          </div>
-          {quietHours && (
-            <div className="ml-14 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">De</span>
-                <PillInput type="time" value={quietFrom} onChange={setQuietFrom} className="!w-28" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">à</span>
-                <PillInput type="time" value={quietTo} onChange={setQuietTo} className="!w-28" />
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Les notifications SMS et Push seront suspendues pendant cette période. Les emails seront toujours envoyés.
-              </p>
-              <div className="flex items-center gap-3">
-                <Toggle checked={exceptUrgent} onChange={() => setExceptUrgent(!exceptUrgent)} label="Sauf commandes urgentes" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Sauf commandes urgentes</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </SectionCard>
+
 
       {/* ─── Save button ─── */}
       <div className="flex items-center gap-3">
@@ -204,7 +194,7 @@ export function TabNotifications() {
           Sauvegarder les notifications
         </PillButton>
         {saveSuccess && (
-          <span className="text-xs text-green-600">✅ Préférences sauvegardées</span>
+          <span className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> Préférences sauvegardées</span>
         )}
       </div>
     </div>
