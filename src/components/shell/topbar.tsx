@@ -15,9 +15,11 @@ export function Topbar({ role }: TopbarProps) {
   const { collapsed, toggle } = useSidebar();
   const { data: user } = useSession();
 
-  const businessName = user?.business_name ?? (role === "vendor" ? "Ma Boutique" : "Mon Agence");
+  const businessName = user?.business_name ?? (
+    role === "vendor" ? "Ma Boutique" : role === "agency" ? "Mon Agence" : user?.name ?? "Livreur"
+  );
   const initials = businessName.charAt(0).toUpperCase();
-  const roleLabel = role === "vendor" ? "VENDEUR" : "AGENCE";
+  const roleLabel = role === "vendor" ? "VENDEUR" : role === "agency" ? "AGENCE" : "LIVREUR";
 
   return (
     <header

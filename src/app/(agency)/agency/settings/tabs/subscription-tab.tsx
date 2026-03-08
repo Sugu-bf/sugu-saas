@@ -10,7 +10,7 @@ export function SubscriptionTab() {
         <div className="flex items-center gap-2 mb-2">
           <Star className="h-5 w-5 fill-sugu-500 text-sugu-500" />
           <h3 className="text-lg font-black text-sugu-600">Plan Pro</h3>
-          <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600 dark:bg-green-950/30">✅ Actif</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600 dark:bg-green-950/30"><CheckCircle2 className="h-3 w-3" /> Actif</span>
         </div>
         <p className="text-2xl font-black text-gray-900 dark:text-white">14,900 FCFA <span className="text-sm font-medium text-gray-400">/ mois</span></p>
         <p className="text-[10px] text-gray-400 mt-1">Renouvellement : 28 Fév 2026</p>
@@ -44,7 +44,7 @@ export function SubscriptionTab() {
               <li key={f} className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300"><CheckCircle2 className="h-3 w-3 text-sugu-500 flex-shrink-0" /> {f}</li>
             ))}
           </ul>
-          <p className="mt-4 text-xs font-semibold text-sugu-500">✅ Plan actuel</p>
+          <p className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-sugu-500"><CheckCircle2 className="h-3 w-3" /> Plan actuel</p>
         </section>
       </div>
 

@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, MapPin, Save, Loader2 } from "lucide-react";
+import type { AgencySettingsResponse, AgencyZone } from "@/features/agency/schema";
+import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
 
-const INITIAL_ZONES = [
+// Default zones used when API returns no zone data
+const DEFAULT_ZONES: AgencyZone[] = [
   { id: "z1", name: "Bamako Centre", tarif: "2,500 FCFA", delay: "1-2h", enabled: true },
   { id: "z2", name: "Bamako Périphérie", tarif: "3,500 FCFA", delay: "2-4h", enabled: true },
   { id: "z3", name: "Kati", tarif: "5,000 FCFA", delay: "3-5h", enabled: true },
@@ -30,16 +33,53 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
   );
 }
 
-export function ZonesTab() {
-  const [zones, setZones] = useState(INITIAL_ZONES);
-  const [acceptOutside, setAcceptOutside] = useState(false);
-  const [freeAbove, setFreeAbove] = useState(false);
+interface ZonesTabProps {
+  data: AgencySettingsResponse;
+  onSave: (payload: UpdateAgencySettingsPayload) => void;
+  isSaving: boolean;
+}
+
+export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
+  // Use zones from API or fall back to defaults
+  const initialZones = data.zones?.length ? data.zones : DEFAULT_ZONES;
+  const [zones, setZones] = useState(initialZones);
+
+  // Zone rules from API or defaults
+  const initialRules = data.zoneRules ?? {
+    maxRadius: "50",
+    acceptOutside: false,
+    outsideSurcharge: "2,000 FCFA",
+    freeAbove: false,
+    freeAboveAmount: "25,000 FCFA",
+  };
+  const [maxRadius, setMaxRadius] = useState(initialRules.maxRadius);
+  const [acceptOutside, setAcceptOutside] = useState(initialRules.acceptOutside);
+  const [outsideSurcharge, setOutsideSurcharge] = useState(initialRules.outsideSurcharge);
+  const [freeAbove, setFreeAbove] = useState(initialRules.freeAbove);
+  const [freeAboveAmount, setFreeAboveAmount] = useState(initialRules.freeAboveAmount);
 
   const toggleZone = (id: string) => {
     setZones((prev) => prev.map((z) => (z.id === id ? { ...z, enabled: !z.enabled } : z)));
   };
   const removeZone = (id: string) => {
     setZones((prev) => prev.filter((z) => z.id !== id));
+  };
+  const addZone = () => {
+    const newId = `z-${Date.now()}`;
+    setZones((prev) => [...prev, { id: newId, name: "", tarif: "", delay: "", enabled: true }]);
+  };
+
+  const handleSave = () => {
+    onSave({
+      zones,
+      zoneRules: {
+        maxRadius,
+        acceptOutside,
+        outsideSurcharge,
+        freeAbove,
+        freeAboveAmount,
+      },
+    });
   };
 
   return (
@@ -62,10 +102,29 @@ export function ZonesTab() {
             >
               <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} label={`Zone ${zone.name}`} />
               <span className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white min-w-[140px]">
-                📍 {zone.name}
+                <MapPin className="h-3.5 w-3.5 text-sugu-500 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={zone.name}
+                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, name: e.target.value } : z))}
+                  className="bg-transparent border-none p-0 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 min-w-[100px]"
+                  placeholder="Nom de la zone"
+                />
               </span>
-              <input type="text" defaultValue={zone.tarif} className="form-input py-1.5 text-xs w-28" />
-              <input type="text" defaultValue={zone.delay} className="form-input py-1.5 text-xs w-20" />
+              <input
+                type="text"
+                value={zone.tarif}
+                onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, tarif: e.target.value } : z))}
+                className="form-input py-1.5 text-xs w-28"
+                placeholder="Tarif"
+              />
+              <input
+                type="text"
+                value={zone.delay}
+                onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, delay: e.target.value } : z))}
+                className="form-input py-1.5 text-xs w-20"
+                placeholder="Délai"
+              />
               <button
                 onClick={() => removeZone(zone.id)}
                 className="ml-auto rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
@@ -76,7 +135,10 @@ export function ZonesTab() {
             </div>
           ))}
         </div>
-        <button className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sugu-300 bg-white px-4 py-2 text-xs font-semibold text-sugu-600 hover:bg-sugu-50 dark:border-sugu-700 dark:bg-gray-900 dark:text-sugu-400">
+        <button
+          onClick={addZone}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sugu-300 bg-white px-4 py-2 text-xs font-semibold text-sugu-600 hover:bg-sugu-50 dark:border-sugu-700 dark:bg-gray-900 dark:text-sugu-400"
+        >
           <Plus className="h-3.5 w-3.5" />
           Ajouter une zone
         </button>
@@ -92,7 +154,12 @@ export function ZonesTab() {
             <label className="block text-[11px] font-medium text-gray-500 mb-1">
               Rayon maximum de livraison (km)
             </label>
-            <input type="text" defaultValue="50" className="form-input py-2 text-sm" />
+            <input
+              type="text"
+              value={maxRadius}
+              onChange={(e) => setMaxRadius(e.target.value)}
+              className="form-input py-2 text-sm"
+            />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -102,7 +169,12 @@ export function ZonesTab() {
             {acceptOutside && (
               <div className="max-w-xs ml-6">
                 <label className="block text-[11px] font-medium text-gray-500 mb-1">Surcharge hors zone</label>
-                <input type="text" defaultValue="2,000 FCFA" className="form-input py-2 text-sm" />
+                <input
+                  type="text"
+                  value={outsideSurcharge}
+                  onChange={(e) => setOutsideSurcharge(e.target.value)}
+                  className="form-input py-2 text-sm"
+                />
               </div>
             )}
           </div>
@@ -113,12 +185,32 @@ export function ZonesTab() {
             </div>
             {freeAbove && (
               <div className="max-w-xs ml-6">
-                <input type="text" defaultValue="25,000 FCFA" className="form-input py-2 text-sm" />
+                <input
+                  type="text"
+                  value={freeAboveAmount}
+                  onChange={(e) => setFreeAboveAmount(e.target.value)}
+                  className="form-input py-2 text-sm"
+                />
               </div>
             )}
           </div>
         </div>
       </section>
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+            isSaving && "opacity-50 cursor-not-allowed",
+          )}
+        >
+          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {isSaving ? "Sauvegarde…" : "Sauvegarder les zones"}
+        </button>
+      </div>
     </div>
   );
 }

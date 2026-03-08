@@ -775,7 +775,7 @@ const backendCourierCardSchema = z.object({
   phone_e164: z.string().nullable().optional(),
   emergency_contact_name: z.string().nullable().optional(),
   emergency_contact_phone: z.string().nullable().optional(),
-  status: z.string(), // "active" | "inactive" | "pending_kyc" | "suspended"
+  status: z.union([z.string(), z.number()]), // string ("active") in list, number (1) in show
   is_active: z.boolean(),
   kyc_verified: z.boolean(),
   total_deliveries: z.number().nullable().optional(),
@@ -800,9 +800,10 @@ const backendCourierCardSchema = z.object({
   kyc_documents: z.array(z.object({
     id: z.string(),
     document_type: z.string().nullable().optional(),
-    status: z.string().nullable().optional(),
+    status: z.union([z.string(), z.number()]).nullable().optional(),
     file_path: z.string().nullable().optional(),
     verified_at: z.string().nullable().optional(),
+    reviewed_at: z.string().nullable().optional(),
   })).optional().default([]),
 });
 
@@ -821,30 +822,37 @@ const backendDriversListResponseSchema = z.object({
   }),
 });
 
+// Stats sub-schema (used in both response shapes)
+const backendCourierStatsSchema = z.object({
+  total_deliveries: z.number(),
+  completed_deliveries: z.number(),
+  failed_deliveries: z.number(),
+  success_rate: z.number(),
+  rating_avg: z.union([z.number(), z.string()]).nullable().optional(),
+  rating_count: z.number(),
+  kyc_verified: z.boolean(),
+  kyc_documents_count: z.number().optional().default(0),
+  approved_documents_count: z.number().optional().default(0),
+});
+
+// The show endpoint returns { data: { courier: {...}, stats: {...} } }
 const backendCourierDetailResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     courier: backendCourierCardSchema,
-    stats: z.object({
-      total_deliveries: z.number(),
-      completed_deliveries: z.number(),
-      failed_deliveries: z.number(),
-      success_rate: z.number(),
-      rating_avg: z.union([z.number(), z.string()]).nullable().optional(),
-      rating_count: z.number(),
-      kyc_verified: z.boolean(),
-      kyc_documents_count: z.number().optional().default(0),
-      approved_documents_count: z.number().optional().default(0),
-    }),
+    stats: backendCourierStatsSchema,
   }),
 });
 
 // ── Driver transformer helpers ─────────────────────────────
 
-/** Map backend courier status → frontend DriverStatusVal */
-function _mapCourierStatus(status: string, isActive: boolean): "online" | "offline" | "suspended" {
-  if (status === "suspended") return "suspended";
-  if (status === "active" && isActive) return "online";
+/** Map backend courier status → frontend DriverStatusVal.
+ * List endpoint returns strings ("active", "inactive", "suspended").
+ * Show endpoint returns numbers (1 = active, 0 = inactive, 2 = suspended).
+ */
+function _mapCourierStatus(status: string | number, isActive: boolean): "online" | "offline" | "suspended" {
+  if (status === "suspended" || status === 2) return "suspended";
+  if ((status === "active" || status === 1) && isActive) return "online";
   return "offline";
 }
 
@@ -910,7 +918,8 @@ function _formatFrenchDate(isoDate: string | null | undefined): string {
 function _mapVehicleType(vt: string | null | undefined): "moto" | "voiture" | "vélo" | "tricycle" {
   const val = (vt ?? "moto").toLowerCase();
   if (val === "moto" || val === "voiture" || val === "vélo" || val === "tricycle") return val;
-  if (val === "car" || val === "auto") return "voiture";
+  if (val === "motorcycle" || val === "scooter") return "moto";
+  if (val === "car" || val === "auto" || val === "truck" || val === "van") return "voiture";
   if (val === "bike" || val === "bicycle") return "vélo";
   return "moto";
 }
@@ -1074,16 +1083,23 @@ function _transformCourierToProfile(
   const emergencyParts = [courier.emergency_contact_name, courier.emergency_contact_phone].filter(Boolean);
 
   // Map KYC documents
-  const documents = courier.kyc_documents.map((doc, i) => ({
-    id: doc.id ?? `doc-${i}`,
-    label: doc.document_type ?? `Document ${i + 1}`,
-    value: doc.status === "approved" ? "Vérifié" : doc.status === "pending" ? "En attente" : (doc.status ?? "—"),
-    status: doc.status === "approved" || doc.verified_at
-      ? "verified" as const
-      : doc.status === "rejected"
-        ? "expired" as const
-        : "pending" as const,
-  }));
+  const documents = courier.kyc_documents.map((doc, i) => {
+    const st = doc.status;
+    const isApproved = st === "approved" || st === 1;
+    const isPending = st === "pending" || st === 0;
+    const isRejected = st === "rejected" || st === 2;
+
+    return {
+      id: doc.id ?? `doc-${i}`,
+      label: doc.document_type ?? `Document ${i + 1}`,
+      value: isApproved ? "Vérifié" : isPending ? "En attente" : isRejected ? "Rejeté" : (String(st ?? "—")),
+      status: isApproved || doc.verified_at || doc.reviewed_at
+        ? "verified" as const
+        : isRejected
+          ? "expired" as const
+          : "pending" as const,
+    };
+  });
 
   const docsApproved = stats.approved_documents_count;
   const docsTotal = stats.kyc_documents_count;
@@ -1205,14 +1221,36 @@ export async function getAgencyDrivers(
   if (filters?.search) params.search = filters.search;
   if (filters?.sort_by) params.sort_by = filters.sort_by;
 
-  const raw = await api.get<z.infer<typeof backendDriversListResponseSchema>>(
+  const raw = await api.get<unknown>(
     `agencies/${agencyId}/couriers`,
     { params },
   );
 
-  const validated = backendDriversListResponseSchema.parse(raw);
-  const transformed = _transformCouriersListResponse(validated);
-  return agencyDriversResponseSchema.parse(transformed);
+  // Step 1: validate backend response
+  const backendResult = backendDriversListResponseSchema.safeParse(raw);
+  if (!backendResult.success) {
+    console.error("[getAgencyDrivers] Backend schema validation failed:", JSON.stringify(backendResult.error.issues, null, 2));
+    console.error("[getAgencyDrivers] Raw response keys:", Object.keys(raw as Record<string, unknown>));
+    const dataObj = (raw as Record<string, unknown>).data;
+    if (dataObj && typeof dataObj === "object") {
+      const couriers = (dataObj as Record<string, unknown>).couriers;
+      if (Array.isArray(couriers) && couriers.length > 0) {
+        console.error("[getAgencyDrivers] First courier sample:", JSON.stringify(couriers[0], null, 2));
+      }
+    }
+    throw new Error(`Backend schema validation failed: ${backendResult.error.message}`);
+  }
+
+  const transformed = _transformCouriersListResponse(backendResult.data);
+
+  // Step 2: validate frontend response
+  const frontendResult = agencyDriversResponseSchema.safeParse(transformed);
+  if (!frontendResult.success) {
+    console.error("[getAgencyDrivers] Frontend schema validation failed:", JSON.stringify(frontendResult.error.issues, null, 2));
+    throw new Error(`Frontend schema validation failed: ${frontendResult.error.message}`);
+  }
+
+  return frontendResult.data;
 }
 
 /**
@@ -1224,13 +1262,33 @@ export async function getDriverProfile(
   agencyId: string,
   courierId: string,
 ): Promise<DriverProfile> {
-  const raw = await api.get<z.infer<typeof backendCourierDetailResponseSchema>>(
+  const raw = await api.get<unknown>(
     `agencies/${agencyId}/couriers/${courierId}`,
   );
 
-  const validated = backendCourierDetailResponseSchema.parse(raw);
-  const transformed = _transformCourierToProfile(validated.data.courier, validated.data.stats);
-  return driverProfileSchema.parse(transformed);
+  // Step 1: validate backend response
+  const backendResult = backendCourierDetailResponseSchema.safeParse(raw);
+  if (!backendResult.success) {
+    console.error("[getDriverProfile] Backend schema validation failed:", JSON.stringify(backendResult.error.issues, null, 2));
+    console.error("[getDriverProfile] Raw response keys:", Object.keys(raw as Record<string, unknown>));
+    const dataObj = (raw as Record<string, unknown>).data;
+    if (dataObj && typeof dataObj === "object") {
+      console.error("[getDriverProfile] Data keys:", Object.keys(dataObj as Record<string, unknown>));
+    }
+    throw new Error(`Backend schema validation failed: ${backendResult.error.message}`);
+  }
+
+  const { courier, stats } = backendResult.data.data;
+  const transformed = _transformCourierToProfile(courier, stats);
+
+  // Step 2: validate frontend response
+  const frontendResult = driverProfileSchema.safeParse(transformed);
+  if (!frontendResult.success) {
+    console.error("[getDriverProfile] Frontend schema validation failed:", JSON.stringify(frontendResult.error.issues, null, 2));
+    throw new Error(`Frontend schema validation failed: ${frontendResult.error.message}`);
+  }
+
+  return frontendResult.data;
 }
 
 /**
@@ -1243,11 +1301,22 @@ export async function getDriverDetail(
   agencyId: string,
   courierId: string,
 ): Promise<z.infer<typeof import("./schema").driverDetailSchema>> {
-  const raw = await api.get<z.infer<typeof backendCourierDetailResponseSchema>>(
+  const raw = await api.get<unknown>(
     `agencies/${agencyId}/couriers/${courierId}`,
   );
-  const validated = backendCourierDetailResponseSchema.parse(raw);
-  const courier = validated.data.courier;
+
+  const backendResult = backendCourierDetailResponseSchema.safeParse(raw);
+  if (!backendResult.success) {
+    console.error("[getDriverDetail] Backend schema validation failed:", JSON.stringify(backendResult.error.issues, null, 2));
+    console.error("[getDriverDetail] Raw response keys:", Object.keys(raw as Record<string, unknown>));
+    const dataObj = (raw as Record<string, unknown>).data;
+    if (dataObj && typeof dataObj === "object") {
+      console.error("[getDriverDetail] Data keys:", Object.keys(dataObj as Record<string, unknown>));
+    }
+    throw new Error(`Backend schema validation failed: ${backendResult.error.message}`);
+  }
+
+  const courier = backendResult.data.data.courier;
 
   // Determine rank — not available from single detail, use null
   return _transformCourierToDetail(courier, -1);
@@ -1470,16 +1539,16 @@ function _transformStatsResponse(raw: Record<string, unknown>): Record<string, u
 // ── Country code → name + flag mapping ─────────────────────
 
 const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
-  ML: { name: "Mali", flag: "🇲🇱" },
-  BF: { name: "Burkina Faso", flag: "🇧🇫" },
-  CI: { name: "Côte d'Ivoire", flag: "🇨🇮" },
-  SN: { name: "Sénégal", flag: "🇸🇳" },
-  GN: { name: "Guinée", flag: "🇬🇳" },
-  NE: { name: "Niger", flag: "🇳🇪" },
-  TG: { name: "Togo", flag: "🇹🇬" },
-  BJ: { name: "Bénin", flag: "🇧🇯" },
-  GH: { name: "Ghana", flag: "🇬🇭" },
-  NG: { name: "Nigeria", flag: "🇳🇬" },
+  ML: { name: "Mali", flag: "ML" },
+  BF: { name: "Burkina Faso", flag: "BF" },
+  CI: { name: "Côte d'Ivoire", flag: "CI" },
+  SN: { name: "Sénégal", flag: "SN" },
+  GN: { name: "Guinée", flag: "GN" },
+  NE: { name: "Niger", flag: "NE" },
+  TG: { name: "Togo", flag: "TG" },
+  BJ: { name: "Bénin", flag: "BJ" },
+  GH: { name: "Ghana", flag: "GH" },
+  NG: { name: "Nigeria", flag: "NG" },
 };
 
 /**
@@ -1493,7 +1562,7 @@ const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
 function _transformSettingsResponse(raw: Record<string, unknown>): Record<string, unknown> {
   const meta = (raw.metadata ?? {}) as Record<string, unknown>;
   const countryCode = String(raw.country_code ?? meta.country_code ?? "ML");
-  const country = COUNTRY_MAP[countryCode] ?? { name: countryCode, flag: "🏳️" };
+  const country = COUNTRY_MAP[countryCode] ?? { name: countryCode, flag: countryCode };
 
   // Format created_at to French date
   let createdAt = String(raw.created_at ?? "");
@@ -1530,10 +1599,10 @@ function _transformSettingsResponse(raw: Record<string, unknown>): Record<string
 
   // Default vehicles
   const defaultVehicles = [
-    { type: "Moto", icon: "🛵", selected: true },
-    { type: "Voiture", icon: "🚗", selected: true },
-    { type: "Vélo", icon: "🚲", selected: false },
-    { type: "Camionnette", icon: "🚐", selected: false },
+    { type: "Moto", icon: "bike", selected: true },
+    { type: "Voiture", icon: "car", selected: true },
+    { type: "Vélo", icon: "bike", selected: false },
+    { type: "Camionnette", icon: "truck", selected: false },
   ];
 
   // Default social links
@@ -1588,6 +1657,25 @@ function _transformSettingsResponse(raw: Record<string, unknown>): Record<string
       : defaultSocialLinks,
 
     lastSaved: String(raw.lastSaved ?? lastSaved),
+
+    // ── Extended settings fields ──────────────────────────────
+
+    // Coverage zones
+    zones: Array.isArray(raw.zones) ? raw.zones
+      : Array.isArray(meta.zones) ? meta.zones
+      : [],
+
+    // Zone delivery rules
+    zoneRules: (raw.zone_rules ?? meta.zone_rules ?? null) as Record<string, unknown> | null,
+
+    // Fleet summary
+    fleet: (raw.fleet ?? meta.fleet ?? null) as Record<string, unknown> | null,
+
+    // Payment settings
+    paymentSettings: (raw.payment_settings ?? meta.payment_settings ?? null) as Record<string, unknown> | null,
+
+    // Notification preferences
+    notificationPreferences: (raw.notification_preferences ?? meta.notification_preferences ?? null) as Record<string, unknown> | null,
   };
 }
 
@@ -1633,6 +1721,12 @@ export interface UpdateAgencySettingsPayload {
   acceptAfterHours?: boolean;
   afterHoursSurcharge?: string;
   socialLinks?: Array<{ id: string; platform: string; value: string; icon: string; enabled: boolean; visibleOnSugu: boolean }>;
+  // Extended settings
+  zones?: Array<{ id: string; name: string; tarif: string; delay: string; enabled: boolean }>;
+  zoneRules?: { maxRadius: string; acceptOutside: boolean; outsideSurcharge: string; freeAbove: boolean; freeAboveAmount: string };
+  fleet?: { vehicles: Array<{ type: string; count: number; base: string; perKm: string; maxWeight: string }>; totalVehicles: number };
+  paymentSettings?: { method: string; phoneNumber: string; frequency: string; autoTransfer: boolean; minAmount: string; bankDetails?: { bank: string; accountNumber: string; iban: string } };
+  notificationPreferences?: { channels: Array<{ id: string; label: string; detail: string; on: boolean }>; events: Array<{ label: string; sms: boolean; email: boolean; whatsapp: boolean }> };
 }
 
 /**

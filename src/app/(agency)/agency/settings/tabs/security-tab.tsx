@@ -149,7 +149,7 @@ export function SecurityTab() {
         {!twoFa ? (
           <div className="space-y-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/30">
-              🔴 Désactivé
+              <span className="h-2 w-2 rounded-full bg-red-500" /> Désactivé
             </span>
             <p className="text-xs text-gray-500">
               Protégez votre compte avec une vérification SMS.
@@ -164,7 +164,7 @@ export function SecurityTab() {
         ) : (
           <div className="space-y-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-600 dark:bg-green-950/30">
-              🟢 Activé
+              <span className="h-2 w-2 rounded-full bg-green-500" /> Activé
             </span>
             <p className="text-xs text-gray-500">
               Vérification via ****3456

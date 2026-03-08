@@ -22,7 +22,13 @@ export function RoleGuard({ children, allowedRoles, fallback }: RoleGuardProps) 
   useEffect(() => {
     if (!isLoading && user && !allowedRoles.includes(user.role)) {
       // Redirect to the user's own dashboard
-      const dest = user.role === "vendor" ? "/vendor/dashboard" : "/agency/dashboard";
+      const dest = user.role === "vendor"
+        ? "/vendor/dashboard"
+        : user.role === "agency"
+          ? "/agency/dashboard"
+          : user.role === "courier"
+            ? "/driver/dashboard"
+            : "/vendor/dashboard"; // fallback
       router.replace(dest);
     }
   }, [isLoading, user, allowedRoles, router]);

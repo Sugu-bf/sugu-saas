@@ -14,16 +14,23 @@ import {
   Trash2,
   Save,
   CheckCircle2,
-  Clock,
   Eye,
   Phone,
   Globe,
   MessageCircle,
   Facebook,
   Loader2,
+  Package,
+  MapPin,
+  Truck,
+  Flag,
+  AlertTriangle,
+  Bike,
+  type LucideIcon,
 } from "lucide-react";
 import type { AgencySettingsResponse } from "@/features/agency/schema";
 import { useUpdateAgencySettings } from "@/features/agency/hooks";
+import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
 import { AccountTab } from "./tabs/account-tab";
 import { VehiclesTab } from "./tabs/vehicles-tab";
 import { ZonesTab } from "./tabs/zones-tab";
@@ -32,6 +39,21 @@ import { NotificationsTab } from "./tabs/notifications-tab";
 import { SecurityTab } from "./tabs/security-tab";
 import { SubscriptionTab } from "./tabs/subscription-tab";
 import { DeleteTab } from "./tabs/delete-tab";
+
+// ────────────────────────────────────────────────────────────
+// Vehicle icon helper (maps icon name → Lucide component)
+// ────────────────────────────────────────────────────────────
+
+const VEHICLE_ICON_MAP: Record<string, LucideIcon> = {
+  bike: Bike,
+  car: Car,
+  truck: Truck,
+};
+
+function VehicleIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = VEHICLE_ICON_MAP[name] ?? Truck;
+  return <Icon className={className} />;
+}
 
 // ────────────────────────────────────────────────────────────
 // Sidebar tabs
@@ -176,10 +198,7 @@ function AgencyTab({
   data: AgencySettingsResponse;
   onFieldChange: () => void;
 }) {
-  const [scheduleState, setScheduleState] = useState(data.schedule);
   const [vehicles, setVehicles] = useState(data.vehicles);
-  const [sameHours, setSameHours] = useState(data.sameHoursWeekdays);
-  const [afterHours, setAfterHours] = useState(data.acceptAfterHours);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
@@ -195,7 +214,7 @@ function AgencyTab({
             <div className="flex flex-col items-center gap-2">
               <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40">
                 {data.logoUrl ? (
-                  <span className="text-3xl">📦</span>
+                  <Package className="h-8 w-8 text-sugu-500" />
                 ) : (
                   <div className="flex flex-col items-center text-center">
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 text-xs font-black text-white">
@@ -238,7 +257,7 @@ function AgencyTab({
               <div>
                 <FieldLabel required>Téléphone principal</FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm">🇲🇱</span>
+                  <Flag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <FieldInput value={data.phonePrimary} className="pl-8" name="phonePrimary" />
                 </div>
               </div>
@@ -261,7 +280,7 @@ function AgencyTab({
         {/* ── Adresse & Localisation ── */}
         <section className="glass-card rounded-2xl p-5">
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-4">
-            <span className="text-base">📍</span>
+            <MapPin className="h-4 w-4 text-sugu-500" />
             Adresse &amp; Localisation
           </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -281,7 +300,7 @@ function AgencyTab({
               <FieldLabel>Pays</FieldLabel>
               <div className="flex items-center gap-2">
                 <FieldInput value={data.country} disabled />
-                <span className="text-lg">{data.countryFlag}</span>
+                <Flag className="h-5 w-5 text-gray-400" />
               </div>
             </div>
             <div className="sm:col-span-3">
@@ -301,7 +320,7 @@ function AgencyTab({
         {/* ── Informations de service ── */}
         <section className="glass-card rounded-2xl p-5">
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-4">
-            <span className="text-base">🚚</span>
+            <Truck className="h-4 w-4 text-sugu-500" />
             Informations de service
           </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -337,7 +356,7 @@ function AgencyTab({
                     : "border-gray-200 bg-white text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400",
                 )}
               >
-                <span>{v.icon}</span>
+                <VehicleIcon name={v.icon} className="h-4 w-4" />
                 {v.type}
               </button>
             ))}
@@ -358,92 +377,6 @@ function AgencyTab({
 
       {/* ═══ Right column ═══ */}
       <div className="space-y-4">
-        {/* ── Horaires de service ── */}
-        <section className="glass-card rounded-2xl p-5">
-          <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-4">
-            <Clock className="h-4 w-4 text-sugu-500" />
-            Horaires de service
-          </h3>
-          <div className="space-y-2.5">
-            {scheduleState.map((day, i) => (
-              <div key={day.day} className="flex items-center gap-3">
-                <span className="w-20 text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {day.day}
-                </span>
-                <Toggle
-                  checked={day.enabled}
-                  label={`${day.day} activé`}
-                  onChange={() => {
-                    const next = [...scheduleState];
-                    next[i] = { ...next[i], enabled: !next[i].enabled };
-                    setScheduleState(next);
-                    onFieldChange();
-                  }}
-                />
-                {day.enabled ? (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="time"
-                      defaultValue={day.openTime}
-                      className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                      onChange={(e) => {
-                        const next = [...scheduleState];
-                        next[i] = { ...next[i], openTime: e.target.value };
-                        setScheduleState(next);
-                        onFieldChange();
-                      }}
-                    />
-                    <span className="text-[10px] text-gray-400">à</span>
-                    <input
-                      type="time"
-                      defaultValue={day.closeTime}
-                      className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                      onChange={(e) => {
-                        const next = [...scheduleState];
-                        next[i] = { ...next[i], closeTime: e.target.value };
-                        setScheduleState(next);
-                        onFieldChange();
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <span className="text-xs italic text-gray-400">Fermé</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 space-y-2">
-            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sameHours}
-                onChange={() => { setSameHours(!sameHours); onFieldChange(); }}
-                className="h-3.5 w-3.5 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500"
-              />
-              Appliquer les mêmes horaires Lun-Ven
-            </label>
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={afterHours}
-                  onChange={() => { setAfterHours(!afterHours); onFieldChange(); }}
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500"
-                />
-                <span>
-                  Accepter des livraisons en dehors des horaires
-                  <br />
-                  <span className="text-[10px] text-gray-400">
-                    (Surcharge de {data.afterHoursSurcharge})
-                  </span>
-                </span>
-              </label>
-              <Toggle checked={afterHours} label="Après horaires" onChange={() => { setAfterHours(!afterHours); onFieldChange(); }} />
-            </div>
-          </div>
-        </section>
-
         {/* ── Réseaux & Contact public ── */}
         <section className="glass-card rounded-2xl p-5">
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-4">
@@ -480,9 +413,6 @@ function AgencyTab({
 
       {/* Hidden fields for collecting React state on submit */}
       <input type="hidden" name="__vehicles" value={JSON.stringify(vehicles)} />
-      <input type="hidden" name="__schedule" value={JSON.stringify(scheduleState)} />
-      <input type="hidden" name="__sameHoursWeekdays" value={String(sameHours)} />
-      <input type="hidden" name="__acceptAfterHours" value={String(afterHours)} />
     </div>
   );
 }
@@ -518,14 +448,8 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
 
     // Parse hidden JSON fields for React-controlled state
     let vehicles = data.vehicles;
-    let schedule = data.schedule;
-    let sameHoursWeekdays = data.sameHoursWeekdays;
-    let acceptAfterHours = data.acceptAfterHours;
 
     try { vehicles = JSON.parse(fd.get("__vehicles") as string); } catch { /* noop */ }
-    try { schedule = JSON.parse(fd.get("__schedule") as string); } catch { /* noop */ }
-    sameHoursWeekdays = fd.get("__sameHoursWeekdays") === "true";
-    acceptAfterHours = fd.get("__acceptAfterHours") === "true";
 
     const payload = {
       agencyName: (fd.get("agencyName") as string) || undefined,
@@ -542,9 +466,6 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
       dailyCapacity: (fd.get("dailyCapacity") as string) || undefined,
       description: (fd.get("description") as string) || undefined,
       vehicles,
-      schedule,
-      sameHoursWeekdays,
-      acceptAfterHours,
     };
 
     updateMutation.mutate(payload, {
@@ -633,11 +554,11 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
               <AgencyTab data={data} onFieldChange={markDirty} />
             </form>
           )}
-          {activeTab === "account" && <AccountTab />}
-          {activeTab === "vehicles" && <VehiclesTab />}
-          {activeTab === "zones" && <ZonesTab />}
-          {activeTab === "payments" && <PaymentsTab />}
-          {activeTab === "notifications" && <NotificationsTab />}
+          {activeTab === "account" && <AccountTab data={data} />}
+          {activeTab === "vehicles" && <VehiclesTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
+          {activeTab === "zones" && <ZonesTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
+          {activeTab === "payments" && <PaymentsTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
+          {activeTab === "notifications" && <NotificationsTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
           {activeTab === "security" && <SecurityTab />}
           {activeTab === "subscription" && <SubscriptionTab />}
           {activeTab === "delete" && <DeleteTab />}
@@ -655,7 +576,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
       {/* ══ Error indicator ══ */}
       {updateMutation.isError && (
         <div className="fixed bottom-6 right-6 z-50 animate-card-enter inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg">
-          ⚠️ Erreur lors de la sauvegarde
+          <AlertTriangle className="h-4 w-4" /> Erreur lors de la sauvegarde
         </div>
       )}
 
@@ -664,7 +585,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
         <footer className="glass-card rounded-2xl px-5 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-card-enter">
           <div className="flex items-center gap-2 text-xs text-amber-600">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/30">
-              ⚠
+              <AlertTriangle className="h-3 w-3" />
             </span>
             <span className="font-semibold">Modifications non sauvegardées</span>
           </div>

@@ -2,8 +2,8 @@
 // SUGU SaaS — Core Type Definitions
 // ============================================================
 
-/** The two roles supported by the SaaS platform */
-export type UserRole = "vendor" | "agency";
+/** The three roles supported by the SaaS platform */
+export type UserRole = "vendor" | "agency" | "courier";
 
 /** Authenticated user shape (returned by /me) */
 export interface User {

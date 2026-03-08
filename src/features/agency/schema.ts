@@ -624,6 +624,81 @@ export const agencySocialLinkSchema = z.object({
   visibleOnSugu: z.boolean(),
 });
 
+/** Coverage zone */
+export const agencyZoneSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tarif: z.string(),
+  delay: z.string(),
+  enabled: z.boolean(),
+});
+export type AgencyZone = z.infer<typeof agencyZoneSchema>;
+
+/** Zone delivery rules */
+export const agencyZoneRulesSchema = z.object({
+  maxRadius: z.string().default("50"),
+  acceptOutside: z.boolean().default(false),
+  outsideSurcharge: z.string().default("2,000 FCFA"),
+  freeAbove: z.boolean().default(false),
+  freeAboveAmount: z.string().default("25,000 FCFA"),
+});
+export type AgencyZoneRules = z.infer<typeof agencyZoneRulesSchema>;
+
+/** Fleet vehicle entry */
+export const agencyFleetVehicleSchema = z.object({
+  type: z.string(),
+  count: z.number(),
+  base: z.string(),
+  perKm: z.string(),
+  maxWeight: z.string(),
+});
+export type AgencyFleetVehicle = z.infer<typeof agencyFleetVehicleSchema>;
+
+/** Fleet summary */
+export const agencyFleetSchema = z.object({
+  vehicles: z.array(agencyFleetVehicleSchema),
+  totalVehicles: z.number(),
+});
+export type AgencyFleet = z.infer<typeof agencyFleetSchema>;
+
+/** Payment settings */
+export const agencyPaymentSettingsSchema = z.object({
+  method: z.enum(["orange", "wave", "bank"]).default("orange"),
+  phoneNumber: z.string().default(""),
+  frequency: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
+  autoTransfer: z.boolean().default(true),
+  minAmount: z.string().default("5,000 FCFA"),
+  bankDetails: z.object({
+    bank: z.string().default(""),
+    accountNumber: z.string().default(""),
+    iban: z.string().default(""),
+  }).optional().default({}),
+});
+export type AgencyPaymentSettings = z.infer<typeof agencyPaymentSettingsSchema>;
+
+/** Notification channel */
+export const agencyNotifChannelSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  detail: z.string(),
+  on: z.boolean(),
+});
+
+/** Notification event row */
+export const agencyNotifEventSchema = z.object({
+  label: z.string(),
+  sms: z.boolean(),
+  email: z.boolean(),
+  whatsapp: z.boolean(),
+});
+
+/** Notification preferences */
+export const agencyNotifPreferencesSchema = z.object({
+  channels: z.array(agencyNotifChannelSchema),
+  events: z.array(agencyNotifEventSchema),
+});
+export type AgencyNotifPreferences = z.infer<typeof agencyNotifPreferencesSchema>;
+
 /** Full agency settings response */
 export const agencySettingsResponseSchema = z.object({
   /** Identity */
@@ -666,6 +741,19 @@ export const agencySettingsResponseSchema = z.object({
 
   /** Meta */
   lastSaved: z.string(),
+
+  /** Coverage zones */
+  zones: z.array(agencyZoneSchema).default([]),
+  zoneRules: agencyZoneRulesSchema.optional().nullable(),
+
+  /** Fleet / Vehicles */
+  fleet: agencyFleetSchema.optional().nullable(),
+
+  /** Payment settings */
+  paymentSettings: agencyPaymentSettingsSchema.optional().nullable(),
+
+  /** Notification preferences */
+  notificationPreferences: agencyNotifPreferencesSchema.optional().nullable(),
 });
 
 export type AgencySettingsResponse = z.infer<typeof agencySettingsResponseSchema>;

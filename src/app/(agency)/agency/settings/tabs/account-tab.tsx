@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Flag } from "lucide-react";
 import { useSession } from "@/features/auth/hooks";
+import type { AgencySettingsResponse } from "@/features/agency/schema";
 
-export function AccountTab() {
+export function AccountTab({ data }: { data: AgencySettingsResponse }) {
   const { data: user } = useSession();
 
   // Extract user data from session, with fallbacks
@@ -12,6 +13,10 @@ export function AccountTab() {
   const email = user?.email ?? "";
   const emailVerified = !!user?.email_verified_at;
   const role = user?.role === "agency" ? "Administrateur" : "Utilisateur";
+
+  // Phone comes from the agency settings (phonePrimary) as the user model
+  // doesn't expose phone_e164 in the session yet
+  const phone = data.phonePrimary ?? "";
 
   return (
     <div className="space-y-4">
@@ -74,8 +79,8 @@ export function AccountTab() {
               Téléphone <span className="text-sugu-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm">🇲🇱</span>
-              <input type="text" defaultValue="" className="form-input py-2 text-sm pl-8" />
+              <Flag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input type="text" defaultValue={phone} className="form-input py-2 text-sm pl-8" />
             </div>
           </div>
           <div>
@@ -85,9 +90,9 @@ export function AccountTab() {
           <div className="sm:col-span-2 sm:max-w-xs">
             <label className="block text-[11px] font-medium text-gray-500 mb-1">Langue</label>
             <select defaultValue="fr" className="form-input py-2 text-sm">
-              <option value="fr">Français 🇫🇷</option>
-              <option value="en">English 🇬🇧</option>
-              <option value="bm">Bamanankan 🇲🇱</option>
+              <option value="fr">Français (FR)</option>
+              <option value="en">English (EN)</option>
+              <option value="bm">Bamanankan (ML)</option>
             </select>
           </div>
         </div>

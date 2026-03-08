@@ -86,4 +86,20 @@ export const queryKeys = {
     settings: () =>
       [...queryKeys.agency.all, "settings"] as const,
   },
+  driver: {
+    all: ["driver"] as const,
+    dashboard: () => [...queryKeys.driver.all, "dashboard"] as const,
+    deliveries: (filters?: Record<string, unknown>) =>
+      [...queryKeys.driver.all, "deliveries", filters] as const,
+    deliveryDetail: (id: string) =>
+      [...queryKeys.driver.all, "deliveries", "detail", id] as const,
+    currentDelivery: () =>
+      [...queryKeys.driver.all, "deliveries", "current"] as const,
+    earnings: (period?: string) =>
+      [...queryKeys.driver.all, "earnings", period] as const,
+    activity: () =>
+      [...queryKeys.driver.all, "activity"] as const,
+    history: (filters?: Record<string, unknown>) =>
+      [...queryKeys.driver.all, "history", filters] as const,
+  },
 } as const;

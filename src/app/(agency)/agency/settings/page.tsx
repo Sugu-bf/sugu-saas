@@ -3,6 +3,7 @@
 import { useAgencySettings } from "@/features/agency/hooks";
 import { SettingsContent } from "./settings-content";
 import SettingsLoading from "./loading";
+import { AlertTriangle } from "lucide-react";
 
 export default function AgencySettingsPage() {
   const { data, isLoading, isError, error, refetch } = useAgencySettings();
@@ -15,7 +16,7 @@ export default function AgencySettingsPage() {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/30">
-          <span className="text-3xl">⚠️</span>
+          <AlertTriangle className="h-8 w-8 text-red-500" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">

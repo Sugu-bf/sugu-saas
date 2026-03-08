@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Smartphone, Mail, MessageCircle, Truck, CheckCircle2, XCircle, Clock, Ticket, Banknote, HardHat, BarChart3, Save, Loader2 } from "lucide-react";
+import type { AgencySettingsResponse } from "@/features/agency/schema";
+import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
   return (
@@ -12,28 +15,67 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
   );
 }
 
-const CHANNELS = [
-  { id: "sms", icon: "📱", label: "SMS", detail: "+223 76 45 23 18", on: true },
-  { id: "email", icon: "📧", label: "Email", detail: "contact@expressbamako.ml", on: true },
-  { id: "whatsapp", icon: "💬", label: "WhatsApp", detail: "+223 76 45 23 18", on: true },
+// Default channels used when API has no notification preferences
+const DEFAULT_CHANNELS = [
+  { id: "sms", label: "SMS", detail: "", on: true },
+  { id: "email", label: "Email", detail: "", on: true },
+  { id: "whatsapp", label: "WhatsApp", detail: "", on: true },
 ];
 
-const EVENTS = [
-  { label: "🚚 Nouvelle livraison assignée", sms: true, email: true, whatsapp: true },
-  { label: "✅ Livraison réussie", sms: false, email: true, whatsapp: false },
-  { label: "❌ Livraison échouée", sms: true, email: true, whatsapp: true },
-  { label: "⏰ Retard signalé", sms: true, email: true, whatsapp: true },
-  { label: "🎫 Nouvelle réclamation", sms: true, email: true, whatsapp: false },
-  { label: "💰 Paiement reçu", sms: false, email: true, whatsapp: false },
-  { label: "👷 Livreur hors ligne (+2h)", sms: true, email: true, whatsapp: false },
-  { label: "📊 Rapport hebdomadaire", sms: false, email: true, whatsapp: false },
+// Default events used when API has no notification preferences
+const DEFAULT_EVENTS = [
+  { label: "Nouvelle livraison assignée", sms: true, email: true, whatsapp: true },
+  { label: "Livraison réussie", sms: false, email: true, whatsapp: false },
+  { label: "Livraison échouée", sms: true, email: true, whatsapp: true },
+  { label: "Retard signalé", sms: true, email: true, whatsapp: true },
+  { label: "Nouvelle réclamation", sms: true, email: true, whatsapp: false },
+  { label: "Paiement reçu", sms: false, email: true, whatsapp: false },
+  { label: "Livreur hors ligne (+2h)", sms: true, email: true, whatsapp: false },
+  { label: "Rapport hebdomadaire", sms: false, email: true, whatsapp: false },
 ];
 
-export function NotificationsTab() {
-  const [channels, setChannels] = useState(CHANNELS);
-  const [events, setEvents] = useState(EVENTS);
-  const [quietHours, setQuietHours] = useState(false);
-  const [exceptUrgent, setExceptUrgent] = useState(true);
+const CHANNEL_ICONS: Record<string, ReactNode> = {
+  sms: <Smartphone className="h-4 w-4 text-gray-500" />,
+  email: <Mail className="h-4 w-4 text-gray-500" />,
+  whatsapp: <MessageCircle className="h-4 w-4 text-green-500" />,
+};
+
+const EVENT_ICONS: ReactNode[] = [
+  <Truck key="1" className="h-3.5 w-3.5 text-blue-500" />,
+  <CheckCircle2 key="2" className="h-3.5 w-3.5 text-green-500" />,
+  <XCircle key="3" className="h-3.5 w-3.5 text-red-500" />,
+  <Clock key="4" className="h-3.5 w-3.5 text-amber-500" />,
+  <Ticket key="5" className="h-3.5 w-3.5 text-purple-500" />,
+  <Banknote key="6" className="h-3.5 w-3.5 text-green-600" />,
+  <HardHat key="7" className="h-3.5 w-3.5 text-orange-500" />,
+  <BarChart3 key="8" className="h-3.5 w-3.5 text-indigo-500" />,
+];
+
+interface NotificationsTabProps {
+  data: AgencySettingsResponse;
+  onSave: (payload: UpdateAgencySettingsPayload) => void;
+  isSaving: boolean;
+}
+
+export function NotificationsTab({ data, onSave, isSaving }: NotificationsTabProps) {
+  const apiPrefs = data.notificationPreferences;
+
+  // Initialize channels: use API data or defaults enriched with agency contact info
+  const initialChannels = apiPrefs?.channels?.length
+    ? apiPrefs.channels
+    : DEFAULT_CHANNELS.map((ch) => ({
+        ...ch,
+        detail: ch.id === "sms" || ch.id === "whatsapp"
+          ? data.phonePrimary
+          : ch.id === "email"
+            ? data.email
+            : "",
+      }));
+
+  const initialEvents = apiPrefs?.events?.length ? apiPrefs.events : DEFAULT_EVENTS;
+
+  const [channels, setChannels] = useState(initialChannels);
+  const [events, setEvents] = useState(initialEvents);
 
   const toggleChannel = (id: string) => {
     setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, on: !c.on } : c)));
@@ -41,6 +83,15 @@ export function NotificationsTab() {
 
   const toggleEvent = (idx: number, channel: "sms" | "email" | "whatsapp") => {
     setEvents((prev) => prev.map((e, i) => (i === idx ? { ...e, [channel]: !e[channel] } : e)));
+  };
+
+  const handleSave = () => {
+    onSave({
+      notificationPreferences: {
+        channels,
+        events,
+      },
+    });
   };
 
   return (
@@ -53,7 +104,7 @@ export function NotificationsTab() {
         <div className="space-y-3">
           {channels.map((ch) => (
             <div key={ch.id} className="flex items-center gap-3">
-              <span className="text-base">{ch.icon}</span>
+              {CHANNEL_ICONS[ch.id] ?? <Smartphone className="h-4 w-4 text-gray-500" />}
               <span className="text-xs font-bold text-gray-900 dark:text-white w-20">{ch.label}</span>
               <Toggle checked={ch.on} onChange={() => toggleChannel(ch.id)} label={ch.label} />
               <span className="text-[10px] text-gray-400 ml-auto">{ch.detail}</span>
@@ -80,7 +131,12 @@ export function NotificationsTab() {
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
               {events.map((ev, i) => (
                 <tr key={i}>
-                  <td className="py-2.5 text-gray-700 dark:text-gray-300">{ev.label}</td>
+                  <td className="py-2.5 text-gray-700 dark:text-gray-300">
+                    <span className="inline-flex items-center gap-1.5">
+                      {EVENT_ICONS[i]}
+                      {ev.label}
+                    </span>
+                  </td>
                   <td className="py-2.5 text-center">
                     <Toggle checked={ev.sms} onChange={() => toggleEvent(i, "sms")} />
                   </td>
@@ -97,33 +153,20 @@ export function NotificationsTab() {
         </div>
       </section>
 
-      {/* Heures silencieuses */}
-      <section className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
-          Heures silencieuses
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600 dark:text-gray-400">Activer les heures silencieuses</span>
-            <Toggle checked={quietHours} onChange={() => setQuietHours(!quietHours)} label="Heures silencieuses" />
-          </div>
-          {quietHours && (
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-[11px] text-gray-500">De</span>
-              <input type="time" defaultValue="22:00" className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900" />
-              <span className="text-[11px] text-gray-500">À</span>
-              <input type="time" defaultValue="07:00" className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900" />
-            </div>
+      {/* Save button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+            isSaving && "opacity-50 cursor-not-allowed",
           )}
-          <p className="text-[10px] text-gray-400 italic">
-            Les notifications SMS seront suspendues. Emails envoyés normalement.
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600 dark:text-gray-400">Sauf livraisons urgentes</span>
-            <Toggle checked={exceptUrgent} onChange={() => setExceptUrgent(!exceptUrgent)} label="Sauf urgentes" />
-          </div>
-        </div>
-      </section>
+        >
+          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {isSaving ? "Sauvegarde…" : "Sauvegarder les notifications"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Info, Banknote } from "lucide-react";
+import { CheckCircle2, Info, Banknote, Wallet, CreditCard, BookOpen, Save, Loader2 } from "lucide-react";
+import type { AgencySettingsResponse } from "@/features/agency/schema";
+import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
   return (
@@ -15,10 +17,48 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
 
 type PayMethod = "orange" | "wave" | "bank";
 
-export function PaymentsTab() {
-  const [method, setMethod] = useState<PayMethod>("orange");
-  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [autoTransfer, setAutoTransfer] = useState(true);
+interface PaymentsTabProps {
+  data: AgencySettingsResponse;
+  onSave: (payload: UpdateAgencySettingsPayload) => void;
+  isSaving: boolean;
+}
+
+export function PaymentsTab({ data, onSave, isSaving }: PaymentsTabProps) {
+  // Initialize from API data or defaults
+  const apiSettings = data.paymentSettings;
+  const [method, setMethod] = useState<PayMethod>(
+    (apiSettings?.method as PayMethod) ?? "orange",
+  );
+  const [phoneNumber, setPhoneNumber] = useState(
+    apiSettings?.phoneNumber ?? data.phonePrimary ?? "",
+  );
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">(
+    (apiSettings?.frequency as "daily" | "weekly" | "monthly") ?? "weekly",
+  );
+  const [autoTransfer, setAutoTransfer] = useState(apiSettings?.autoTransfer ?? true);
+  const [minAmount, setMinAmount] = useState(apiSettings?.minAmount ?? "5,000 FCFA");
+
+  // Bank details
+  const [bankName, setBankName] = useState(apiSettings?.bankDetails?.bank ?? "");
+  const [accountNumber, setAccountNumber] = useState(apiSettings?.bankDetails?.accountNumber ?? "");
+  const [iban, setIban] = useState(apiSettings?.bankDetails?.iban ?? "");
+
+  const handleSave = () => {
+    onSave({
+      paymentSettings: {
+        method,
+        phoneNumber,
+        frequency,
+        autoTransfer,
+        minAmount,
+        bankDetails: {
+          bank: bankName,
+          accountNumber,
+          iban,
+        },
+      },
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -41,15 +81,17 @@ export function PaymentsTab() {
             <div className={cn("h-4 w-4 rounded-full border-2 flex items-center justify-center", method === "orange" ? "border-sugu-500" : "border-gray-300")}>
               {method === "orange" && <div className="h-2 w-2 rounded-full bg-sugu-500" />}
             </div>
-            <span className="text-xl">🟠</span>
+            <Wallet className="h-5 w-5 text-orange-500" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-gray-900 dark:text-white">Orange Money</p>
-              <p className="text-[10px] text-gray-400">+223 76 45 23 18</p>
+              <p className="text-[10px] text-gray-400">{phoneNumber || "Non configuré"}</p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-bold text-green-600 dark:bg-green-950/30">
-              <CheckCircle2 className="h-3 w-3" />
-              Vérifié
-            </span>
+            {phoneNumber && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-bold text-green-600 dark:bg-green-950/30">
+                <CheckCircle2 className="h-3 w-3" />
+                Vérifié
+              </span>
+            )}
           </button>
 
           {/* Wave */}
@@ -65,14 +107,11 @@ export function PaymentsTab() {
             <div className={cn("h-4 w-4 rounded-full border-2 flex items-center justify-center", method === "wave" ? "border-sugu-500" : "border-gray-300")}>
               {method === "wave" && <div className="h-2 w-2 rounded-full bg-sugu-500" />}
             </div>
-            <span className="text-xl">🔵</span>
+            <CreditCard className="h-5 w-5 text-blue-500" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-gray-900 dark:text-white">Wave</p>
-              <p className="text-[10px] text-gray-400">+223 76 45 23 18</p>
+              <p className="text-[10px] text-gray-400">{phoneNumber || "Non configuré"}</p>
             </div>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-500 dark:bg-gray-800">
-              Non vérifié
-            </span>
           </button>
 
           {/* Virement bancaire */}
@@ -96,24 +135,55 @@ export function PaymentsTab() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 ml-7">
                 <div>
                   <label className="block text-[10px] font-medium text-gray-500 mb-1">Banque</label>
-                  <select className="form-input py-1.5 text-xs">
-                    <option>BDM-SA</option>
-                    <option>BMS-SA</option>
-                    <option>BNDA</option>
+                  <select
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="form-input py-1.5 text-xs"
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="BDM-SA">BDM-SA</option>
+                    <option value="BMS-SA">BMS-SA</option>
+                    <option value="BNDA">BNDA</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-gray-500 mb-1">N° compte</label>
-                  <input type="text" className="form-input py-1.5 text-xs" placeholder="N° de compte" />
+                  <input
+                    type="text"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    className="form-input py-1.5 text-xs"
+                    placeholder="N° de compte"
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-gray-500 mb-1">IBAN</label>
-                  <input type="text" className="form-input py-1.5 text-xs" placeholder="IBAN" />
+                  <input
+                    type="text"
+                    value={iban}
+                    onChange={(e) => setIban(e.target.value)}
+                    className="form-input py-1.5 text-xs"
+                    placeholder="IBAN"
+                  />
                 </div>
               </div>
             )}
           </button>
         </div>
+
+        {/* Phone number field when Orange/Wave selected */}
+        {method !== "bank" && (
+          <div className="mt-3 max-w-xs">
+            <label className="block text-[11px] font-medium text-gray-500 mb-1">Numéro de téléphone</label>
+            <input
+              type="text"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="form-input py-2 text-sm"
+              placeholder="+223 76 45 23 18"
+            />
+          </div>
+        )}
       </section>
 
       {/* Fréquence de versement */}
@@ -137,12 +207,14 @@ export function PaymentsTab() {
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-gray-400 mb-3">
-          Prochain versement : <span className="font-semibold text-gray-600 dark:text-gray-300">Lundi 28 Février 2026</span>
-        </p>
         <div className="max-w-xs mb-3">
           <label className="block text-[11px] font-medium text-gray-500 mb-1">Montant minimum de versement</label>
-          <input type="text" defaultValue="5,000 FCFA" className="form-input py-2 text-sm" />
+          <input
+            type="text"
+            value={minAmount}
+            onChange={(e) => setMinAmount(e.target.value)}
+            className="form-input py-2 text-sm"
+          />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-600 dark:text-gray-400">Versement automatique</span>
@@ -166,9 +238,24 @@ export function PaymentsTab() {
           </div>
         </div>
         <button className="mt-3 text-xs font-semibold text-sugu-500 hover:text-sugu-600">
-          📖 Voir le détail des frais →
+          <BookOpen className="mr-1 inline h-3.5 w-3.5" /> Voir le détail des frais →
         </button>
       </section>
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+            isSaving && "opacity-50 cursor-not-allowed",
+          )}
+        >
+          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {isSaving ? "Sauvegarde…" : "Sauvegarder les paiements"}
+        </button>
+      </div>
     </div>
   );
 }

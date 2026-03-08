@@ -18,6 +18,8 @@ import {
   MessageSquare,
   HelpCircle,
   Sparkles,
+  MapPin,
+  Banknote,
 } from "lucide-react";
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import type { UserRole } from "@/types";
@@ -66,6 +68,21 @@ const agencyDrawerItems: TabItem[] = [
 ];
 
 // ────────────────────────────────────────────────────────────
+// Driver tabs & drawer items
+// ────────────────────────────────────────────────────────────
+const driverTabs: TabItem[] = [
+  { label: "Accueil", href: "/driver/dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
+  { label: "Livraisons", href: "/driver/deliveries", icon: <Package className="h-6 w-6" />, badge: 3 },
+  { label: "Navigation", href: "/driver/navigation", icon: <MapPin className="h-6 w-6" /> },
+  { label: "Gains", href: "/driver/earnings", icon: <Banknote className="h-6 w-6" /> },
+];
+
+const driverDrawerItems: TabItem[] = [
+  { label: "Paramètres", href: "/driver/settings", icon: <Settings className="h-5 w-5" /> },
+  { label: "Support", href: "/driver/support", icon: <MessageSquare className="h-5 w-5" /> },
+];
+
+// ────────────────────────────────────────────────────────────
 // Component
 // ────────────────────────────────────────────────────────────
 interface BottomTabBarProps {
@@ -76,8 +93,8 @@ export function BottomTabBar({ role }: BottomTabBarProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const tabs = role === "vendor" ? vendorTabs : agencyTabs;
-  const drawerItems = role === "vendor" ? vendorDrawerItems : agencyDrawerItems;
+  const tabs = role === "vendor" ? vendorTabs : role === "agency" ? agencyTabs : driverTabs;
+  const drawerItems = role === "vendor" ? vendorDrawerItems : role === "agency" ? agencyDrawerItems : driverDrawerItems;
 
   // Lock body scroll when drawer is open
   useEffect(() => {

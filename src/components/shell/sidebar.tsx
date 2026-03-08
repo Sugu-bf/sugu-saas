@@ -19,6 +19,8 @@ import {
   Megaphone,
   MessageSquare,
   Wallet,
+  MapPin,
+  Banknote,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import type { UserRole } from "@/types";
@@ -80,6 +82,25 @@ const agencySections: SideNavSection[] = [
   },
 ];
 
+const courierSections: SideNavSection[] = [
+  {
+    title: "ACTIVITÉ",
+    items: [
+      { label: "Dashboard", href: "/driver/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+      { label: "Mes Livraisons", href: "/driver/deliveries", icon: <Package className="h-5 w-5" />, badge: 3 },
+      { label: "Navigation", href: "/driver/navigation", icon: <MapPin className="h-5 w-5" /> },
+      { label: "Gains", href: "/driver/earnings", icon: <Banknote className="h-5 w-5" /> },
+    ],
+  },
+  {
+    title: "COMPTE",
+    items: [
+      { label: "Paramètres", href: "/driver/settings", icon: <Settings className="h-5 w-5" /> },
+      { label: "Support", href: "/driver/support", icon: <MessageSquare className="h-5 w-5" /> },
+    ],
+  },
+];
+
 interface SidebarProps {
   role: UserRole;
 }
@@ -88,10 +109,16 @@ export function Sidebar({ role }: SidebarProps) {
   const { collapsed, toggle } = useSidebar();
   const { data: user } = useSession();
   const pathname = usePathname();
-  const sections = role === "vendor" ? vendorSections : agencySections;
+  const sections = role === "vendor"
+    ? vendorSections
+    : role === "agency"
+      ? agencySections
+      : courierSections;
 
-  const businessName = user?.business_name ?? (role === "vendor" ? "Ma Boutique" : "Mon Agence");
-  const roleLabel = role === "vendor" ? "Vendeur" : "Agence";
+  const businessName = user?.business_name ?? (
+    role === "vendor" ? "Ma Boutique" : role === "agency" ? "Mon Agence" : user?.name ?? "Livreur"
+  );  // courier fallback
+  const roleLabel = role === "vendor" ? "Vendeur" : role === "agency" ? "Agence" : "Livreur";  // courier fallback
   const initials = businessName.charAt(0).toUpperCase();
 
   return (
@@ -175,8 +202,8 @@ export function Sidebar({ role }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Premium CTA (bottom) */}
-      {!collapsed && (
+      {/* Premium CTA (bottom) — hidden for couriers */}
+      {!collapsed && role !== "courier" && (
         <div className="border-t border-gray-200/60 p-3 dark:border-gray-800/60">
           <div className="rounded-2xl bg-gradient-to-r from-sugu-500 to-sugu-600 p-4 text-white shadow-lg shadow-sugu-500/25">
             <div className="flex items-center gap-2 text-sm font-semibold">
@@ -189,6 +216,26 @@ export function Sidebar({ role }: SidebarProps) {
             <button className="mt-3 w-full rounded-xl bg-white/20 px-3 py-2 text-xs font-semibold transition-all hover:bg-white/30 active:scale-[0.98]">
               Mettre à niveau
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Courier online toggle (bottom, replaces CTA for couriers) */}
+      {!collapsed && role === "courier" && (
+        <div className="border-t border-gray-200/60 p-3 dark:border-gray-800/60">
+          <div className="glass-card rounded-2xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse-dot" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">En ligne</span>
+              </div>
+              <div className="flex h-5 w-9 cursor-pointer items-center rounded-full bg-green-500 px-0.5 transition-colors">
+                <div className="h-4 w-4 translate-x-4 rounded-full bg-white shadow-sm transition-transform" />
+              </div>
+            </div>
+            <p className="mt-1 text-[10px] text-gray-400">
+              Vous recevez des nouvelles livraisons
+            </p>
           </div>
         </div>
       )}
