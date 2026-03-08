@@ -8,8 +8,9 @@
 /** Order status → French label */
 export const STATUS_LABELS: Record<string, string> = {
   pending: "En attente",
-  processing: "En préparation",
   confirmed: "Confirmée",
+  processing: "En préparation",
+  packed: "Emballée",
   shipped: "Expédiée",
   delivered: "Livrée",
   cancelled: "Annulée",
@@ -41,9 +42,9 @@ const AVATAR_COLORS = [
 export function normalizeStatus(status: string): string {
   const map: Record<string, string> = {
     pending: "pending",
-    confirmed: "processing",
+    confirmed: "confirmed",
     processing: "processing",
-    packed: "processing",
+    packed: "packed",
     shipped: "shipped",
     delivered: "delivered",
     canceled: "cancelled",

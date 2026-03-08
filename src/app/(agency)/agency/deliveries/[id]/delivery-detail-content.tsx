@@ -23,6 +23,7 @@ import {
   Navigation,
   Package,
   User,
+  Bike,
 } from "lucide-react";
 import type {
   DeliveryDetailRow,
@@ -291,7 +292,7 @@ function MapPlaceholder({ row }: { row: DeliveryDetailRow }) {
 
         {/* Moto icon on the route */}
         <text x="245" y="115" fontSize="24" textAnchor="middle">
-          🛵
+          ●
         </text>
 
         {/* A label */}
@@ -570,7 +571,7 @@ export function DeliveryDetailContent({
           aria-labelledby="detail-driver-heading"
         >
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-base">🛵</span>
+            <Bike className="h-4 w-4 text-gray-500" />
             <h2
               id="detail-driver-heading"
               className="text-sm font-bold text-gray-900"
@@ -689,13 +690,13 @@ export function DeliveryDetailContent({
 
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <Phone className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-              {row.client.phone || "+223 76 45 23 18"}
+              {row.client.phone || "Non renseigné"}
             </div>
 
             {/* Client note */}
             {row.client.note && (
-              <div className="rounded-lg bg-amber-50 p-2.5 text-xs italic text-amber-700">
-                <span className="mr-1">📝</span>
+              <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2.5 text-xs italic text-amber-700">
+                <StickyNote className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 {row.client.note}
               </div>
             )}
@@ -989,7 +990,7 @@ export function DeliveryDetailContent({
 
             <div className="space-y-2">
               {/* Marquer livrée */}
-              {row.status !== "delivered" && row.status !== "returned" && (
+              {row.status === "en_route" && (
                 <button
                   id={`btn-mark-delivered-${row.id}`}
                   onClick={() =>
@@ -1030,7 +1031,7 @@ export function DeliveryDetailContent({
               )}
 
               {/* Livraison échouée */}
-              {row.status !== "returned" && (
+              {!["delivered", "returned", "delayed"].includes(row.status) && (
                 <button
                   id={`btn-fail-${row.id}`}
                   onClick={() =>

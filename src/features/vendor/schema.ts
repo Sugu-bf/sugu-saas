@@ -7,7 +7,9 @@ import { z } from "zod";
 /** Order status enum */
 export const orderStatusSchema = z.enum([
   "pending",
+  "confirmed",
   "processing",
+  "packed",
   "shipped",
   "delivered",
   "cancelled",

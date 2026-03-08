@@ -73,6 +73,7 @@ interface RawOrderDetail {
           location?: string;
           phone?: string | null;
           email?: string | null;
+          orderCount?: number;
         };
         seller?: { id?: string; name?: string; role?: string; location?: string };
         driver?: {
@@ -83,6 +84,7 @@ interface RawOrderDetail {
           phone?: string | null;
         } | null;
       };
+      shipmentPartner?: { name?: string; type?: string } | null;
       items?: Array<{
         id?: string;
         name?: string;
@@ -134,7 +136,9 @@ export async function getVendorOrders(
   if (status && status !== "all") {
     const statusMap: Record<string, string> = {
       pending: "pending",
+      confirmed: "confirmed",
       processing: "confirmed",
+      packed: "packed",
       shipped: "shipped",
       delivered: "delivered",
       cancelled: "canceled",
@@ -371,6 +375,19 @@ function _transformOrderDetailResponse(
     ? `${raw.parties.driver.name} — ${raw.parties.driver.location ?? "En route"}`
     : "En attente d'assignation";
 
+  // ── INFO-02 FIX: Map client order count from backend ──
+  const clientOrderCount = raw.parties?.client?.orderCount ?? 0;
+  const isLoyal = clientOrderCount >= 5;
+
+  // ── INFO-03 FIX: Map delivery provider from shipment/channel data ──
+  const channel = raw.channel;
+  const isDirectOrder = Array.isArray(channel) && channel.includes("direct");
+  const deliveryProvider = raw.shipmentPartner?.name
+    ?? (isDirectOrder ? "Vente directe" : "Sugu Express");
+  const deliveryType = raw.shipmentPartner?.type
+    ?? (isDirectOrder ? "Retrait en boutique" : "Livraison standard");
+  const estimatedTime = isDirectOrder ? "Immédiat" : "Estimée 2-4h";
+
   return {
     id: raw.id,
     reference: raw.reference ?? `CMD-${raw.id.slice(0, 8)}`,
@@ -382,8 +399,8 @@ function _transformOrderDetailResponse(
       avatarColor: avatarColor(clientName),
       phone: raw.parties?.client?.phone ?? "",
       email: raw.parties?.client?.email ?? "",
-      orderCount: 0,
-      isLoyal: false,
+      orderCount: clientOrderCount,
+      isLoyal,
     },
     products: items,
     readyCount: items.filter((i) => i.ready).length,
@@ -391,7 +408,7 @@ function _transformOrderDetailResponse(
     financial: {
       subtotal,
       deliveryCost: raw.pricing?.deliveryFees ?? 0,
-      deliveryLabel: "Livraison standard",
+      deliveryLabel: deliveryType,
       discountPercent,
       discountAmount: discount,
       total,
@@ -399,9 +416,9 @@ function _transformOrderDetailResponse(
       paymentStatus: paymentStatusLabel,
     },
     delivery: {
-      provider: "Sugu Express",
-      type: "Livraison standard",
-      estimatedTime: "Estimée 2-4h",
+      provider: deliveryProvider,
+      type: deliveryType,
+      estimatedTime,
       driverStatus,
       address: {
         line1: locationParts[0] ?? "",

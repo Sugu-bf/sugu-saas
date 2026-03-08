@@ -28,6 +28,7 @@ import {
   useCancelOrder,
   useMarkShipped,
   useMarkDelivered,
+  useRequestDelivery,
 } from "@/features/vendor/hooks";
 import * as vendorService from "@/features/vendor/service";
 import { toast } from "sonner";
@@ -38,7 +39,9 @@ import { toast } from "sonner";
 
 const STATUS_BADGE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
+  confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
   processing: "bg-sugu-50 text-sugu-600 border-sugu-200",
+  packed: "bg-violet-50 text-violet-700 border-violet-200",
   shipped: "bg-blue-50 text-blue-700 border-blue-200",
   delivered: "bg-green-50 text-green-700 border-green-200",
   cancelled: "bg-red-50 text-red-600 border-red-200",
@@ -72,11 +75,13 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
   const cancelMutation = useCancelOrder();
   const shippedMutation = useMarkShipped();
   const deliveredMutation = useMarkDelivered();
+  const deliveryRequestMutation = useRequestDelivery();
   const isMutating =
     confirmMutation.isPending ||
     cancelMutation.isPending ||
     shippedMutation.isPending ||
-    deliveredMutation.isPending;
+    deliveredMutation.isPending ||
+    deliveryRequestMutation.isPending;
 
   // ── Status transition handlers ──
 
@@ -106,6 +111,13 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
     deliveredMutation.mutate(data.id, {
       onSuccess: () => toast.success("Commande marquée comme livrée"),
       onError: (err) => toast.error(err.message || "Erreur lors de la mise à jour"),
+    });
+  };
+
+  const handleRequestDelivery = () => {
+    deliveryRequestMutation.mutate(data.id, {
+      onSuccess: () => toast.success("Demande de livraison envoyée"),
+      onError: (err) => toast.error(err.message || "Erreur lors de la demande"),
     });
   };
 
@@ -510,8 +522,20 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 </button>
               )}
 
-              {/* processing → shipped */}
-              {data.status === "processing" && (
+              {/* confirmed → request delivery */}
+              {data.status === "confirmed" && (
+                <button
+                  onClick={handleRequestDelivery}
+                  disabled={isMutating}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/25 transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-indigo-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {deliveryRequestMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                  Demander la livraison
+                </button>
+              )}
+
+              {/* processing/packed → shipped */}
+              {(data.status === "processing" || data.status === "packed") && (
                 <button
                   onClick={handleMarkShipped}
                   disabled={isMutating}
@@ -522,7 +546,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 </button>
               )}
 
-              {/* shipped → delivered */}
+              {/* shipped → delivered (only for direct orders, marketplace uses delivery code flow) */}
               {data.status === "shipped" && (
                 <button
                   onClick={handleMarkDelivered}

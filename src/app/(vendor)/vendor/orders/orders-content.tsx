@@ -59,8 +59,12 @@ const STATUS_TABS: StatusTab[] = [
 const STATUS_BADGE: Record<OrderStatus, string> = {
   pending:
     "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
+  confirmed:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400",
   processing:
     "bg-sugu-50 text-sugu-600 border-sugu-200 dark:bg-sugu-950/30 dark:text-sugu-400",
+  packed:
+    "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400",
   shipped:
     "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
   delivered:
@@ -685,17 +689,17 @@ function OrderDetailPanel({
                 Préparer la commande
               </button>
             )}
-            {order.status === "processing" && (
+            {(order.status === "confirmed" || order.status === "processing" || order.status === "packed") && (
               <button
                 onClick={handleRequestDelivery}
                 disabled={isMutating}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {deliveryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Marquer expédiée
+                Demander la livraison
               </button>
             )}
-            {(order.status === "pending" || order.status === "processing") && (
+            {!["delivered", "cancelled", "refunded", "shipped"].includes(order.status) && (
               <button
                 onClick={handleCancel}
                 disabled={isMutating}

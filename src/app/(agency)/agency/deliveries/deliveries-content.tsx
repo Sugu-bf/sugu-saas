@@ -32,6 +32,9 @@ import {
   PackageCheck,
   PackageX,
   Loader2,
+  Bike,
+  Package,
+  User,
 } from "lucide-react";
 import type {
   DeliveryRow,
@@ -176,7 +179,7 @@ function DeliveryDetailPanel({
         <section aria-labelledby="panel-order-heading">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="text-base">📦</span>
+              <Package className="h-3.5 w-3.5 text-gray-400" />
               <h2 id="panel-order-heading" className="text-xs font-bold text-gray-900 dark:text-white">
                 Commande
               </h2>
@@ -249,7 +252,7 @@ function DeliveryDetailPanel({
                 </p>
               </div>
               <span className="flex-shrink-0 text-[10px] font-semibold text-gray-500">
-                12 min
+                {row.eta}
               </span>
             </div>
           </div>
@@ -258,7 +261,7 @@ function DeliveryDetailPanel({
         {/* ── Livreur ── */}
         <section aria-labelledby="panel-driver-heading">
           <div className="mb-2 flex items-center gap-1.5">
-            <span className="text-base">🛵</span>
+            <Bike className="h-3.5 w-3.5 text-gray-400" />
             <h2 id="panel-driver-heading" className="text-xs font-bold text-gray-900 dark:text-white">
               Livreur
             </h2>
@@ -333,7 +336,7 @@ function DeliveryDetailPanel({
         {/* ── Client ── */}
         <section aria-labelledby="panel-client-heading">
           <div className="mb-2 flex items-center gap-1.5">
-            <span className="text-base">👤</span>
+            <User className="h-3.5 w-3.5 text-gray-400" />
             <h2 id="panel-client-heading" className="text-xs font-bold text-gray-900 dark:text-white">
               Client
             </h2>
@@ -403,7 +406,7 @@ function DeliveryDetailPanel({
 
       {/* ── Action buttons ── */}
       <div className="space-y-2 border-t border-gray-100 p-4 dark:border-gray-800">
-        {row.status !== "delivered" && row.status !== "returned" && (
+        {row.status === "en_route" && (
           <button
             id={`btn-mark-delivered-${row.id}`}
             disabled={isMutating}
@@ -422,10 +425,10 @@ function DeliveryDetailPanel({
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-400 disabled:opacity-60"
           >
             <AlertTriangle className="h-4 w-4" />
-            🚨 Signaler un retard
+            Signaler un retard
           </button>
         )}
-        {row.status !== "returned" && (
+        {!["delivered", "returned", "delayed"].includes(row.status) && (
           <button
             id={`btn-fail-delivery-${row.id}`}
             disabled={isMutating}
@@ -433,7 +436,7 @@ function DeliveryDetailPanel({
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 disabled:opacity-60"
           >
             <XCircle className="h-4 w-4" />
-            ✗ Livraison échouée
+            Livraison échouée
           </button>
         )}
         {row.status === "returned" && (
