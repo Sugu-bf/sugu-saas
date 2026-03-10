@@ -560,6 +560,23 @@ export function useCreateOrder() {
 }
 
 // ────────────────────────────────────────────────────────────
+// Delivery Partners (for order creation)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Hook: Fetch available delivery partners (agencies).
+ * Used in order creation to let the vendor select a delivery agency.
+ * Partners are cached for 5 minutes since they rarely change.
+ */
+export function useDeliveryPartners() {
+  return useQuery({
+    queryKey: queryKeys.vendor.deliveryPartners(),
+    queryFn: () => vendorService.getDeliveryPartners(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ────────────────────────────────────────────────────────────
 // Create Product Page
 // ────────────────────────────────────────────────────────────
 

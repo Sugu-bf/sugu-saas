@@ -23,14 +23,18 @@ import {
   Pencil,
   Loader2,
   AlertCircle,
+  X,
+  Building2,
+  CheckCircle2,
 } from "lucide-react";
 import {
   useProductSearch,
   useCustomerSearch,
   useCreateOrder,
   useCreateCustomer,
+  useDeliveryPartners,
 } from "@/features/vendor/hooks";
-import type { ProductSearchResult, CustomerSearchResult } from "@/features/vendor/schema";
+import type { ProductSearchResult, CustomerSearchResult, DeliveryPartner } from "@/features/vendor/schema";
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -78,7 +82,10 @@ export function CreateOrderForm() {
   const [newClientEmail, setNewClientEmail] = useState("");
 
   // ── Delivery state
-  const [deliveryMode, setDeliveryMode] = useState<"express" | "standard" | "pickup">("express");
+  const [selectedAgency, setSelectedAgency] = useState<DeliveryPartner | null>(null);
+  const [showAgencyPopup, setShowAgencyPopup] = useState(false);
+  const [selectedDeliveryModeKey, setSelectedDeliveryModeKey] = useState<string | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"shipping" | "pickup">("shipping");
   const [deliveryNote, setDeliveryNote] = useState("");
 
   // ── Discount state
@@ -96,6 +103,7 @@ export function CreateOrderForm() {
   // ── API hooks
   const { data: productResults, isLoading: isSearchingProducts } = useProductSearch(productSearch);
   const { data: customerResults, isLoading: isSearchingCustomers } = useCustomerSearch(clientSearch);
+  const { data: deliveryPartners, isLoading: isLoadingPartners } = useDeliveryPartners();
   const createOrderMutation = useCreateOrder();
   const createCustomerMutation = useCreateCustomer();
 
@@ -105,7 +113,8 @@ export function CreateOrderForm() {
     [items],
   );
 
-  const deliveryCost = deliveryMode === "express" ? 2500 : deliveryMode === "standard" ? 1500 : 0;
+  const selectedMode = selectedAgency?.deliveryModes.find((m) => m.key === selectedDeliveryModeKey) ?? null;
+  const deliveryCost = deliveryMode === "pickup" ? 0 : (selectedMode?.cost ?? 0);
 
   const discountAmount = useMemo(() => {
     const val = parseInt(discountValue) || 0;
@@ -206,8 +215,19 @@ export function CreateOrderForm() {
       return;
     }
 
+    // ── Validate delivery agency
+    if (deliveryMode === "shipping" && !selectedAgency) {
+      setFormError("Veuillez sélectionner une agence de livraison.");
+      return;
+    }
+
+    if (deliveryMode === "shipping" && !selectedDeliveryModeKey) {
+      setFormError("Veuillez sélectionner un mode de livraison.");
+      return;
+    }
+
     // ── Build the order payload
-    const deliveryMethod = deliveryMode === "pickup" ? "pickup" : "shipping";
+    const deliveryMethod = deliveryMode;
 
     // Split new client name into first/last
     const nameParts = newClientName.trim().split(" ");
@@ -235,7 +255,8 @@ export function CreateOrderForm() {
       currency: "XOF" as const,
       delivery: {
         method: deliveryMethod as "pickup" | "shipping",
-        provider: deliveryMode === "express" ? "sugu-express" : deliveryMode === "standard" ? "faso-deliver" : undefined,
+        provider: deliveryMode === "shipping" ? selectedAgency?.id : undefined,
+        deliveryModeKey: deliveryMode === "shipping" ? selectedDeliveryModeKey ?? undefined : undefined,
         pickupLocation: deliveryMode === "pickup" ? "Boutique principale" : undefined,
       },
       note: deliveryNote || undefined,
@@ -261,6 +282,7 @@ export function CreateOrderForm() {
   }, [
     items, clientMode, selectedClient, newClientName, newClientPhone, newClientEmail,
     deliveryMode, deliveryNote, subtotal, total, createOrderMutation, createCustomerMutation,
+    selectedAgency, selectedDeliveryModeKey,
   ]);
 
   const isSubmitting = createOrderMutation.isPending || createCustomerMutation.isPending;
@@ -723,114 +745,159 @@ export function CreateOrderForm() {
               Livraison
             </h2>
 
-            <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-              Mode de livraison
-            </p>
-
-            <div className="mt-2 space-y-2">
-              {/* Express */}
-              <label
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-all",
-                  deliveryMode === "express"
-                    ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                    : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40 dark:bg-gray-900/20",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={deliveryMode === "express"}
-                  onChange={() => setDeliveryMode("express")}
-                  className="mt-1 h-4 w-4 text-sugu-500 focus:ring-sugu-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-sugu-500" />
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Livraison express
-                      </span>
-                    </div>
-                    {deliveryMode === "express" && (
-                      <span className="rounded-full bg-sugu-500 px-2 py-0.5 text-[9px] font-bold text-white">
-                        SELECTED
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Express Bamako · 2-4h
-                  </p>
-                </div>
-                <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                  2,500 FCFA
-                </span>
-              </label>
-
-              {/* Standard */}
-              <label
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-all",
-                  deliveryMode === "standard"
-                    ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                    : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40 dark:bg-gray-900/20",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={deliveryMode === "standard"}
-                  onChange={() => setDeliveryMode("standard")}
-                  className="mt-1 h-4 w-4 text-sugu-500 focus:ring-sugu-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Livraison standard
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Faso Deliver · 24-48h
-                  </p>
-                </div>
-                <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                  1,500 FCFA
-                </span>
-              </label>
-
-              {/* Pickup */}
-              <label
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-all",
-                  deliveryMode === "pickup"
-                    ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                    : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40 dark:bg-gray-900/20",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={deliveryMode === "pickup"}
-                  onChange={() => setDeliveryMode("pickup")}
-                  className="mt-1 h-4 w-4 text-sugu-500 focus:ring-sugu-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-green-500" />
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Retrait en boutique
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Gratuit · Disponible sous 1h
-                  </p>
-                </div>
-                <span className="text-sm font-bold text-green-600">
-                  Gratuit
-                </span>
-              </label>
+            {/* ── Delivery method toggle: Shipping vs Pickup ── */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-gray-500">Type de livraison</span>
+              <div className="flex rounded-lg border border-gray-200/80 p-0.5 dark:border-gray-700/50">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("shipping")}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
+                    deliveryMode === "shipping"
+                      ? "bg-sugu-500 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-700",
+                  )}
+                >
+                  Livraison
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("pickup")}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
+                    deliveryMode === "pickup"
+                      ? "bg-sugu-500 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-700",
+                  )}
+                >
+                  Retrait
+                </button>
+              </div>
             </div>
+
+            {deliveryMode === "shipping" ? (
+              <>
+                {/* ── Agency Selection ── */}
+                <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Agence de livraison
+                </p>
+
+                {selectedAgency ? (
+                  <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-sugu-500 bg-sugu-50/40 p-3.5 dark:bg-sugu-950/10">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sugu-500/10 text-sugu-500">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          {selectedAgency.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {selectedAgency.deliveryModes.length} mode{selectedAgency.deliveryModes.length > 1 ? "s" : ""} disponible{selectedAgency.deliveryModes.length > 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAgencyPopup(true);
+                      }}
+                      className="text-xs font-semibold text-sugu-500 hover:text-sugu-600"
+                    >
+                      Changer
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowAgencyPopup(true)}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white/30 px-4 py-4 text-sm font-semibold text-gray-500 transition-all hover:border-sugu-400 hover:text-sugu-600 dark:border-gray-600 dark:bg-gray-900/20 dark:hover:border-sugu-500"
+                  >
+                    <Building2 className="h-5 w-5" />
+                    Sélectionner une agence de livraison
+                  </button>
+                )}
+
+                {/* ── Delivery Modes (only visible after agency is selected) ── */}
+                {selectedAgency && selectedAgency.deliveryModes.length > 0 && (
+                  <>
+                    <p className="mt-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Mode de livraison
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      {selectedAgency.deliveryModes.map((mode) => (
+                        <label
+                          key={mode.key}
+                          className={cn(
+                            "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-all",
+                            selectedDeliveryModeKey === mode.key
+                              ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
+                              : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40 dark:bg-gray-900/20",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="deliveryMode"
+                            checked={selectedDeliveryModeKey === mode.key}
+                            onChange={() => setSelectedDeliveryModeKey(mode.key)}
+                            className="mt-1 h-4 w-4 text-sugu-500 focus:ring-sugu-500"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {mode.key.includes("express") ? (
+                                  <Zap className="h-4 w-4 text-sugu-500" />
+                                ) : (
+                                  <Package className="h-4 w-4 text-blue-500" />
+                                )}
+                                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                  {mode.label}
+                                </span>
+                              </div>
+                              {selectedDeliveryModeKey === mode.key && (
+                                <span className="rounded-full bg-sugu-500 px-2 py-0.5 text-[9px] font-bold text-white">
+                                  SÉLECTIONNÉ
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-xs text-gray-400">
+                              {selectedAgency.name} · {mode.estimatedTime}
+                            </p>
+                          </div>
+                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                            {mode.cost > 0 ? `${formatCurrency(mode.cost)} FCFA` : "Gratuit"}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {selectedAgency && selectedAgency.deliveryModes.length === 0 && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+                    <AlertCircle className="mr-1.5 inline h-4 w-4" />
+                    Cette agence n&apos;a pas de modes de livraison configurés.
+                  </div>
+                )}
+              </>
+            ) : (
+              /* ── Pickup mode ── */
+              <div className="mt-3">
+                <div className="flex items-start gap-3 rounded-xl border-2 border-sugu-500 bg-sugu-50/40 p-3.5 dark:bg-sugu-950/10">
+                  <Store className="mt-0.5 h-5 w-5 text-green-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Retrait en boutique
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      Gratuit · Disponible sous 1h
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">Gratuit</span>
+                </div>
+              </div>
+            )}
 
             {/* Delivery address */}
             {deliveryMode !== "pickup" && selectedClient?.address && (
@@ -891,7 +958,7 @@ export function CreateOrderForm() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">
-                    Livraison ({deliveryMode === "express" ? "Express" : deliveryMode === "standard" ? "Standard" : "Retrait"})
+                    Livraison ({deliveryMode === "pickup" ? "Retrait" : selectedMode?.label ?? "—"})
                   </span>
                   <span className="font-medium text-gray-800 dark:text-gray-200">
                     → {deliveryCost > 0 ? `${formatCurrency(deliveryCost)} FCFA` : "Gratuit"}
@@ -1001,6 +1068,117 @@ export function CreateOrderForm() {
           </section>
         </div>
       </div>
+
+      {/* ════════════ Agency Selection Popup ════════════ */}
+      {showAgencyPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-gray-200/60 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200/60 px-6 py-4 dark:border-gray-700">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Sélectionner une agence
+                </h3>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Choisissez l&apos;agence de livraison pour cette commande
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAgencyPopup(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+              {isLoadingPartners ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
+                  <span className="ml-2 text-sm text-gray-400">Chargement des agences…</span>
+                </div>
+              ) : !deliveryPartners || deliveryPartners.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Building2 className="h-10 w-10 text-gray-300 dark:text-gray-600" />
+                  <p className="mt-3 text-sm font-medium text-gray-500">
+                    Aucune agence de livraison disponible
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Contactez l&apos;administrateur pour configurer les agences.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {deliveryPartners.map((partner) => (
+                    <button
+                      key={partner.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAgency(partner);
+                        // Auto-select first delivery mode
+                        setSelectedDeliveryModeKey(
+                          partner.deliveryModes.length > 0 ? partner.deliveryModes[0].key : null,
+                        );
+                        setShowAgencyPopup(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all",
+                        selectedAgency?.id === partner.id
+                          ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
+                          : "border-gray-200/60 bg-white/30 hover:border-sugu-300 hover:bg-sugu-50/20 dark:border-gray-700/40 dark:bg-gray-900/20 dark:hover:border-sugu-700",
+                      )}
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-500/10 to-sugu-500/20 text-sugu-500">
+                        <Building2 className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                            {partner.name}
+                          </p>
+                          {selectedAgency?.id === partner.id && (
+                            <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-sugu-500" />
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          {partner.deliveryModes.length > 0
+                            ? partner.deliveryModes.map((m) => m.label).join(" · ")
+                            : "Aucun mode configuré"}
+                        </p>
+                        {partner.type && (
+                          <span className="mt-1 inline-block rounded-full border border-gray-200 bg-gray-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-800/50">
+                            {partner.type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {partner.deliveryModes.length > 0 && (
+                          <p className="text-xs text-gray-400">
+                            à partir de {formatCurrency(Math.min(...partner.deliveryModes.map((m) => m.cost)))} FCFA
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200/60 px-6 py-4 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setShowAgencyPopup(false)}
+                className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-600 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

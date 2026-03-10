@@ -67,6 +67,7 @@ export {
   searchVendorCustomers,
   createVendorCustomer,
   createVendorOrder,
+  getDeliveryPartners,
 } from "./sales.service";
 
 // Settings

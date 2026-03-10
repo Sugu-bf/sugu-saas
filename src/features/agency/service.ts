@@ -1397,7 +1397,6 @@ export interface RegisterCourierPayload {
   last_name: string;
   email?: string;
   phone: string;
-  phone_prefix?: string;
   date_of_birth?: string;
   gender?: string;
   quartier?: string;
@@ -1419,27 +1418,51 @@ export interface RegisterCourierPayload {
  *
  * Unlike addCourier() which links an existing user_id,
  * this endpoint creates the user + courier in one step.
- *
- * For MVP: uses mock delay. Will call real API later.
  */
 export async function registerCourier(
   agencyId: string,
   data: RegisterCourierPayload,
 ): Promise<{ courierId: string; password?: string }> {
-  // MVP: mock response
-  await new Promise((r) => setTimeout(r, 1200));
-  console.info("[registerCourier] Would POST to:", `agencies/${agencyId}/couriers/register`, data);
+  const response = await api.post<{
+    success: boolean;
+    message: string;
+    data: { courier_id: string; password?: string };
+  }>(`agencies/${agencyId}/couriers/register`, {
+    first_name: data.first_name,
+    last_name: data.last_name,
+    email: data.email,
+    phone: data.phone,
+    date_of_birth: data.date_of_birth,
+    gender: data.gender,
+    quartier: data.quartier,
+    address: data.address,
+    vehicle_type: data.vehicle_type,
+    vehicle_make: data.vehicle_make,
+    vehicle_plate: data.vehicle_plate,
+    vehicle_color: data.vehicle_color,
+    vehicle_year: data.vehicle_year,
+    auto_password: data.auto_password ?? true,
+    send_sms: data.send_sms ?? true,
+    send_email: data.send_email ?? false,
+  });
+
   return {
-    courierId: "cour-" + Date.now(),
-    password: data.auto_password ? "TempPass2026!" : undefined,
+    courierId: response.data.courier_id,
+    password: response.data.password,
   };
-  // TODO: Uncomment when backend endpoint is ready
-  // const raw = await api.post<{ success: boolean; data: { courier_id: string; password?: string } }>(
-  //   `agencies/${agencyId}/couriers/register`,
-  //   data,
-  // );
-  // return { courierId: raw.data.courier_id, password: raw.data.password };
 }
+
+// --- MOCK FALLBACK (kept for dev/offline testing) ---
+// async function _registerCourierMock(
+//   agencyId: string,
+//   data: RegisterCourierPayload,
+// ): Promise<{ courierId: string; password?: string }> {
+//   await new Promise((r) => setTimeout(r, 1200));
+//   return {
+//     courierId: "cour-" + Date.now(),
+//     password: data.auto_password ? "TempPass2026!" : undefined,
+//   };
+// }
 
 /**
  * Fetch the agency statistics from the real API.

@@ -7,8 +7,10 @@ import { ChevronRight, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { useRegisterCourier } from "@/features/agency/hooks";
+import { useSession } from "@/features/auth/hooks";
 import { DEFAULT_CREATE_COURIER } from "@/features/agency/schema";
 import type { CreateCourierFormData } from "@/features/agency/schema";
+import { env } from "@/lib/env";
 
 import { SectionPersonal } from "./_components/section-personal";
 import { SectionVehicle } from "./_components/section-vehicle";
@@ -21,6 +23,8 @@ export function CreateDriverForm() {
   const [formData, setFormData] = useState<CreateCourierFormData>(DEFAULT_CREATE_COURIER);
   const router = useRouter();
   const registerMutation = useRegisterCourier();
+  const { data: sessionUser } = useSession();
+  const agencyId = sessionUser?.delivery_partner_id ?? "";
 
   const updateField = useCallback(
     <K extends keyof CreateCourierFormData>(field: K, value: CreateCourierFormData[K]) => {
@@ -37,6 +41,55 @@ export function CreateDriverForm() {
     if (!formData.vehicleMake.trim()) return "Le modèle du véhicule est requis";
     if (!formData.vehiclePlate.trim()) return "Le numéro de plaque est requis";
     return null;
+  };
+
+  /** Read auth token from cookie for raw fetch calls */
+  const getToken = (): string | null => {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  /** Upload KYC documents after courier creation (non-blocking) */
+  const uploadDocuments = async (courierId: string): Promise<void> => {
+    const docsWithFiles = formData.documents.filter((doc) => doc.file);
+    if (docsWithFiles.length === 0) return;
+
+    const base = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
+      ? env.NEXT_PUBLIC_API_BASE_URL
+      : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
+    const token = getToken();
+
+    // Map frontend document types to backend expected types
+    const typeMap: Record<string, string> = {
+      cni: "id_card",
+      permis: "driver_license",
+      carte_grise: "vehicle_registration",
+      photo: "other",
+    };
+
+    for (const doc of docsWithFiles) {
+      try {
+        const fd = new FormData();
+        fd.append("files[]", doc.file as File);
+        fd.append("document_type", typeMap[doc.type] ?? "other");
+        fd.append("document_name", doc.name || doc.type);
+
+        await fetch(
+          `${base}agencies/${agencyId}/couriers/${courierId}/kyc-documents`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: fd,
+          },
+        );
+      } catch {
+        // Non-blocking: courier is already created, doc upload failure is not fatal
+      }
+    }
   };
 
   const handleSubmit = useCallback(() => {
@@ -66,7 +119,10 @@ export function CreateDriverForm() {
         send_email: formData.sendEmail,
       },
       {
-        onSuccess: (result) => {
+        onSuccess: async (result) => {
+          // Upload KYC documents after successful courier creation (Option A)
+          await uploadDocuments(result.courierId);
+
           toast.success("Livreur enregistré avec succès !", {
             description: result.password
               ? `Mot de passe temporaire : ${result.password}`
@@ -80,7 +136,7 @@ export function CreateDriverForm() {
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, registerMutation, router]);
+  }, [formData, registerMutation, router, agencyId]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">

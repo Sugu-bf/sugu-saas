@@ -67,6 +67,7 @@ export {
   searchVendorCustomers,
   createVendorCustomer,
   createVendorOrder,
+  getDeliveryPartners,
   // Settings
   getVendorSettings,
   updateSettingsIdentity,

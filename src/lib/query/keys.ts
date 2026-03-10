@@ -67,6 +67,8 @@ export const queryKeys = {
       [...queryKeys.vendor.all, "wallet", "transactions", filters] as const,
     payoutSettings: () =>
       [...queryKeys.vendor.all, "wallet", "payout-settings"] as const,
+    deliveryPartners: () =>
+      [...queryKeys.vendor.all, "deliveryPartners"] as const,
   },
   agency: {
     all: ["agency"] as const,

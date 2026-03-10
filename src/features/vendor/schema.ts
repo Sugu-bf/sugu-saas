@@ -1313,6 +1313,7 @@ export const createOrderRequestSchema = z.object({
   delivery: z.object({
     method: z.enum(["pickup", "shipping"]),
     provider: z.string().optional(),
+    deliveryModeKey: z.string().optional(),
     pickupLocation: z.string().optional(),
   }).optional(),
   note: z.string().optional(),
@@ -1347,6 +1348,27 @@ export const createCustomerResponseSchema = z.object({
 });
 
 export type CreateCustomerResponse = z.infer<typeof createCustomerResponseSchema>;
+
+// ────────────────────────────────────────────────────────────
+// Delivery Partners (for order creation agency selection)
+// ────────────────────────────────────────────────────────────
+
+/** A delivery partner / agency available for shipping */
+export const deliveryPartnerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  type: z.string().optional(),
+  logo: z.string().optional(),
+  deliveryModes: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    estimatedTime: z.string(),
+    cost: z.number(),
+  })),
+});
+
+export type DeliveryPartner = z.infer<typeof deliveryPartnerSchema>;
 
 // ────────────────────────────────────────────────────────────
 // Create Product Page Schemas

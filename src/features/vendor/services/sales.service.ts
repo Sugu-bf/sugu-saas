@@ -7,12 +7,14 @@ import {
   customerSearchResultSchema,
   createOrderResponseSchema,
   createCustomerResponseSchema,
+  deliveryPartnerSchema,
   type ProductSearchResult,
   type CustomerSearchResult,
   type CreateOrderRequest,
   type CreateOrderResponse,
   type CreateCustomerRequest,
   type CreateCustomerResponse,
+  type DeliveryPartner,
 } from "../schema";
 import { api } from "@/lib/http/client";
 import { initials, deriveEmoji } from "./_shared";
@@ -90,4 +92,45 @@ export async function createVendorOrder(data: CreateOrderRequest): Promise<Creat
     "sellers/sales", data, { headers: { "Idempotency-Key": idempotencyKey } },
   );
   return createOrderResponseSchema.parse({ id: res.data.id, success: res.data.success ?? true });
+}
+
+/** Fetch available delivery partners (agencies) for order creation */
+export async function getDeliveryPartners(): Promise<DeliveryPartner[]> {
+  try {
+    const res = await api.get<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        type?: string;
+        logo_url?: string;
+        delivery_modes?: Array<{
+          key: string;
+          label: string;
+          estimated_time?: string;
+          cost?: number;
+        }>;
+      }>;
+    }>("sellers/sales/delivery-partners");
+
+    return (res.data ?? []).map((item) =>
+      deliveryPartnerSchema.parse({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        type: item.type ?? "agency",
+        logo: item.logo_url || undefined,
+        deliveryModes: (item.delivery_modes ?? []).map((mode) => ({
+          key: mode.key,
+          label: mode.label,
+          estimatedTime: mode.estimated_time ?? "2-4h",
+          cost: mode.cost ?? 0,
+        })),
+      }),
+    );
+  } catch {
+    // Fallback: return empty array — the form will show a message to configure delivery partners
+    return [];
+  }
 }
