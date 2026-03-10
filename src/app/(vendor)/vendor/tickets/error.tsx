@@ -29,7 +29,7 @@ export default function TicketsError({
       </div>
       <button
         onClick={reset}
-        className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:bg-sugu-600"
+        className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sugu-600"
       >
         <RefreshCw className="h-4 w-4" />
         Réessayer

@@ -82,7 +82,7 @@ export default function AgencyDashboardClient() {
       {/* ════════════ Header ════════════ */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5 lg:gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 shadow-lg shadow-sugu-500/20 lg:h-11 lg:w-11 lg:rounded-2xl">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sugu-500 lg:h-11 lg:w-11 lg:rounded-2xl">
             <Truck className="h-4 w-4 text-white lg:h-5 lg:w-5" />
           </div>
           <h1 className="text-lg font-bold text-gray-900 dark:text-white lg:text-2xl">
@@ -112,7 +112,7 @@ export default function AgencyDashboardClient() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
         {/* Map placeholder */}
         <section className="glass-card overflow-hidden rounded-2xl lg:rounded-3xl" aria-label="Carte des livraisons">
-          <div className="relative h-56 bg-gradient-to-br from-green-50/80 via-emerald-50/40 to-teal-50/30 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/10 lg:h-80">
+          <div className="relative h-56 bg-green-50/80 dark:bg-green-950/20 lg:h-80">
             {/* Stylized map placeholder */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
@@ -254,7 +254,7 @@ function KpiCard({ kpi, delay }: { kpi: AgencyKpi; delay: number }) {
 
   return (
     <div
-      className={`kpi-card glass-card rounded-2xl bg-gradient-to-br ${kpi.gradient} p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
+      className={`kpi-card glass-card rounded-2xl p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
       style={{ animationDelay: `${delay * 100}ms` }}
     >
       <div className="flex items-start justify-between">
@@ -366,7 +366,7 @@ function DriverBar({ driver }: { driver: DriverPerformance }) {
       <div className="flex-1">
         <div className="h-2 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40 lg:h-2.5">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500 transition-all duration-700"
+            className="h-full rounded-full bg-sugu-500 transition-all duration-700"
             style={{ width: `${driver.score}%` }}
           />
         </div>

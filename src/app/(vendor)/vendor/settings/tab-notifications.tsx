@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { SectionCard, Toggle, PillBadge, PillButton } from "./settings-ui";
 import { useUpdateNotifications, useVendorSettings } from "@/features/vendor/hooks";
@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
-// Onglet 4 — Notifications
+// Onglet 4 — Notifications (Production-grade, fully dynamic)
 // ────────────────────────────────────────────────────────────
 
 interface Channel {
@@ -37,7 +37,25 @@ interface Channel {
   pro?: boolean;
 }
 
+// Event keys that map to backend eventPreferences
+const EVENT_KEYS = [
+  "new_order",
+  "payment_received",
+  "order_shipped",
+  "order_delivered",
+  "order_cancelled",
+  "low_stock",
+  "out_of_stock",
+  "new_review",
+  "new_support_message",
+  "weekly_report",
+  "promotion",
+] as const;
+
+type EventKey = typeof EVENT_KEYS[number];
+
 interface EventRow {
+  key: EventKey;
   icon: React.ReactNode;
   label: string;
   sms: boolean;
@@ -46,9 +64,27 @@ interface EventRow {
   whatsapp: boolean;
 }
 
+// Default event rows (used when backend has no eventPreferences saved)
+function getDefaultEvents(emailAlerts: {newOrder: boolean; lowStock: boolean; marketing: boolean}): EventRow[] {
+  return [
+    { key: "new_order",     icon: <ShoppingCart className="h-4 w-4 text-sugu-500" />,   label: "Nouvelle commande",   sms: true,  email: emailAlerts.newOrder, push: true,  whatsapp: true },
+    { key: "payment_received", icon: <Banknote className="h-4 w-4 text-green-500" />,   label: "Paiement reçu",       sms: true,  email: true,                push: false, whatsapp: false },
+    { key: "order_shipped",  icon: <Truck className="h-4 w-4 text-blue-500" />,          label: "Commande expédiée",   sms: false, email: true,                push: false, whatsapp: false },
+    { key: "order_delivered", icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, label: "Commande livrée",     sms: false, email: true,                push: false, whatsapp: false },
+    { key: "order_cancelled", icon: <XCircle className="h-4 w-4 text-red-500" />,        label: "Commande annulée",    sms: true,  email: true,                push: true,  whatsapp: false },
+    { key: "low_stock",       icon: <AlertTriangle className="h-4 w-4 text-amber-500" />, label: "Stock faible",       sms: true,  email: emailAlerts.lowStock, push: true,  whatsapp: false },
+    { key: "out_of_stock",    icon: <CircleOff className="h-4 w-4 text-red-600" />,       label: "Rupture de stock",   sms: true,  email: true,                push: true,  whatsapp: true },
+    { key: "new_review",      icon: <Star className="h-4 w-4 text-amber-400" />,          label: "Nouvel avis client", sms: false, email: true,                push: false, whatsapp: false },
+    { key: "new_support_message", icon: <MessageSquare className="h-4 w-4 text-blue-500" />, label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
+    { key: "weekly_report",   icon: <BarChart3 className="h-4 w-4 text-indigo-500" />,    label: "Rapport hebdomadaire", sms: false, email: true,              push: false, whatsapp: false },
+    { key: "promotion",       icon: <PartyPopper className="h-4 w-4 text-pink-500" />,    label: "Promotion / Offre SUGU", sms: false, email: emailAlerts.marketing, push: false, whatsapp: false },
+  ];
+}
+
 export function TabNotifications() {
   const { data: settingsData } = useVendorSettings();
   const apiNotifications = settingsData?.notifications;
+  const apiEventPreferences = apiNotifications?.eventPreferences;
 
   // Channels state — initialized from API contact data
   const phone = settingsData?.profile?.phone ?? "";
@@ -61,23 +97,35 @@ export function TabNotifications() {
     { id: "whatsapp", icon: <MessageCircle className="h-4 w-4" />, label: "WhatsApp", enabled: true, detail: phone, pro: true },
   ]);
 
-  // Events state — initialized from API notification preferences
-  const [events, setEvents] = useState<EventRow[]>([
-    { icon: <ShoppingCart className="h-4 w-4 text-sugu-500" />, label: "Nouvelle commande", sms: true, email: apiNotifications?.emailAlerts?.newOrder ?? true, push: true, whatsapp: true },
-    { icon: <Banknote className="h-4 w-4 text-green-500" />, label: "Paiement reçu", sms: true, email: true, push: false, whatsapp: false },
-    { icon: <Truck className="h-4 w-4 text-blue-500" />, label: "Commande expédiée", sms: false, email: true, push: false, whatsapp: false },
-    { icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, label: "Commande livrée", sms: false, email: true, push: false, whatsapp: false },
-    { icon: <XCircle className="h-4 w-4 text-red-500" />, label: "Commande annulée", sms: true, email: true, push: true, whatsapp: false },
-    { icon: <AlertTriangle className="h-4 w-4 text-amber-500" />, label: "Stock faible", sms: true, email: apiNotifications?.emailAlerts?.lowStock ?? true, push: true, whatsapp: false },
-    { icon: <CircleOff className="h-4 w-4 text-red-600" />, label: "Rupture de stock", sms: true, email: true, push: true, whatsapp: true },
-    { icon: <Star className="h-4 w-4 text-amber-400" />, label: "Nouvel avis client", sms: false, email: true, push: false, whatsapp: false },
-    { icon: <MessageSquare className="h-4 w-4 text-blue-500" />, label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
-    { icon: <BarChart3 className="h-4 w-4 text-indigo-500" />, label: "Rapport hebdomadaire", sms: false, email: true, push: false, whatsapp: false },
-    { icon: <PartyPopper className="h-4 w-4 text-pink-500" />, label: "Promotion / Offre SUGU", sms: false, email: apiNotifications?.emailAlerts?.marketing ?? false, push: false, whatsapp: false },
-  ]);
+  // Build events from backend eventPreferences or defaults
+  const buildEventsFromApi = useCallback((): EventRow[] => {
+    const emailAlerts = apiNotifications?.emailAlerts ?? { newOrder: true, lowStock: true, marketing: false };
+    const defaults = getDefaultEvents(emailAlerts);
 
+    if (apiEventPreferences && apiEventPreferences.length > 0) {
+      // Map backend eventPreferences to our EventRow format
+      return defaults.map(defaultRow => {
+        const apiEvent = apiEventPreferences.find(e => e.event === defaultRow.key);
+        if (apiEvent) {
+          return {
+            ...defaultRow,
+            sms: apiEvent.sms,
+            email: apiEvent.email,
+            push: apiEvent.push,
+            whatsapp: apiEvent.whatsapp,
+          };
+        }
+        return defaultRow;
+      });
+    }
 
+    return defaults;
+  }, [apiNotifications, apiEventPreferences]);
+
+  const [events, setEvents] = useState<EventRow[]>(buildEventsFromApi);
+  const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateNotificationsMutation = useUpdateNotifications();
 
@@ -94,20 +142,45 @@ export function TabNotifications() {
     }
   }, [settingsData]);
 
-  const toggleChannel = (id: string) =>
-    setChannels((c) => c.map((ch) => (ch.id === id ? { ...ch, enabled: !ch.enabled } : ch)));
+  // Update events when API data changes
+  useEffect(() => {
+    if (settingsData) {
+      setEvents(buildEventsFromApi());
+    }
+  }, [settingsData, buildEventsFromApi]);
 
-  const toggleEvent = (idx: number, key: "sms" | "email" | "push" | "whatsapp") =>
+  const toggleChannel = (id: string) => {
+    setChannels((c) => c.map((ch) => (ch.id === id ? { ...ch, enabled: !ch.enabled } : ch)));
+    setHasChanges(true);
+  };
+
+  const toggleEvent = (idx: number, key: "sms" | "email" | "push" | "whatsapp") => {
     setEvents((e) => e.map((ev, i) => (i === idx ? { ...ev, [key]: !ev[key] } : ev)));
+    setHasChanges(true);
+  };
 
   /** Save notifications preferences to the backend */
   const handleSaveNotifications = async () => {
-    const emailChannel = channels.find((c) => c.id === "email");
-    const pushChannel = channels.find((c) => c.id === "push");
+    setSaveError(null);
 
-    const newOrderEmailEnabled = events.find((e) => e.label === "Nouvelle commande")?.email ?? true;
-    const lowStockEmailEnabled = events.find((e) => e.label === "Stock faible")?.email ?? true;
-    const marketingEmailEnabled = events.find((e) => e.label === "Promotion / Offre SUGU")?.email ?? false;
+    const emailChannel = channels.find((c) => c.id === "email");
+    const smsChannel = channels.find((c) => c.id === "sms");
+    const pushChannel = channels.find((c) => c.id === "push");
+    const whatsappChannel = channels.find((c) => c.id === "whatsapp");
+
+    // Build email alerts from the events matrix
+    const newOrderEmailEnabled = events.find((e) => e.key === "new_order")?.email ?? true;
+    const lowStockEmailEnabled = events.find((e) => e.key === "low_stock")?.email ?? true;
+    const marketingEmailEnabled = events.find((e) => e.key === "promotion")?.email ?? false;
+
+    // Build event preferences array for the backend
+    const eventPreferences = events.map(ev => ({
+      event: ev.key,
+      sms: ev.sms && (smsChannel?.enabled ?? true),
+      email: ev.email && (emailChannel?.enabled ?? true),
+      push: ev.push && (pushChannel?.enabled ?? false),
+      whatsapp: ev.whatsapp && (whatsappChannel?.enabled ?? true),
+    }));
 
     try {
       await updateNotificationsMutation.mutateAsync({
@@ -117,10 +190,19 @@ export function TabNotifications() {
           marketing: marketingEmailEnabled && (emailChannel?.enabled ?? true),
         },
         pushNotifications: pushChannel?.enabled ?? false,
+        eventPreferences,
+        channels: {
+          sms: smsChannel?.enabled ?? true,
+          email: emailChannel?.enabled ?? true,
+          push: pushChannel?.enabled ?? false,
+          whatsapp: whatsappChannel?.enabled ?? true,
+        },
       });
       setSaveSuccess(true);
+      setHasChanges(false);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
+      setSaveError("Échec de la sauvegarde. Veuillez réessayer.");
       console.error("[notifications] Save failed:", err);
     }
   };
@@ -162,7 +244,7 @@ export function TabNotifications() {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
               {events.map((ev, idx) => (
-                <tr key={ev.label} className="transition-colors hover:bg-white/30 dark:hover:bg-white/5">
+                <tr key={ev.key} className="transition-colors hover:bg-white/30 dark:hover:bg-white/5">
                   <td className="py-2.5">
                     <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <span>{ev.icon}</span>
@@ -181,20 +263,24 @@ export function TabNotifications() {
         </div>
       </SectionCard>
 
-
-
       {/* ─── Save button ─── */}
       <div className="flex items-center gap-3">
         <PillButton
           variant="primary"
           onClick={handleSaveNotifications}
-          disabled={updateNotificationsMutation.isPending}
+          disabled={updateNotificationsMutation.isPending || !hasChanges}
         >
           {updateNotificationsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Sauvegarder les notifications
         </PillButton>
         {saveSuccess && (
           <span className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> Préférences sauvegardées</span>
+        )}
+        {saveError && (
+          <span className="text-xs text-red-500">{saveError}</span>
+        )}
+        {hasChanges && !saveSuccess && (
+          <span className="text-xs text-amber-500">Modifications non sauvegardées</span>
         )}
       </div>
     </div>

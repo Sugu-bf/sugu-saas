@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronLeft, Check, Loader2, ArrowLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Loader2, ArrowLeft, Banknote } from "lucide-react";
 import { toast } from "sonner";
 
 import { useVendorWallet, usePayoutSettings, useSubmitWithdrawal } from "@/features/vendor/hooks";
@@ -101,7 +101,7 @@ export function WithdrawForm() {
       },
       {
         onSuccess: () => {
-          toast.success("🎉 Demande de retrait envoyée avec succès !");
+          toast.success("Demande de retrait envoyée avec succès !");
           router.push("/vendor/wallet");
         },
         onError: (err) => {
@@ -132,7 +132,7 @@ export function WithdrawForm() {
       <div>
         <h1 className="text-lg font-bold text-gray-900 lg:text-2xl">
           <span className="inline-block" aria-hidden="true">
-            💸
+            <Banknote className="h-5 w-5" />
           </span>{" "}
           Demander un retrait
         </h1>
@@ -198,7 +198,7 @@ export function WithdrawForm() {
           <button
             type="button"
             onClick={goNext}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5"
           >
             Continuer
             <ChevronRight className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function WithdrawForm() {
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:shadow-md disabled:hover:translate-y-0"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

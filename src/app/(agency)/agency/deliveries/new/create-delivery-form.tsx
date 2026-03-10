@@ -127,7 +127,7 @@ export function CreateDeliveryForm() {
       },
       {
         onSuccess: () => {
-          toast.success("🚚 Livraison créée avec succès !");
+          toast.success("Livraison créée avec succès !");
           router.push("/agency/deliveries");
         },
         onError: (err: Error) => {
@@ -186,7 +186,7 @@ export function CreateDeliveryForm() {
       {/* ════════════ Progress bar ════════════ */}
       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-200/60">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-600 transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-sugu-500 transition-all duration-500 ease-out"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -253,7 +253,7 @@ export function CreateDeliveryForm() {
           <button
             type="button"
             onClick={handleNext}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5"
           >
             Suivant
             <ChevronRight className="h-4 w-4" />
@@ -263,7 +263,7 @@ export function CreateDeliveryForm() {
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:shadow-md disabled:hover:translate-y-0"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

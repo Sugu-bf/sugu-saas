@@ -78,7 +78,7 @@ export function TabSubscription() {
           {/* Gratuit */}
           <div className={cn(
             "rounded-2xl border p-5 backdrop-blur",
-            isFree ? "border-2 border-sugu-300 bg-sugu-50/20 shadow-sm shadow-sugu-500/10 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 dark:border-gray-700/50 dark:bg-gray-800/20"
+            isFree ? "border-2 border-sugu-300 bg-sugu-50/20 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 dark:border-gray-700/50 dark:bg-gray-800/20"
           )}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gratuit</h3>
@@ -100,7 +100,7 @@ export function TabSubscription() {
           {/* Pro */}
           <div className={cn(
             "rounded-2xl border p-5",
-            isPro ? "border-2 border-sugu-300 bg-sugu-50/20 shadow-sm shadow-sugu-500/10 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 backdrop-blur dark:border-gray-700/50 dark:bg-gray-800/20"
+            isPro ? "border-2 border-sugu-300 bg-sugu-50/20 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 backdrop-blur dark:border-gray-700/50 dark:bg-gray-800/20"
           )}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-sugu-600 dark:text-sugu-400">Pro</h3>

@@ -13,6 +13,7 @@ import {
   Package,
   Calendar,
   ChevronRight,
+  Banknote,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
@@ -65,8 +66,8 @@ const ENTRY_TYPE_CONFIG: Record<
 
 // ── Status rendering ──
 const STATUS_DISPLAY: Record<string, { label: string; icon: string; color: string }> = {
-  confirmed: { label: "Confirmé", icon: "✓", color: "text-green-600" },
-  completed: { label: "Effectué", icon: "✓", color: "text-green-600" },
+  confirmed: { label: "Confirmé", icon: "", color: "text-green-600" },
+  completed: { label: "Effectué", icon: "", color: "text-green-600" },
   pending: { label: "En attente", icon: "⏳", color: "text-amber-600" },
 };
 
@@ -142,7 +143,7 @@ export default function VendorWalletPage() {
         <div>
           <h1 className="text-lg font-bold text-gray-900 lg:text-2xl">
             <span className="inline-block" aria-hidden="true">
-              💰
+              <Banknote className="h-5 w-5" />
             </span>{" "}
             Portefeuille
           </h1>
@@ -153,7 +154,7 @@ export default function VendorWalletPage() {
 
         <Link
           href="/vendor/wallet/withdraw"
-          className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sugu-500/25 transition-all active:scale-95 lg:hover:-translate-y-0.5 lg:hover:shadow-xl lg:hover:shadow-sugu-500/30"
+          className="flex items-center gap-2 rounded-2xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-95 hover:bg-sugu-600 lg:hover:-translate-y-0.5"
           id="request-payout-btn"
         >
           <ArrowUpRight className="h-4 w-4" />
@@ -300,7 +301,7 @@ export default function VendorWalletPage() {
 function KpiCardComponent({ kpi, delay }: { kpi: WalletKpi; delay: number }) {
   return (
     <div
-      className={`kpi-card glass-card rounded-2xl bg-gradient-to-br ${kpi.gradient} p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
+      className={`kpi-card glass-card rounded-2xl p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
       style={{ animationDelay: `${delay * 100}ms` }}
     >
       {/* Top row: icon + badge */}
@@ -458,7 +459,7 @@ function NextPayoutCard({ payout }: { payout: NextPayout }) {
       <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
         <Calendar className="h-3.5 w-3.5" />
         <span>
-          🇧🇫 Prévu le{" "}
+          Prévu le{" "}
           <strong className="text-gray-700">{payout.scheduledDate}</strong>
         </span>
       </div>
@@ -470,7 +471,7 @@ function NextPayoutCard({ payout }: { payout: NextPayout }) {
         </p>
         {payout.method ? (
           <div className="mt-2 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-500 text-xs font-bold text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
               OM
             </div>
             <div className="flex-1">

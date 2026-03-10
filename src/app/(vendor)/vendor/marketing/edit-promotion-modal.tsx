@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { X, Pencil, Percent, DollarSign, Loader2, Calendar } from "lucide-react";
+import { X, Pencil, Percent, DollarSign, Loader2, Calendar, Package } from "lucide-react";
 import type { PromotedProduct } from "@/features/vendor/schema";
 import type { UpdatePromotionRequest } from "@/features/vendor/service";
 
@@ -90,7 +90,7 @@ export function EditPromotionModal({
 
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg shadow-blue-500/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white">
             <Pencil className="h-5 w-5" />
           </div>
           <div>
@@ -113,7 +113,7 @@ export function EditPromotionModal({
             />
           ) : (
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400">
-              📦
+              <Package className="h-4 w-4 text-gray-400" />
             </div>
           )}
           <div className="flex-1">
@@ -218,7 +218,7 @@ export function EditPromotionModal({
           <button
             onClick={handleSubmit}
             disabled={isPending || !isValid}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? (
               <>

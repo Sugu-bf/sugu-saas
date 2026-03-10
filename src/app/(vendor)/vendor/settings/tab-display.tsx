@@ -53,7 +53,7 @@ export function TabDisplay() {
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-all",
                     dateFormat === f
-                      ? "bg-gradient-to-r from-sugu-500 to-sugu-600 text-white shadow-sm"
+                      ? "bg-sugu-500 text-white"
                       : "border border-gray-300 bg-white/50 text-gray-600 backdrop-blur hover:border-sugu-300 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
                   )}
                 >
@@ -74,7 +74,7 @@ export function TabDisplay() {
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-all",
                     thousandSep === k
-                      ? "bg-gradient-to-r from-sugu-500 to-sugu-600 text-white shadow-sm"
+                      ? "bg-sugu-500 text-white"
                       : "border border-gray-300 bg-white/50 text-gray-600 backdrop-blur hover:border-sugu-300 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
                   )}
                 >
@@ -115,7 +115,7 @@ export function TabDisplay() {
                   className={cn(
                     "relative rounded-2xl border p-4 text-left transition-all",
                     theme === t.key
-                      ? "border-sugu-300 bg-sugu-50/30 shadow-sm shadow-sugu-500/10 dark:border-sugu-700 dark:bg-sugu-950/10"
+                      ? "border-sugu-300 bg-sugu-50/30 dark:border-sugu-700 dark:bg-sugu-950/10"
                       : "border-white/60 bg-white/30 backdrop-blur hover:border-gray-300 dark:border-gray-700/50 dark:bg-gray-800/20",
                     t.soon && "opacity-60 cursor-not-allowed",
                   )}
@@ -123,9 +123,9 @@ export function TabDisplay() {
                   {/* Mini theme preview */}
                   <div className={cn(
                     "mb-3 h-16 w-full overflow-hidden rounded-xl border",
-                    t.key === "light" ? "border-gray-200 bg-gradient-to-br from-orange-50 to-purple-50" :
-                    t.key === "dark" ? "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900" :
-                    "border-gray-300 bg-gradient-to-br from-gray-100 to-blue-50 dark:from-gray-800 dark:to-gray-900",
+                    t.key === "light" ? "border-gray-200 bg-orange-50" :
+                    t.key === "dark" ? "border-gray-700 bg-gray-800" :
+                    "border-gray-300 bg-gray-100 dark:bg-gray-800",
                   )}>
                     <div className="flex h-full items-center justify-center">
                       <div className={cn("h-3 w-16 rounded-full", t.key === "dark" ? "bg-gray-600" : "bg-gray-200")} />
@@ -156,7 +156,7 @@ export function TabDisplay() {
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-all",
                     density === d
-                      ? "bg-gradient-to-r from-sugu-500 to-sugu-600 text-white shadow-sm"
+                      ? "bg-sugu-500 text-white"
                       : "border border-gray-300 bg-white/50 text-gray-600 backdrop-blur hover:border-sugu-300 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
                   )}
                 >

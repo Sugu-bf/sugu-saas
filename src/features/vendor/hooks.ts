@@ -1202,8 +1202,103 @@ export function useUpdatePassword() {
 }
 
 /**
- * Hook: Toggle two-factor authentication.
+ * Hook: Enable 2FA via Fortify endpoint.
  * Invalidates settings cache on success.
+ */
+export function useEnable2FA() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => vendorService.enable2FA(),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Disable 2FA via Fortify endpoint.
+ * Invalidates settings cache on success.
+ */
+export function useDisable2FA() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => vendorService.disable2FA(),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Get 2FA QR code for setup.
+ */
+export function use2FAQrCode(enabled: boolean) {
+  return useQuery({
+    queryKey: ["2fa", "qr-code"],
+    queryFn: () => vendorService.get2FAQrCode(),
+    enabled,
+    staleTime: 0, // Always refetch
+  });
+}
+
+/**
+ * Hook: Confirm 2FA setup with authenticator code.
+ * Invalidates settings cache on success.
+ */
+export function useConfirm2FA() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { code: string }) => vendorService.confirm2FA(data),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["2fa", "qr-code"],
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Get 2FA recovery codes.
+ */
+export function use2FARecoveryCodes(enabled: boolean) {
+  return useQuery({
+    queryKey: ["2fa", "recovery-codes"],
+    queryFn: () => vendorService.get2FARecoveryCodes(),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Hook: Regenerate 2FA recovery codes.
+ */
+export function useRegenerate2FARecoveryCodes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => vendorService.regenerate2FARecoveryCodes(),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["2fa", "recovery-codes"],
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Toggle two-factor authentication.
+ * @deprecated Use useEnable2FA / useDisable2FA instead.
+ * Kept for backward compatibility.
  */
 export function useToggle2FA() {
   const queryClient = useQueryClient();
@@ -1219,8 +1314,19 @@ export function useToggle2FA() {
 }
 
 /**
+ * Hook: Fetch active sessions.
+ */
+export function useActiveSessions() {
+  return useQuery({
+    queryKey: ["settings", "active-sessions"],
+    queryFn: () => vendorService.getActiveSessions(),
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
  * Hook: Revoke a specific session.
- * Invalidates settings cache on success.
+ * Invalidates settings and sessions cache on success.
  */
 export function useRevokeSession() {
   const queryClient = useQueryClient();
@@ -1232,13 +1338,16 @@ export function useRevokeSession() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.settings(),
       });
+      queryClient.invalidateQueries({
+        queryKey: ["settings", "active-sessions"],
+      });
     },
   });
 }
 
 /**
  * Hook: Revoke all other sessions.
- * Invalidates settings cache on success.
+ * Invalidates settings and sessions cache on success.
  */
 export function useRevokeOtherSessions() {
   const queryClient = useQueryClient();
@@ -1249,7 +1358,50 @@ export function useRevokeOtherSessions() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.settings(),
       });
+      queryClient.invalidateQueries({
+        queryKey: ["settings", "active-sessions"],
+      });
     },
+  });
+}
+
+/**
+ * Hook: Update security alert preferences.
+ * Invalidates settings cache on success.
+ */
+export function useUpdateSecurityAlerts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { suspiciousLoginAlert: boolean }) =>
+      vendorService.updateSecurityAlerts(data),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Fetch login history.
+ */
+export function useLoginHistory() {
+  return useQuery({
+    queryKey: ["settings", "login-history"],
+    queryFn: () => vendorService.getLoginHistory(),
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * Hook: Fetch invoices.
+ */
+export function useInvoices() {
+  return useQuery({
+    queryKey: ["settings", "invoices"],
+    queryFn: () => vendorService.getInvoices(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

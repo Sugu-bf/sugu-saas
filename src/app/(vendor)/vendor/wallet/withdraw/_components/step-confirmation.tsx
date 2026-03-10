@@ -118,7 +118,7 @@ export function StepConfirmation({
 
       {/* ── Security Notice ── */}
       <div className="glass-card flex items-start gap-3 rounded-2xl p-4 lg:rounded-3xl lg:p-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 text-white shadow-sm">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-500 text-white">
           <Shield className="h-4 w-4" />
         </div>
         <div>

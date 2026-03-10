@@ -77,6 +77,8 @@ export const mockVendorSettings: VendorSettings = {
     isTwoFactorEnabled: false,
     lastPasswordChange: "2026-01-15T10:00:00Z",
     activeSessions: [],
+    suspiciousLoginAlert: true,
+    loginHistory: [],
   },
   notifications: {
     emailAlerts: {

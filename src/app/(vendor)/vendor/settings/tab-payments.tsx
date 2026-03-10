@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { SectionCard, Toggle, PillInput, PillBadge, PillButton, InfoLine, Field } from "./settings-ui";
-import { Download, Smartphone, Building2, Phone, CheckCircle2, Save, Loader2 } from "lucide-react";
-import { useVendorSettings, useUpdateOperations } from "@/features/vendor/hooks";
+import { Download, Smartphone, Building2, Phone, CheckCircle2, Save, Loader2, FileText } from "lucide-react";
+import { useVendorSettings, useUpdateOperations, useInvoices } from "@/features/vendor/hooks";
 
 // ────────────────────────────────────────────────────────────
-// Onglet 2 — Paiements & Facturation
+// Onglet 2 — Paiements & Facturation (Production-grade)
 // ────────────────────────────────────────────────────────────
 
 type PaymentMethod = "orange" | "wave" | "bank";
@@ -17,6 +17,7 @@ export function TabPayments() {
   const { data: settingsData } = useVendorSettings();
   const apiPayment = settingsData?.operations?.payment;
   const updateOperationsMutation = useUpdateOperations();
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices();
 
   // Determine initial payment method from API
   const initialMethod: PaymentMethod = apiPayment?.orangeMoney ? "orange" : apiPayment?.wave ? "wave" : "orange";
@@ -56,6 +57,39 @@ export function TabPayments() {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error("[payments] Save failed:", err);
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string = "XOF") => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <PillBadge variant="green">Payée</PillBadge>;
+      case "pending":
+        return <PillBadge variant="amber">En attente</PillBadge>;
+      case "overdue":
+        return <PillBadge variant="red">En retard</PillBadge>;
+      default:
+        return <PillBadge variant="gray">{status}</PillBadge>;
     }
   };
 
@@ -139,7 +173,7 @@ export function TabPayments() {
               className={cn(
                 "rounded-full px-5 py-2 text-sm font-medium transition-all",
                 frequency === f
-                  ? "bg-gradient-to-r from-sugu-500 to-sugu-600 text-white shadow-sm shadow-sugu-500/20"
+                  ? "bg-sugu-500 text-white"
                   : "border border-gray-300 bg-white/50 text-gray-600 backdrop-blur hover:border-sugu-300 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-300",
               )}
             >
@@ -158,16 +192,62 @@ export function TabPayments() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 4: Historique des factures ─── */}
+      {/* ─── Card 4: Historique des factures (Dynamic) ─── */}
       <SectionCard title="Historique des factures" id="invoice-history">
-        <div className="mt-4 py-8 text-center">
-          <Download className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            Aucune facture disponible pour le moment.
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            Les factures apparaîtront ici après vos premières transactions.
-          </p>
+        <div className="mt-4">
+          {invoicesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-500">Chargement des factures...</span>
+            </div>
+          ) : invoices && invoices.length > 0 ? (
+            <div className="space-y-2">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100/80 dark:bg-gray-800/60">
+                    <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {invoice.reference}
+                      </span>
+                      {statusBadge(invoice.status)}
+                    </div>
+                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      {invoice.description} • {formatDate(invoice.date)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {formatCurrency(invoice.amount, invoice.currency)}
+                    </p>
+                  </div>
+                  {invoice.downloadUrl && (
+                    <a
+                      href={invoice.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-sugu-300 hover:text-sugu-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-sugu-600 dark:hover:text-sugu-400"
+                    >
+                      <Download className="h-3 w-3" />
+                      PDF
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <Download className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Aucune facture disponible pour le moment.
+              </p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                Les factures apparaîtront ici après vos premières transactions.
+              </p>
+            </div>
+          )}
         </div>
       </SectionCard>
 
@@ -211,7 +291,7 @@ function PaymentMethodCard({
       className={cn(
         "w-full rounded-2xl border p-4 text-left transition-all",
         selected
-          ? "border-sugu-300 bg-sugu-50/30 shadow-sm shadow-sugu-500/10 dark:border-sugu-700 dark:bg-sugu-950/10"
+          ? "border-sugu-300 bg-sugu-50/30 dark:border-sugu-700 dark:bg-sugu-950/10"
           : "border-white/60 bg-white/30 backdrop-blur hover:border-gray-300 dark:border-gray-700/50 dark:bg-gray-800/20 dark:hover:border-gray-600",
       )}
     >

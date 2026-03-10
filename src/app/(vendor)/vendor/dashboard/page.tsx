@@ -209,7 +209,7 @@ function KpiCardComponent({ kpi, delay }: { kpi: KpiCard; delay: number }) {
 
   return (
     <div
-      className={`kpi-card glass-card rounded-2xl bg-gradient-to-br ${kpi.gradient} p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
+      className={`kpi-card glass-card rounded-2xl p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
       style={{ animationDelay: `${delay * 100}ms` }}
     >
       {/* Top row: icon + badge */}

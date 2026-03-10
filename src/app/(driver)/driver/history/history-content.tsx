@@ -545,7 +545,7 @@ export function DriverHistoryContent() {
                   className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors",
                     p === currentPage
-                      ? "bg-sugu-500 text-white shadow-sm"
+                      ? "bg-sugu-500 text-white"
                       : "text-gray-600 hover:bg-gray-100",
                   )}
                 >
@@ -560,7 +560,7 @@ export function DriverHistoryContent() {
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors",
                       currentPage === pagination.totalPages
-                        ? "bg-sugu-500 text-white shadow-sm"
+                        ? "bg-sugu-500 text-white"
                         : "text-gray-600 hover:bg-gray-100",
                     )}
                   >

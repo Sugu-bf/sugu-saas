@@ -11,6 +11,7 @@ import {
   Star,
   ArrowRight,
   MapPin,
+  Package,
 } from "lucide-react";
 import type { VendorStats } from "@/features/vendor/schema";
 
@@ -90,7 +91,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
             className={cn(
               "whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all",
               activeTab === tab
-                ? "bg-sugu-500 text-white shadow-sm"
+                ? "bg-sugu-500 text-white"
                 : "text-gray-500 hover:bg-white/60 hover:text-gray-900 dark:text-gray-400",
             )}
           >
@@ -104,7 +105,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
         {data.kpis.map((kpi, i) => (
           <div
             key={kpi.label}
-            className={cn("glass-card rounded-2xl p-4 animate-card-enter", `bg-gradient-to-br ${kpi.gradient}`)}
+            className={cn("glass-card rounded-2xl p-4 animate-card-enter")}
             style={{ animationDelay: `${i * 60}ms` }}
           >
             <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">{kpi.label}</p>
@@ -125,7 +126,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
         {/* Chart (3 cols) */}
         <div className="glass-card rounded-3xl p-6 xl:col-span-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">📈 Évolution des revenus</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Évolution des revenus</h2>
           </div>
 
           {/* SVG area chart */}
@@ -149,7 +150,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
                 return (
                   <div key={i} className="group relative flex flex-1 flex-col items-center">
                     <div
-                      className="w-full rounded-t-md bg-gradient-to-t from-sugu-400 to-sugu-300 opacity-80 transition-all hover:opacity-100"
+                      className="w-full rounded-t-md bg-sugu-400 opacity-80 transition-all hover:opacity-100"
                       style={{ height: `${height}%` }}
                     />
                     {/* Tooltip */}
@@ -183,7 +184,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
 
         {/* Top 5 Produits (2 cols) */}
         <div className="glass-card rounded-3xl p-6 xl:col-span-2">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">🏆 Top 5 Produits</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white">Top 5 Produits</h2>
           <div className="mt-4 space-y-3">
             {data.topProducts.map((p) => (
               <div key={p.rank} className="flex items-center gap-3">
@@ -196,7 +197,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                   />
                 ) : null}
-                <span className={`text-xl ${p.image ? 'hidden' : ''}`}>📦</span>
+                <span className={`text-xl ${p.image ? 'hidden' : ''}`}><Package className="h-5 w-5 text-gray-400" /></span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{p.name}</p>
                   <p className="text-[10px] text-gray-400">{p.sold} vendus</p>
@@ -221,7 +222,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-5">
         {/* ── Category Donut ── */}
         <div className="glass-card rounded-3xl p-6">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">📊 Ventes par catégorie</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Ventes par catégorie</h2>
 
           <div className="mt-4 flex items-center justify-center">
             {/* Donut */}
@@ -268,7 +269,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
 
         {/* ── Conversion Funnel ── */}
         <div className="glass-card rounded-3xl p-6">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">🔄 Entonnoir de conversion</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Entonnoir de conversion</h2>
           <div className="mt-4 space-y-2">
             {data.funnel.map((step) => {
               const width = Math.max(step.percent * 1, 30);
@@ -280,7 +281,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
                   </div>
                   <div className="mt-0.5 h-4 rounded-full bg-gray-100/60 dark:bg-gray-800/40">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500 transition-all"
+                      className="h-full rounded-full bg-sugu-500 transition-all"
                       style={{ width: `${width}%` }}
                     />
                   </div>
@@ -302,7 +303,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
 
         {/* ── Weekly Sales ── */}
         <div className="glass-card rounded-3xl p-6">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">📅 Ventes par jour</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Ventes par jour</h2>
           <div className="mt-4 flex h-36 items-end gap-2">
             {data.weeklySales.map((s) => {
               const height = (s.value / maxWeekly) * 100;
@@ -310,7 +311,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
                 <div key={s.day} className="group flex flex-1 flex-col items-center gap-1">
                   <span className="text-[9px] font-bold text-gray-600 opacity-0 transition-opacity group-hover:opacity-100">{s.value}</span>
                   <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-sugu-400 to-amber-300 opacity-80 transition-all hover:opacity-100"
+                    className="w-full rounded-t-lg bg-sugu-400 opacity-80 transition-all hover:opacity-100"
                     style={{ height: `${height}%` }}
                   />
                   <span className="text-[9px] text-gray-400">{s.day}</span>
@@ -326,7 +327,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
 
         {/* ── City Sales ── */}
         <div className="glass-card rounded-3xl p-6">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">🗺️ Ventes par ville</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Ventes par ville</h2>
           <div className="mt-4 space-y-2.5">
             {data.citySales.map((city) => (
               <div key={city.name}>
@@ -340,7 +341,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100/60 dark:bg-gray-800/40">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500"
+                      className="h-full rounded-full bg-sugu-500"
                       style={{ width: `${city.percent}%` }}
                     />
                   </div>
@@ -354,7 +355,7 @@ export function StatsContent({ data }: { data: VendorStats }) {
 
         {/* ── Reviews ── */}
         <div className="glass-card rounded-3xl p-6">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">⭐ Avis clients récents</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Avis clients récents</h2>
 
           {/* Global rating */}
           <div className="mt-3 flex items-center gap-3">

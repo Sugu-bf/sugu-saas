@@ -411,7 +411,7 @@ function DeliveryDetailPanel({
             id={`btn-mark-delivered-${row.id}`}
             disabled={isMutating}
             onClick={() => onMarkDelivered(row.id)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sugu-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.98] disabled:opacity-60"
           >
             {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             Marquer comme livrée
@@ -444,7 +444,7 @@ function DeliveryDetailPanel({
             id={`btn-relaunch-${row.id}`}
             disabled={isMutating}
             onClick={() => onRelaunch(row.id)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sugu-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 disabled:opacity-60"
           >
             {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
             Relancer
@@ -673,7 +673,7 @@ export function DeliveriesContent() {
             <Link
               href="/agency/deliveries/new"
               id="btn-new-delivery"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97]"
             >
               <Plus className="h-4 w-4" />
               Nouvelle livraison
@@ -1000,7 +1000,7 @@ export function DeliveriesContent() {
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 border-t border-sugu-100 bg-sugu-50/70 px-4 py-2.5 dark:border-sugu-900/30 dark:bg-sugu-950/20">
               <span className="text-xs font-semibold text-sugu-700 dark:text-sugu-400">
-                ✓ {selectedIds.size} sélectionnées
+                {selectedIds.size} sélectionnées
               </span>
               <button
                 onClick={() => handleBulkStatusChange("assigned")}

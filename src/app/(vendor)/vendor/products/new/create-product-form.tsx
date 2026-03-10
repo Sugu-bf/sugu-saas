@@ -128,8 +128,8 @@ export function CreateProductForm() {
 
             toast.success(
               mode === "publish"
-                ? `🚀 "${data.name}" publié avec succès !`
-                : `📝 "${data.name}" sauvegardé comme brouillon.`,
+                ? `"${data.name}" publié avec succès !`
+                : `"${data.name}" sauvegardé comme brouillon.`,
             );
           },
           onError: (err) => {
@@ -225,7 +225,7 @@ export function CreateProductForm() {
             <button
               type="button"
               onClick={goNext}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5"
             >
               Continuer
               <ChevronRight className="h-4 w-4" />
@@ -235,7 +235,7 @@ export function CreateProductForm() {
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit("publish")}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:shadow-md disabled:hover:translate-y-0"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {isSubmitting && formData.publishMode === "publish" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

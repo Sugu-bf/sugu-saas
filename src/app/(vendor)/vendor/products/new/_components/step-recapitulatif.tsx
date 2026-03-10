@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
-import { Pencil, Star } from "lucide-react";
+import { Pencil, Star, CheckCircle2, Package } from "lucide-react";
 import { type ProductFormData, type FormUpdater, ORIGINS } from "./types";
 
 interface StepRecapitulatifProps {
@@ -61,7 +61,7 @@ export function StepRecapitulatif({ data, onChange, onGoToStep }: StepRecapitula
       {/* Header */}
       <div className="glass-card rounded-3xl p-5 sm:p-8">
         <div className="flex items-center justify-center gap-3">
-          <span className="text-3xl">✅</span>
+          <CheckCircle2 className="h-8 w-8 text-green-500" />
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Récapitulatif
@@ -233,7 +233,7 @@ export function StepRecapitulatif({ data, onChange, onGoToStep }: StepRecapitula
           </h3>
           <div className="mt-3 rounded-xl border border-gray-200/60 bg-white p-3 shadow-sm dark:border-gray-700/50 dark:bg-gray-900/80">
             <div className="flex gap-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 text-3xl dark:from-amber-950/20 dark:to-orange-950/20">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-amber-50 text-3xl dark:bg-amber-950/20">
                 {data.photos.length > 0 ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -242,7 +242,7 @@ export function StepRecapitulatif({ data, onChange, onGoToStep }: StepRecapitula
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  "📦"
+                  <Package className="h-8 w-8 text-gray-400" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -251,7 +251,7 @@ export function StepRecapitulatif({ data, onChange, onGoToStep }: StepRecapitula
                     SUGU
                   </span>
                   <span className="rounded bg-green-100 px-1 py-0.5 text-[8px] font-bold text-green-600 dark:bg-green-950/30">
-                    ✓ Nouveau
+                    Nouveau
                   </span>
                 </div>
                 <p className="mt-0.5 truncate text-sm font-bold text-gray-900 dark:text-white">

@@ -295,7 +295,7 @@ export function CreateOrderForm() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:px-5 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
+            className="rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:px-5 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
@@ -603,7 +603,7 @@ export function CreateOrderForm() {
                             onClick={() => selectClient(customer)}
                             className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 first:rounded-t-xl last:rounded-b-xl"
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sugu-400 to-sugu-600 text-xs font-bold text-white">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sugu-500 text-xs font-bold text-white">
                               {customer.initials}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -630,7 +630,7 @@ export function CreateOrderForm() {
                   <div className="mt-3 rounded-xl bg-white/40 p-4 dark:bg-white/5">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sugu-400 to-sugu-600 text-xs font-bold text-white lg:h-10 lg:w-10 lg:text-sm">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sugu-500 text-xs font-bold text-white lg:h-10 lg:w-10 lg:text-sm">
                           {selectedClient.initials}
                         </div>
                         <div>
@@ -928,9 +928,9 @@ export function CreateOrderForm() {
               </h3>
               <div className="mt-3 space-y-2">
                 {([
-                  { key: "cash" as const, label: "Espèces", icon: "💵" },
-                  { key: "mobile" as const, label: "Mobile Money", icon: "📱" },
-                  { key: "card" as const, label: "Carte bancaire", icon: "💳" },
+                  { key: "cash" as const, label: "Espèces", icon: "" },
+                  { key: "mobile" as const, label: "Mobile Money", icon: "" },
+                  { key: "card" as const, label: "Carte bancaire", icon: "" },
                 ]).map((method) => (
                   <label
                     key={method.key}
@@ -980,7 +980,7 @@ export function CreateOrderForm() {
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-sugu-500/25 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:mt-6 lg:py-3.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 px-6 py-3 text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:mt-6 lg:py-3.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
             >
               {isSubmitting ? (
                 <>

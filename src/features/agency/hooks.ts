@@ -344,6 +344,27 @@ export function useAddCourier() {
 }
 
 /**
+ * Hook: Register a new courier (full creation form).
+ *
+ * Invalidates drivers list on success.
+ * Returns the generated credentials for display.
+ */
+export function useRegisterCourier() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (data: Parameters<typeof agencyService.registerCourier>[1]) =>
+      agencyService.registerCourier(agencyId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.drivers() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.dashboard() });
+    },
+  });
+}
+
+/**
  * Hook: Remove a courier from the agency.
  *
  * Invalidates all agency queries on success.

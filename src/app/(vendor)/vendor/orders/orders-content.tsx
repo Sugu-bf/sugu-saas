@@ -130,7 +130,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
         <div className="flex items-center gap-2">
           <Link
             href="/vendor/orders/new"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600"
           >
             <Plus className="h-4 w-4" />
             Nouvelle commande
@@ -166,7 +166,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
               className={cn(
                 "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 lg:px-4 lg:text-sm",
                 isActive
-                  ? "bg-sugu-500 text-white shadow-md shadow-sugu-500/25"
+                  ? "bg-sugu-500 text-white"
                   : "bg-white/60 text-gray-600 backdrop-blur-sm hover:bg-white hover:text-gray-900 dark:bg-gray-900/40 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white",
               )}
             >
@@ -683,7 +683,7 @@ function OrderDetailPanel({
               <button
                 onClick={handleConfirm}
                 disabled={isMutating}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {confirmMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Préparer la commande
@@ -693,7 +693,7 @@ function OrderDetailPanel({
               <button
                 onClick={handleRequestDelivery}
                 disabled={isMutating}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {deliveryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Demander la livraison

@@ -206,7 +206,7 @@ export function ClientsContent({ initialData }: ClientsContentProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4" />
             Ajouter un client
@@ -259,7 +259,7 @@ export function ClientsContent({ initialData }: ClientsContentProps) {
         </div>
 
         {/* Average basket — highlighted */}
-        <div className="glass-card rounded-2xl bg-gradient-to-br from-sugu-50 via-sugu-100/60 to-sugu-200/40 p-3 animate-card-enter lg:rounded-3xl lg:p-5" style={{ animationDelay: "200ms" }}>
+        <div className="glass-card rounded-2xl p-3 animate-card-enter lg:rounded-3xl lg:p-5" style={{ animationDelay: "200ms" }}>
           <p className="text-[10px] font-medium text-gray-500 lg:text-xs">Panier moyen</p>
           <div className="mt-1">
             <span className="text-xl font-extrabold text-gray-900 dark:text-white lg:text-3xl">
@@ -312,7 +312,7 @@ export function ClientsContent({ initialData }: ClientsContentProps) {
               className={cn(
                 "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all lg:px-4 lg:text-sm",
                 isActive
-                  ? "bg-sugu-500 text-white shadow-md shadow-sugu-500/25"
+                  ? "bg-sugu-500 text-white"
                   : "bg-white/60 text-gray-600 backdrop-blur-sm hover:bg-white dark:bg-gray-900/40 dark:text-gray-400",
               )}
             >
@@ -757,7 +757,7 @@ function CreateClientModal({
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:bg-sugu-600 disabled:opacity-70"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 disabled:opacity-70"
             >
               {mutation.isPending ? (
                 <>

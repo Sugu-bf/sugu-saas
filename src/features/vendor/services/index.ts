@@ -88,11 +88,31 @@ export {
   revokeOtherSettingsSessions,
   deactivateSettingsAccount,
   deleteSettingsAccount,
+  // 2FA Fortify endpoints
+  enable2FA,
+  disable2FA,
+  get2FAQrCode,
+  confirm2FA,
+  get2FARecoveryCodes,
+  regenerate2FARecoveryCodes,
+  // Sessions & Security
+  getActiveSessions,
+  updateSecurityAlerts,
+  getLoginHistory,
+  // Invoices
+  getInvoices,
 } from "./settings.service";
 
 export type {
   UpdateProfileRequest,
   UpdateBusinessHoursRequest,
+  TwoFactorEnableResponse,
+  TwoFactorQrCodeResponse,
+  TwoFactorConfirmRequest,
+  TwoFactorRecoveryCodesResponse,
+  ActiveSession,
+  LoginHistoryEntry,
+  Invoice,
 } from "./settings.service";
 
 // Tickets

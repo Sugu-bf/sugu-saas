@@ -154,7 +154,7 @@ export function ProductsContent({ data, filters, onFiltersChange }: ProductsCont
           </span>
         </h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/vendor/products/new" className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5">
+          <Link href="/vendor/products/new" className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5">
             <Plus className="h-4 w-4" />
             Ajouter un produit
           </Link>
@@ -185,7 +185,7 @@ export function ProductsContent({ data, filters, onFiltersChange }: ProductsCont
                 className={cn(
                   "inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 lg:px-4 lg:text-sm",
                   isActive
-                    ? "bg-sugu-500 text-white shadow-md shadow-sugu-500/25"
+                    ? "bg-sugu-500 text-white"
                     : "bg-white/60 text-gray-600 backdrop-blur-sm hover:bg-white dark:bg-gray-900/40 dark:text-gray-400 dark:hover:bg-gray-800",
                 )}
               >
@@ -384,7 +384,7 @@ function ProductCard({ product, delay }: { product: VendorProduct; delay: number
             <span className={cn("h-1.5 w-1.5 rounded-full", STOCK_DOT[stockLevel])} />
             {product.stock} en stock
           </span>
-          <span>📦 {product.sold.toLocaleString("fr-FR")} vendus</span>
+          <span>{product.sold.toLocaleString("fr-FR")} vendus</span>
         </div>
 
         {/* Rating + Status */}

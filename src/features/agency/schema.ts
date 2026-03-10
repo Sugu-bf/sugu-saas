@@ -757,3 +757,77 @@ export const agencySettingsResponseSchema = z.object({
 });
 
 export type AgencySettingsResponse = z.infer<typeof agencySettingsResponseSchema>;
+
+// ============================================================
+// Agency — Create Courier Form Schema
+// ============================================================
+
+/** Vehicle type enum (for create form — uses "velo" without accent) */
+export const vehicleTypeEnum = z.enum(["moto", "velo", "voiture", "tricycle"]);
+export type FormVehicleType = z.infer<typeof vehicleTypeEnum>;
+
+/** Gender enum */
+export const genderEnum = z.enum(["homme", "femme"]);
+
+/** Single uploaded document */
+export const uploadedDocumentSchema = z.object({
+  id: z.string(),
+  file: z.instanceof(File).optional(), // Client-side File object
+  name: z.string(), // "cni_amadou.pdf"
+  size: z.string(), // "1.2 MB"
+  type: z.enum(["cni", "permis", "carte_grise", "photo"]),
+  status: z.enum(["uploaded", "uploading", "error"]),
+});
+export type UploadedDocument = z.infer<typeof uploadedDocumentSchema>;
+
+/** Full create courier form data */
+export const createCourierFormDataSchema = z.object({
+  // Personal info
+  firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
+  lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  email: z.string().email("Email invalide").or(z.literal("")),
+  phone: z.string().min(8, "Le numéro de téléphone est requis"),
+  phonePrefix: z.string().default("+223"),
+  dateOfBirth: z.string().optional(),
+  gender: genderEnum.optional(),
+  quartier: z.string().min(2, "Le quartier est requis"),
+  address: z.string().optional(),
+
+  // Vehicle
+  vehicleType: vehicleTypeEnum.default("moto"),
+  vehicleMake: z.string().min(2, "Le modèle du véhicule est requis"),
+  vehiclePlate: z.string().min(2, "Le numéro de plaque est requis"),
+  vehicleColor: z.string().optional(),
+  vehicleYear: z.string().optional(),
+
+  // Documents — files are uploaded client-side, IDs stored after upload
+  documents: z.array(uploadedDocumentSchema).default([]),
+
+  // Access settings
+  autoPassword: z.boolean().default(true),
+  sendSms: z.boolean().default(true),
+  sendEmail: z.boolean().default(false),
+});
+export type CreateCourierFormData = z.infer<typeof createCourierFormDataSchema>;
+
+/** Default empty form */
+export const DEFAULT_CREATE_COURIER: CreateCourierFormData = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  phonePrefix: "+223",
+  dateOfBirth: "",
+  gender: undefined,
+  quartier: "",
+  address: "",
+  vehicleType: "moto",
+  vehicleMake: "",
+  vehiclePlate: "",
+  vehicleColor: "",
+  vehicleYear: "",
+  documents: [],
+  autoPassword: true,
+  sendSms: true,
+  sendEmail: false,
+};

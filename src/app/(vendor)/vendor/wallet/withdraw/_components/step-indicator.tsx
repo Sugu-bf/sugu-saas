@@ -29,9 +29,9 @@ export function StepIndicator({ currentStep, onStepClick }: StepIndicatorProps) 
                 className={cn(
                   "relative flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300",
                   isCompleted &&
-                    "bg-green-500 text-white shadow-md shadow-green-500/25",
+                    "bg-green-500 text-white",
                   isActive &&
-                    "bg-gradient-to-br from-sugu-400 to-sugu-600 text-white shadow-lg shadow-sugu-500/30",
+                    "bg-sugu-500 text-white",
                   isUpcoming &&
                     "border-2 border-gray-300 bg-white text-gray-400 group-hover:border-sugu-200 dark:border-gray-600 dark:bg-gray-900",
                 )}

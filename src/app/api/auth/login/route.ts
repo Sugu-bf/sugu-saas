@@ -92,12 +92,14 @@ export async function POST(request: NextRequest) {
  * Backend: `can_sell`, `store`, `agency`, roles[]
  * Frontend: "vendor" | "agency"
  */
-function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" {
+function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" {
+  // Check roles array first (most explicit)
+  const roles = backendUser.roles as string[] | undefined;
+  if (roles?.includes("courier")) return "courier";
+  if (roles?.includes("delivery_partner")) return "agency";
+  // Then check entity presence
   if (backendUser.agency || backendUser.delivery_partner) return "agency";
   if (backendUser.can_sell || backendUser.store) return "vendor";
-  // Fallback: check roles array
-  const roles = backendUser.roles as string[] | undefined;
-  if (roles?.includes("delivery_partner")) return "agency";
   return "vendor";
 }
 

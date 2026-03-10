@@ -15,7 +15,7 @@ export const userSchema = z.object({
   id: z.union([z.string(), z.number()]),
   name: z.string(),
   email: z.string().email(),
-  role: z.enum(["vendor", "agency"]),
+  role: z.enum(["vendor", "agency", "courier"]),
   avatar_url: z.string().nullable(),
   email_verified_at: z.string().nullable(),
   created_at: z.string(),

@@ -33,7 +33,7 @@ export default function MarketingPage() {
     createCoupon.mutate(couponData, {
       onSuccess: () => {
         setShowCouponModal(false);
-        toast.success("Coupon créé avec succès ✓");
+        toast.success("Coupon créé avec succès");
       },
       onError: (err) => {
         toast.error(
@@ -47,7 +47,7 @@ export default function MarketingPage() {
     createPromotion.mutate(promoData, {
       onSuccess: () => {
         setShowPromotionModal(false);
-        toast.success("Promotion créée avec succès ✓");
+        toast.success("Promotion créée avec succès");
       },
       onError: (err) => {
         toast.error(
@@ -60,7 +60,7 @@ export default function MarketingPage() {
   const handleToggleCoupon = (couponId: string) => {
     toggleCoupon.mutate(couponId, {
       onSuccess: () => {
-        toast.success("Statut du coupon mis à jour ✓");
+        toast.success("Statut du coupon mis à jour");
       },
       onError: () => {
         toast.error("Erreur lors de la mise à jour du coupon");
@@ -73,7 +73,7 @@ export default function MarketingPage() {
       { promotionId, data: { is_active: !currentlyActive } },
       {
         onSuccess: () => {
-          toast.success(currentlyActive ? "Promotion désactivée ✓" : "Promotion réactivée ✓");
+          toast.success(currentlyActive ? "Promotion désactivée" : "Promotion réactivée");
         },
         onError: (err) => {
           toast.error(
@@ -90,7 +90,7 @@ export default function MarketingPage() {
       {
         onSuccess: () => {
           setEditingPromotion(null);
-          toast.success("Promotion modifiée avec succès ✓");
+          toast.success("Promotion modifiée avec succès");
         },
         onError: (err) => {
           toast.error(
@@ -104,7 +104,7 @@ export default function MarketingPage() {
   const handleDeletePromotion = (promotionId: string) => {
     deletePromotion.mutate(promotionId, {
       onSuccess: () => {
-        toast.success("Promotion supprimée avec succès ✓");
+        toast.success("Promotion supprimée avec succès");
       },
       onError: (err) => {
         toast.error(
@@ -134,7 +134,7 @@ export default function MarketingPage() {
         </div>
         <button
           onClick={() => refetch()}
-          className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:bg-sugu-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
+          className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sugu-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
         >
           <RefreshCw className="h-4 w-4" />
           Réessayer

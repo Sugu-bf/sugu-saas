@@ -145,7 +145,7 @@ function DriverGridCard({
           {driver.initials}
         </div>
         {driver.rank && (
-          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-sugu-400 to-sugu-600 text-[9px] font-black text-white shadow-sm">
+          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-sugu-500 text-[9px] font-black text-white">
             {driver.rank}er
           </span>
         )}
@@ -228,7 +228,8 @@ function DriverGridCard({
 
 function AddDriverCard() {
   return (
-    <button
+    <Link
+      href="/agency/drivers/new"
       className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/40 p-8 text-gray-400 transition-all hover:border-sugu-300 hover:text-sugu-500 dark:border-gray-800 dark:bg-gray-900/20 dark:hover:border-sugu-700"
       aria-label="Ajouter un livreur"
     >
@@ -236,7 +237,7 @@ function AddDriverCard() {
         <Plus className="h-6 w-6" />
       </div>
       <span className="text-sm font-semibold">Ajouter un livreur</span>
-    </button>
+    </Link>
   );
 }
 
@@ -299,7 +300,7 @@ function DriverDetailPanel({
             {detail.initials}
           </div>
           {detail.rank && (
-            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sugu-400 to-sugu-600 text-[10px] font-black text-white shadow-md">
+            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-sugu-500 text-[10px] font-black text-white">
               #{detail.rank}
             </span>
           )}
@@ -337,7 +338,7 @@ function DriverDetailPanel({
               { label: "Joined date", value: detail.joinedDate },
               {
                 label: "Vérifié",
-                value: detail.verified ? "CNI ✓" : "Non",
+                value: detail.verified ? "CNI OK" : "Non",
               },
             ].map((item) => (
               <div key={item.label} className="text-center">
@@ -392,7 +393,7 @@ function DriverDetailPanel({
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500 transition-all duration-700"
+                  className="h-full rounded-full bg-sugu-500 transition-all duration-700"
                   style={{ width: `${progressBarWidth}%` }}
                 />
               </div>
@@ -513,7 +514,7 @@ function DriverDetailPanel({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => { const phone = detail.phone.replace(/\s/g, ""); window.open(`tel:${phone}`); }}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-sugu-500 py-2.5 text-xs font-semibold text-white transition-all hover:bg-sugu-600"
           >
             <Phone className="h-3.5 w-3.5" />
             Appeler
@@ -652,13 +653,14 @@ export function DriversContent() {
               ({summary.totalDrivers} livreurs)
             </span>
           </h1>
-          <button
+          <Link
+            href="/agency/drivers/new"
             id="btn-add-driver"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />
             Ajouter un livreur
-          </button>
+          </Link>
         </div>
 
         {/* ── KPI Cards ── */}
@@ -681,7 +683,7 @@ export function DriversContent() {
               {[40, 60, 80, 50, 90, 70, 95].map((h, i) => (
                 <div
                   key={i}
-                  className="w-1.5 rounded-sm bg-gradient-to-t from-green-400 to-green-300"
+                  className="w-1.5 rounded-sm bg-green-400"
                   style={{ height: `${h}%` }}
                 />
               ))}
@@ -767,7 +769,7 @@ export function DriversContent() {
             </div>
             <p className="text-[10px] text-gray-400">
               Objectif: {summary.successTarget}%{" "}
-              {summary.successRate >= summary.successTarget ? "✓" : ""}
+              {summary.successRate >= summary.successTarget ? "" : ""}
             </p>
           </KpiCard>
         </div>

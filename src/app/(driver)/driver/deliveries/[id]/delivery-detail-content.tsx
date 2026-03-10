@@ -20,6 +20,8 @@ import {
   Package,
   User,
   Clock,
+  Ruler,
+  Map,
 } from "lucide-react";
 import {
   useDriverDeliveryDetail,
@@ -274,7 +276,7 @@ function SecurityCodeCard({
                    px-4 py-2 text-xs font-semibold text-sugu-600 transition-colors hover:bg-sugu-100"
       >
         <Copy className="h-3.5 w-3.5" />
-        {copied ? "✓ Copié !" : "Copier le code"}
+        {copied ? "Copié !" : "Copier le code"}
       </button>
 
       {/* Warning */}
@@ -327,18 +329,18 @@ function EarningsCard({ detail }: { detail: DriverDeliveryDetail }) {
 
       {/* Distance/Duration/Parcels pills */}
       <div className="mt-3 flex items-center gap-3">
-        {[
-          { icon: "📏", label: `${detail.distanceKm} km` },
-          { icon: "🕐", label: `~${detail.estimatedMinutes} min` },
-          { icon: "📦", label: `${detail.parcelCount} colis` },
-        ].map((pill) => (
-          <span
-            key={pill.label}
-            className="rounded-lg bg-gray-50/80 px-2.5 py-1 text-xs text-gray-500"
-          >
-            {pill.icon} {pill.label}
-          </span>
-        ))}
+        <span className="flex items-center gap-1 rounded-lg bg-gray-50/80 px-2.5 py-1 text-xs text-gray-500">
+          <Ruler className="h-3 w-3 text-gray-400" />
+          {detail.distanceKm} km
+        </span>
+        <span className="flex items-center gap-1 rounded-lg bg-gray-50/80 px-2.5 py-1 text-xs text-gray-500">
+          <Clock className="h-3 w-3 text-gray-400" />
+          ~{detail.estimatedMinutes} min
+        </span>
+        <span className="flex items-center gap-1 rounded-lg bg-gray-50/80 px-2.5 py-1 text-xs text-gray-500">
+          <Package className="h-3 w-3 text-gray-400" />
+          {detail.parcelCount} colis
+        </span>
       </div>
     </div>
   );
@@ -379,7 +381,7 @@ function ProductCard({
           Qté: {product.quantity}
         </span>
         {product.collected && (
-          <p className="text-[10px] font-medium text-green-600">✓ Collecté</p>
+          <p className="flex items-center gap-0.5 text-[10px] font-medium text-green-600"><Check className="h-2.5 w-2.5" /> Collecté</p>
         )}
       </div>
     </div>
@@ -663,7 +665,7 @@ function ClientCard({
       {/* Client note (amber box) */}
       {client.note && (
         <div className="mt-3 rounded-xl bg-amber-50/60 border border-amber-100/60 p-3">
-          <p className="text-xs text-amber-800">⚠️ {client.note}</p>
+          <p className="flex items-center gap-1 text-xs text-amber-800"><AlertTriangle className="h-3 w-3 shrink-0" /> {client.note}</p>
         </div>
       )}
     </div>
@@ -708,8 +710,8 @@ function ActionsCard({
             onClick={onAccept}
             disabled={isMutating}
             className="flex w-full items-center justify-center gap-2 rounded-xl
-                       bg-gradient-to-r from-green-500 to-emerald-600 py-3
-                       text-sm font-semibold text-white shadow-md shadow-green-500/25
+                       bg-green-500 py-3
+                       text-sm font-semibold text-white
                        transition-all hover:-translate-y-0.5 disabled:opacity-60"
           >
             {isMutating ? (
@@ -745,8 +747,8 @@ function ActionsCard({
             onClick={onMarkDelivered}
             disabled={isMutating}
             className="flex w-full items-center justify-center gap-2 rounded-xl
-                       bg-gradient-to-r from-green-500 to-emerald-600 py-3
-                       text-sm font-semibold text-white shadow-md shadow-green-500/25
+                       bg-green-500 py-3
+                       text-sm font-semibold text-white
                        transition-all hover:-translate-y-0.5 active:scale-[0.98]
                        disabled:opacity-60"
           >
@@ -792,7 +794,7 @@ function ActionsCard({
             className="mt-2 flex items-center justify-center gap-1 text-xs font-medium
                        text-sugu-500 hover:text-sugu-600 transition-colors"
           >
-            🗺️ Ouvrir dans Google Maps
+            <Map className="h-3.5 w-3.5" /> Ouvrir dans Google Maps
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>
@@ -836,7 +838,7 @@ function SuccessBanner({
           )}
         </div>
         <p className="mt-1 text-sm font-semibold text-green-800">
-          Bravo ! 🎉
+          Bravo !
         </p>
         <p className="text-xs text-green-700">
           Vous avez livré le colis avec succès

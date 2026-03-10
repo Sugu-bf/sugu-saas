@@ -159,7 +159,7 @@ export function NotificationsTab({ data, onSave, isSaving }: NotificationsTabPro
           onClick={handleSave}
           disabled={isSaving}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+            "inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-5 py-2.5 text-xs font-semibold text-white transition-all hover:bg-sugu-600",
             isSaving && "opacity-50 cursor-not-allowed",
           )}
         >

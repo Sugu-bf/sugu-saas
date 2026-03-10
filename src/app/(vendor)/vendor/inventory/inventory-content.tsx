@@ -198,7 +198,7 @@ export function InventoryContent({ data: initialData }: InventoryContentProps) {
           {/* Page tabs */}
           <div className="mt-2 -mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:mt-3 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0">
             <button
-              className="flex-shrink-0 rounded-full bg-sugu-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-sugu-500/20 transition-all lg:px-4"
+              className="flex-shrink-0 rounded-full bg-sugu-500 px-3 py-1.5 text-xs font-semibold text-white transition-all lg:px-4"
               aria-current="page"
             >
               Vue d&apos;ensemble
@@ -231,7 +231,7 @@ export function InventoryContent({ data: initialData }: InventoryContentProps) {
           </button>
           <button
             onClick={() => setAddStockModal({ open: true, product: null })}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-sugu-500/25 transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:from-sugu-600 lg:hover:to-sugu-700"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600"
           >
             <Plus className="h-4 w-4" />
             Entrée de stock
@@ -537,7 +537,7 @@ export function InventoryContent({ data: initialData }: InventoryContentProps) {
                       className={cn(
                         "flex h-8 w-8 items-center justify-center rounded-lg text-xs font-medium transition-all",
                         pageNum === data.pagination.currentPage
-                          ? "bg-sugu-500 text-white shadow-sm shadow-sugu-500/20"
+                          ? "bg-sugu-500 text-white"
                           : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800",
                       )}
                     >
@@ -771,7 +771,7 @@ function InventoryRow({
             STATUS_STYLES[product.status],
           )}
         >
-          {product.status === "ok" && "✓ "}
+          {product.status === "ok" && ""}
           {product.statusLabel}
         </span>
       </td>
@@ -898,7 +898,7 @@ function AlertsPanel({
                 className={cn(
                   "flex-shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all",
                   alert.level === "critical"
-                    ? "bg-sugu-500 text-white shadow-sm shadow-sugu-500/20 hover:bg-sugu-600"
+                    ? "bg-sugu-500 text-white hover:bg-sugu-600"
                     : "border border-sugu-200 text-sugu-600 hover:bg-sugu-50 dark:border-sugu-800 dark:text-sugu-400 dark:hover:bg-sugu-950/30",
                 )}
               >
@@ -1035,7 +1035,7 @@ function TrendCard({ value, badge }: { value: number; badge: string }) {
         {[35, 48, 42, 56, 62, 58, 70, 65, 72, 68, 75, 80].map((h, i) => (
           <div
             key={i}
-            className="flex-1 rounded-sm bg-gradient-to-t from-sugu-400 to-sugu-300 opacity-60 transition-all hover:opacity-100 dark:from-sugu-600 dark:to-sugu-500"
+            className="flex-1 rounded-sm bg-sugu-400 opacity-60 transition-all hover:opacity-100 dark:bg-sugu-600"
             style={{ height: `${h * 0.5}px` }}
           />
         ))}
@@ -1246,7 +1246,7 @@ function AddStockModal({
             <button
               type="submit"
               disabled={isLoading || !selectedProductId || quantity < 1}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sugu-500/25 transition-all hover:from-sugu-600 hover:to-sugu-700 disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 disabled:opacity-50"
             >
               {isLoading ? (
                 <>

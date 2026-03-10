@@ -840,6 +840,15 @@ export const vendorSettingsSchema = z.object({
       time: z.string(),
       current: z.boolean(),
     })),
+    suspiciousLoginAlert: z.boolean().optional().default(true),
+    loginHistory: z.array(z.object({
+      id: z.string(),
+      ip: z.string(),
+      device: z.string(),
+      location: z.string(),
+      time: z.string(),
+      success: z.boolean(),
+    })).optional().default([]),
   }).optional(),
   // Notifications preferences (from API)
   notifications: z.object({
@@ -849,6 +858,13 @@ export const vendorSettingsSchema = z.object({
       marketing: z.boolean(),
     }),
     pushNotifications: z.boolean(),
+    eventPreferences: z.array(z.object({
+      event: z.string(),
+      sms: z.boolean(),
+      email: z.boolean(),
+      push: z.boolean(),
+      whatsapp: z.boolean(),
+    })).nullable().optional(),
   }).optional(),
   // Legal data (from API)
   legal: z.object({
@@ -975,6 +991,15 @@ export const vendorSettingsApiSchema = z.object({
         time: z.string().optional().default(""),
         current: z.boolean().optional().default(false),
       })).optional().default([]),
+      suspiciousLoginAlert: z.boolean().optional().default(true),
+      loginHistory: z.array(z.object({
+        id: z.string(),
+        ip: z.string().optional().default(""),
+        device: z.string().optional().default(""),
+        location: z.string().optional().default(""),
+        time: z.string().optional().default(""),
+        success: z.boolean().optional().default(true),
+      })).optional().default([]),
     }).optional().default({}),
     notifications: z.object({
       emailAlerts: z.object({
@@ -983,6 +1008,13 @@ export const vendorSettingsApiSchema = z.object({
         marketing: z.boolean().optional().default(false),
       }).optional().default({}),
       pushNotifications: z.boolean().optional().default(false),
+      eventPreferences: z.array(z.object({
+        event: z.string(),
+        sms: z.boolean(),
+        email: z.boolean(),
+        push: z.boolean(),
+        whatsapp: z.boolean(),
+      })).nullable().optional(),
     }).optional().default({}),
 
     // Business hours (from store.settings JSON)
@@ -1065,6 +1097,21 @@ export const updateNotificationsRequestSchema = z.object({
     marketing: z.boolean(),
   }).optional(),
   pushNotifications: z.boolean().optional(),
+  // Per-event notification preferences (channel matrix)
+  eventPreferences: z.array(z.object({
+    event: z.string(),
+    sms: z.boolean(),
+    email: z.boolean(),
+    push: z.boolean(),
+    whatsapp: z.boolean(),
+  })).optional(),
+  // Channel-level toggles
+  channels: z.object({
+    sms: z.boolean(),
+    email: z.boolean(),
+    push: z.boolean(),
+    whatsapp: z.boolean(),
+  }).optional(),
 });
 export type UpdateNotificationsRequest = z.infer<typeof updateNotificationsRequestSchema>;
 

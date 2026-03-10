@@ -13,6 +13,8 @@ import {
   Car,
   ChevronDown,
   RefreshCw,
+  Zap,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -87,7 +89,7 @@ export function StepLivreur({
       ═══════════════════════════════════════════ */}
       <div className="glass-card rounded-2xl p-5 lg:col-span-2 lg:p-6">
         <div className="mb-4 flex items-center gap-3">
-          <span className="text-2xl">🛵</span>
+          <Bike className="h-6 w-6 text-gray-400" />
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Assigner un livreur
@@ -242,7 +244,7 @@ export function StepLivreur({
         {/* ── Priorité ── */}
         <div className="glass-card rounded-2xl p-5 lg:p-6">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">⚡</span>
+            <Zap className="h-5 w-5 text-amber-500" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Priorité
             </h3>
@@ -255,7 +257,7 @@ export function StepLivreur({
                 {
                   value: "urgent" as const,
                   label: "Urgent",
-                  emoji: "🔴",
+                  emoji: "",
                   desc: "Livraison immédiate, priorité maximale",
                   border: "border-red-200",
                   bg: "bg-red-50",
@@ -266,7 +268,7 @@ export function StepLivreur({
                 {
                   value: "normal" as const,
                   label: "Normal",
-                  emoji: "🟡",
+                  emoji: "",
                   desc: "Livraison dans le créneau standard",
                   border: "border-amber-200",
                   bg: "bg-amber-50",
@@ -277,7 +279,7 @@ export function StepLivreur({
                 {
                   value: "low" as const,
                   label: "Bas",
-                  emoji: "🟢",
+                  emoji: "",
                   desc: "Livraison sans urgence, flexible",
                   border: "border-green-200",
                   bg: "bg-green-50",
@@ -333,7 +335,7 @@ export function StepLivreur({
         {/* ── Frais & Paiement ── */}
         <div className="glass-card rounded-2xl p-5 lg:p-6">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">💰</span>
+            <Banknote className="h-5 w-5 text-gray-400" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Frais & Paiement
             </h3>
@@ -382,7 +384,7 @@ export function StepLivreur({
         {/* ── Planification ── */}
         <div className="glass-card rounded-2xl p-5 lg:p-6">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">📅</span>
+            <Calendar className="h-5 w-5 text-gray-400" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Planification
             </h3>

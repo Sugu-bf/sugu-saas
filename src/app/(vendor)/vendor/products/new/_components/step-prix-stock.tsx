@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -50,7 +50,7 @@ function Toggle({
           "shadow-inner",
           "focus-visible:ring-2 focus-visible:ring-sugu-500/30 focus-visible:ring-offset-1",
           checked
-            ? "bg-gradient-to-r from-sugu-400 to-sugu-500"
+            ? "bg-sugu-500"
             : "bg-gray-300 dark:bg-gray-600",
         )}
       >
@@ -134,7 +134,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
     <section className="glass-card animate-slide-in-right rounded-3xl p-5 sm:p-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <span className="text-2xl">💰</span>
+        <Banknote className="h-6 w-6 text-gray-400" />
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Prix &amp; Stock

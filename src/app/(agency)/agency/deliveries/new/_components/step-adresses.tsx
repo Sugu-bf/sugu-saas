@@ -8,6 +8,7 @@ import {
   Navigation,
   Clock,
   ArrowDown,
+  Lightbulb,
 } from "lucide-react";
 import {
   type DeliveryFormData,
@@ -30,7 +31,7 @@ export function StepAdresses({ data, onChange }: StepAdressesProps) {
       <div className="glass-card rounded-2xl p-5 lg:p-6">
         {/* Header */}
         <div className="mb-5 flex items-center gap-3">
-          <span className="text-2xl">📍</span>
+          <MapPin className="h-6 w-6 text-gray-400" />
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Adresses
@@ -53,7 +54,7 @@ export function StepAdresses({ data, onChange }: StepAdressesProps) {
               </h3>
               {data.vendorName && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-sugu-50 px-2 py-0.5 text-[10px] font-semibold text-sugu-600">
-                  🏪 {data.vendorName}
+                  {data.vendorName}
                 </span>
               )}
             </div>
@@ -189,7 +190,7 @@ export function StepAdresses({ data, onChange }: StepAdressesProps) {
       <div className="glass-card rounded-2xl p-5 lg:p-6">
         {/* Header */}
         <div className="mb-5 flex items-center gap-3">
-          <span className="text-2xl">👤</span>
+          <User className="h-6 w-6 text-gray-400" />
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Client
@@ -269,7 +270,7 @@ export function StepAdresses({ data, onChange }: StepAdressesProps) {
 
           {/* Hint banner */}
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-2.5 dark:border-amber-900/30 dark:bg-amber-950/20">
-            <span className="mt-0.5 text-sm">💡</span>
+            <Lightbulb className="mt-0.5 h-4 w-4 text-amber-500" />
             <p className="text-xs text-amber-700 dark:text-amber-300">
               Ces instructions seront visibles par le livreur
             </p>

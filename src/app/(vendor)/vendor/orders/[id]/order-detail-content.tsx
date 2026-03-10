@@ -241,7 +241,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
             </div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-green-500 transition-all duration-500"
+                className="h-full rounded-full bg-sugu-500 transition-all duration-500"
                 style={{ width: `${(readyCount / data.totalCount) * 100}%` }}
               />
             </div>
@@ -398,7 +398,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
           {/* ── Récapitulatif financier ── */}
           <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
             <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-              💰 Récapitulatif financier
+              Récapitulatif financier
             </h2>
 
             <div className="mt-3 space-y-2.5 lg:mt-4">
@@ -442,7 +442,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
             {/* Payment */}
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-green-50/60 px-3 py-2 dark:bg-green-950/20 lg:mt-4 lg:px-4 lg:py-2.5">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                💳 {data.financial.paymentMethod}
+                {data.financial.paymentMethod}
               </span>
               <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600">
                 {data.financial.paymentStatus}
@@ -476,7 +476,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
             </div>
 
             {/* Map placeholder */}
-            <div className="mt-3 relative h-24 rounded-xl bg-gradient-to-br from-green-50/80 via-emerald-50/40 to-teal-50/30 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/10 flex items-center justify-center overflow-hidden lg:mt-4 lg:h-28">
+            <div className="mt-3 relative h-24 rounded-xl bg-green-50/80 dark:bg-green-950/20 flex items-center justify-center overflow-hidden lg:mt-4 lg:h-28">
               <MapPin className="h-6 w-6 text-sugu-400/60" />
             </div>
 
@@ -515,7 +515,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 <button
                   onClick={handleConfirm}
                   disabled={isMutating}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-sugu-500/25 transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {confirmMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                   Confirmer la commande
@@ -527,7 +527,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 <button
                   onClick={handleRequestDelivery}
                   disabled={isMutating}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/25 transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-indigo-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-indigo-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {deliveryRequestMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                   Demander la livraison
@@ -539,7 +539,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 <button
                   onClick={handleMarkShipped}
                   disabled={isMutating}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-blue-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-blue-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {shippedMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                   Marquer comme expédiée
@@ -551,7 +551,7 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 <button
                   onClick={handleMarkDelivered}
                   disabled={isMutating}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-green-500/25 transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-green-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-[0.98] lg:py-3 lg:text-sm lg:hover:bg-green-600 lg:hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {deliveredMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                   Marquer comme livrée

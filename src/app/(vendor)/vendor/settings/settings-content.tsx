@@ -265,7 +265,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all",
                   activeTab === item.key
-                    ? "bg-gradient-to-r from-sugu-500 to-sugu-600 text-white shadow-sm shadow-sugu-500/20"
+                    ? "bg-sugu-500 text-white"
                     : item.danger
                       ? "text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20"
                       : "text-gray-600 hover:bg-gray-100/80 dark:text-gray-400 dark:hover:bg-gray-800/50",
@@ -306,7 +306,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                   {/* Avatar */}
                   <div className="mt-5 flex items-center gap-5">
                     <div className="relative">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-sugu-400 to-sugu-600 text-2xl font-bold text-white shadow-lg shadow-sugu-500/20">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sugu-500 text-2xl font-bold text-white">
                         {profile.firstName.charAt(0)}{profile.lastName.charAt(0)}
                       </div>
                       <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-sugu-500 text-white shadow-sm transition-all hover:bg-sugu-600 dark:border-gray-900" aria-label="Changer la photo">
@@ -402,7 +402,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                     <div>
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Logo de la boutique</p>
                       <div className="mt-2 flex items-center gap-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 text-xl font-bold text-white shadow-md">S</div>
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-sugu-500 text-xl font-bold text-white">S</div>
                         <div className="flex flex-col gap-1.5">
                           <PillButton variant="outline" size="sm"><Upload className="h-3 w-3" /> Changer le logo</PillButton>
                           <button className="text-[11px] text-gray-400 hover:text-gray-600">Supprimer</button>
@@ -412,7 +412,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                     <div>
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Bannière de la boutique</p>
                       <div className="mt-2">
-                        <div className="relative h-20 overflow-hidden rounded-xl bg-gradient-to-r from-amber-100 to-sugu-100 dark:from-amber-900/20 dark:to-sugu-900/20">
+                        <div className="relative h-20 overflow-hidden rounded-xl bg-sugu-100 dark:bg-sugu-900/20">
                           <div className="absolute inset-0 flex items-center justify-center"><Store className="h-8 w-8 text-gray-400 opacity-40" /></div>
                         </div>
                         <div className="mt-2 flex items-center gap-3">

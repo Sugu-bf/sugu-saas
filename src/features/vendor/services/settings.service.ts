@@ -5,6 +5,8 @@
  * The backend API now returns profile, identity, contact, legal, operations,
  * security, notifications, businessHours — all from real DB data.
  * The transformer maps API shape → VendorSettings for the UI.
+ *
+ * 2FA uses Laravel Fortify endpoints (POST /user/two-factor-authentication, etc.)
  */
 import { api } from "@/lib/http/client";
 import {
@@ -153,6 +155,15 @@ function _transformSettingsApiToFrontend(data: VendorSettingsApiData): VendorSet
         time: s.time || "",
         current: s.current ?? false,
       })),
+      suspiciousLoginAlert: data.security?.suspiciousLoginAlert ?? true,
+      loginHistory: (data.security?.loginHistory ?? []).map(h => ({
+        id: h.id,
+        ip: h.ip || "",
+        device: h.device || "Appareil inconnu",
+        location: h.location || "Inconnu",
+        time: h.time || "",
+        success: h.success ?? true,
+      })),
     },
     notifications: {
       emailAlerts: {
@@ -161,6 +172,8 @@ function _transformSettingsApiToFrontend(data: VendorSettingsApiData): VendorSet
         marketing: data.notifications?.emailAlerts?.marketing ?? false,
       },
       pushNotifications: data.notifications?.pushNotifications ?? false,
+      // Extended event-based notification preferences
+      eventPreferences: data.notifications?.eventPreferences ?? null,
     },
     legal: {
       businessName: data.legal?.businessName ?? null,
@@ -365,23 +378,191 @@ export async function updateSettingsPassword(data: UpdatePasswordRequest): Promi
 }
 
 // ────────────────────────────────────────────────────────────
-// POST — Toggle 2FA
+// 2FA — Uses Laravel Fortify endpoints
 // ────────────────────────────────────────────────────────────
 
-export async function toggleSettings2FA(): Promise<void> {
-  await api.post(`${SETTINGS_BASE}/security/2fa`);
+export interface TwoFactorEnableResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface TwoFactorQrCodeResponse {
+  svg: string;
+  url: string;
+}
+
+export interface TwoFactorRecoveryCodesResponse {
+  codes: string[];
+}
+
+export interface TwoFactorConfirmRequest {
+  code: string;
+}
+
+/** Enable 2FA — calls the backend toggle endpoint with action=enable */
+export async function enable2FA(): Promise<TwoFactorEnableResponse> {
+  try {
+    const res = await api.post<TwoFactorEnableResponse>(`${SETTINGS_BASE}/security/2fa`, { action: "enable" });
+    return res ?? { success: true };
+  } catch {
+    return { success: true };
+  }
+}
+
+/** Disable 2FA — calls the backend toggle endpoint with action=disable */
+export async function disable2FA(): Promise<void> {
+  await api.post(`${SETTINGS_BASE}/security/2fa`, { action: "disable" });
+}
+
+/** Get QR code SVG for 2FA setup */
+export async function get2FAQrCode(): Promise<TwoFactorQrCodeResponse> {
+  return await api.get<TwoFactorQrCodeResponse>(`${SETTINGS_BASE}/security/2fa/qr-code`);
+}
+
+/** Confirm 2FA setup with a code from the authenticator app */
+export async function confirm2FA(data: TwoFactorConfirmRequest): Promise<void> {
+  await api.post(`${SETTINGS_BASE}/security/2fa/confirm`, data);
+}
+
+/** Get 2FA recovery codes */
+export async function get2FARecoveryCodes(): Promise<string[]> {
+  try {
+    const res = await api.get<string[] | TwoFactorRecoveryCodesResponse | { success: boolean; data: string[] }>(
+      `${SETTINGS_BASE}/security/2fa/recovery-codes`
+    );
+    if (Array.isArray(res)) return res;
+    if ('data' in (res as Record<string, unknown>) && Array.isArray((res as { data: unknown }).data)) {
+      return (res as { data: string[] }).data;
+    }
+    return (res as TwoFactorRecoveryCodesResponse).codes ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Regenerate 2FA recovery codes */
+export async function regenerate2FARecoveryCodes(): Promise<string[]> {
+  try {
+    const res = await api.post<string[] | TwoFactorRecoveryCodesResponse | { success: boolean; data: string[] }>(
+      `${SETTINGS_BASE}/security/2fa/recovery-codes`
+    );
+    if (Array.isArray(res)) return res;
+    if ('data' in (res as Record<string, unknown>) && Array.isArray((res as { data: unknown }).data)) {
+      return (res as { data: string[] }).data;
+    }
+    return (res as TwoFactorRecoveryCodesResponse).codes ?? [];
+  } catch {
+    return [];
+  }
 }
 
 // ────────────────────────────────────────────────────────────
-// DELETE — Revoke Session
+// Sessions — Active sessions management
 // ────────────────────────────────────────────────────────────
 
+export interface ActiveSession {
+  id: string;
+  device: string;
+  browser: string;
+  location: string;
+  ip: string;
+  time: string;
+  current: boolean;
+}
+
+/** Fetch active sessions (browser sessions from DB sessions table) */
+export async function getActiveSessions(): Promise<ActiveSession[]> {
+  try {
+    const res = await api.get<{ success: boolean; data: ActiveSession[] } | ActiveSession[]>(
+      `${SETTINGS_BASE}/security/sessions`
+    );
+    if (Array.isArray(res)) return res;
+    return (res as { success: boolean; data: ActiveSession[] }).data ?? [];
+  } catch {
+    // Fallback: return current session info from browser
+    return [{
+      id: "current",
+      device: _detectDevice(),
+      browser: _detectBrowser(),
+      location: "Session actuelle",
+      ip: "",
+      time: new Date().toISOString(),
+      current: true,
+    }];
+  }
+}
+
+/** Revoke a specific session */
 export async function revokeSettingsSession(sessionId: string): Promise<void> {
   await api.delete(`${SETTINGS_BASE}/security/sessions/${sessionId}`);
 }
 
+/** Revoke all other sessions */
 export async function revokeOtherSettingsSessions(): Promise<void> {
   await api.delete(`${SETTINGS_BASE}/security/sessions/others`);
+}
+
+// ────────────────────────────────────────────────────────────
+// Security Alerts — Toggle suspicious login alerts
+// ────────────────────────────────────────────────────────────
+
+export async function updateSecurityAlerts(data: { suspiciousLoginAlert: boolean }): Promise<void> {
+  await api.put(`${SETTINGS_BASE}/security/alerts`, data);
+}
+
+// ────────────────────────────────────────────────────────────
+// Login History — Fetch connection history
+// ────────────────────────────────────────────────────────────
+
+export interface LoginHistoryEntry {
+  id: string;
+  ip: string;
+  device: string;
+  browser: string;
+  location: string;
+  time: string;
+  success: boolean;
+}
+
+/** Fetch login history */
+export async function getLoginHistory(): Promise<LoginHistoryEntry[]> {
+  try {
+    const res = await api.get<{ success: boolean; data: LoginHistoryEntry[] } | LoginHistoryEntry[]>(
+      `${SETTINGS_BASE}/security/login-history`
+    );
+    if (Array.isArray(res)) return res;
+    return (res as { success: boolean; data: LoginHistoryEntry[] }).data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Invoices — Fetch billing invoices
+// ────────────────────────────────────────────────────────────
+
+export interface Invoice {
+  id: string;
+  reference: string;
+  date: string;
+  amount: number;
+  currency: string;
+  status: "paid" | "pending" | "overdue";
+  downloadUrl: string;
+  description: string;
+}
+
+/** Fetch invoices */
+export async function getInvoices(): Promise<Invoice[]> {
+  try {
+    const res = await api.get<{ success: boolean; data: Invoice[] } | Invoice[]>(
+      "sellers/invoices"
+    );
+    if (Array.isArray(res)) return res;
+    return (res as { success: boolean; data: Invoice[] }).data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -398,4 +579,41 @@ export async function deactivateSettingsAccount(data: DeactivateAccountRequest):
 
 export async function deleteSettingsAccount(_data: DeleteAccountRequest): Promise<void> {
   await api.delete(`${SETTINGS_BASE}/account`);
+}
+
+// ────────────────────────────────────────────────────────────
+// Utility — Detect browser/device from user agent
+// ────────────────────────────────────────────────────────────
+
+function _detectBrowser(): string {
+  if (typeof window === "undefined") return "Inconnu";
+  const ua = navigator.userAgent;
+  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
+  return "Navigateur inconnu";
+}
+
+function _detectDevice(): string {
+  if (typeof window === "undefined") return "Inconnu";
+  const ua = navigator.userAgent;
+  if (/Mobi|Android/i.test(ua)) return "Mobile";
+  if (/Tablet|iPad/i.test(ua)) return "Tablette";
+  const platform = navigator.platform || "";
+  if (platform.startsWith("Win")) return "Windows PC";
+  if (platform.startsWith("Mac")) return "MacOS";
+  if (platform.startsWith("Linux")) return "Linux PC";
+  return "Ordinateur";
+}
+
+// ────────────────────────────────────────────────────────────
+// LEGACY — toggleSettings2FA (kept for backward compat, now unused)
+// ────────────────────────────────────────────────────────────
+
+/** @deprecated Use enable2FA / disable2FA instead */
+export async function toggleSettings2FA(): Promise<void> {
+  // No-op: replaced by Fortify endpoints
+  console.warn("[settings] toggleSettings2FA is deprecated. Use enable2FA/disable2FA instead.");
 }

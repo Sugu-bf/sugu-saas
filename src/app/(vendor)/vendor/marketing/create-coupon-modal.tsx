@@ -293,7 +293,7 @@ export function CreateCouponModal({ open, onClose, onSubmit, isPending }: Create
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:shadow-sugu-500/35 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
+              className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
             >
               {isPending ? (
                 <>

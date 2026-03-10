@@ -15,7 +15,7 @@
  *   ├── statistics.service.ts   — Analytics/statistics
  *   ├── marketing.service.ts    — Coupons + promotions
  *   ├── sales.service.ts        — Product/customer search + order creation
- *   ├── settings.service.ts     — Settings (mock)
+ *   ├── settings.service.ts     — Settings (real API + Fortify 2FA)
  *   └── tickets.service.ts      — Tickets (mock)
  *
  * All existing imports from "./service" continue to work unchanged.
@@ -85,6 +85,19 @@ export {
   revokeOtherSettingsSessions,
   deactivateSettingsAccount,
   deleteSettingsAccount,
+  // Settings — 2FA Fortify endpoints
+  enable2FA,
+  disable2FA,
+  get2FAQrCode,
+  confirm2FA,
+  get2FARecoveryCodes,
+  regenerate2FARecoveryCodes,
+  // Settings — Sessions & Security
+  getActiveSessions,
+  updateSecurityAlerts,
+  getLoginHistory,
+  // Settings — Invoices
+  getInvoices,
   // Tickets
   getVendorTickets,
   getTicketDetail,
@@ -105,4 +118,11 @@ export type {
   UpdatePromotionRequest,
   UpdateProfileRequest,
   UpdateBusinessHoursRequest,
+  TwoFactorEnableResponse,
+  TwoFactorQrCodeResponse,
+  TwoFactorConfirmRequest,
+  TwoFactorRecoveryCodesResponse,
+  ActiveSession,
+  LoginHistoryEntry,
+  Invoice,
 } from "./services";

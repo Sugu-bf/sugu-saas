@@ -4,6 +4,11 @@ import {
   Pencil,
   Star,
   Truck,
+  Package,
+  Bike,
+  MapPin,
+  User,
+  Banknote,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
@@ -123,7 +128,7 @@ export function StepRecapitulatif({
         <div className="glass-card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📦</span>
+              <Package className="h-5 w-5 text-gray-400" />
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Commande
               </h3>
@@ -175,7 +180,7 @@ export function StepRecapitulatif({
         <div className="glass-card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🛵</span>
+              <Bike className="h-5 w-5 text-gray-400" />
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Livreur
               </h3>
@@ -251,7 +256,7 @@ export function StepRecapitulatif({
         <div className="glass-card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📍</span>
+              <MapPin className="h-5 w-5 text-gray-400" />
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Itinéraire
               </h3>
@@ -269,7 +274,7 @@ export function StepRecapitulatif({
               </p>
               {data.pickupPhone && (
                 <p className="text-xs text-gray-400">
-                  📱 {data.pickupPhone}
+                  {data.pickupPhone}
                 </p>
               )}
             </div>
@@ -291,7 +296,7 @@ export function StepRecapitulatif({
               </p>
               {data.clientPhone && (
                 <p className="text-xs text-gray-400">
-                  📱 {data.clientPhone}
+                  {data.clientPhone}
                 </p>
               )}
             </div>
@@ -302,7 +307,7 @@ export function StepRecapitulatif({
         <div className="glass-card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">👤</span>
+              <User className="h-5 w-5 text-gray-400" />
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 Client
               </h3>
@@ -326,7 +331,7 @@ export function StepRecapitulatif({
       {/* ═══════════ CARD 5 — Résumé financier (span-2) ═══════════ */}
       <div className="glass-card rounded-2xl p-5">
         <div className="mb-3 flex items-center gap-2">
-          <span className="text-lg">💰</span>
+          <Banknote className="h-5 w-5 text-gray-400" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">
             Résumé financier
           </h3>
@@ -361,7 +366,7 @@ export function StepRecapitulatif({
 
       {/* SMS notification info */}
       <p className="mt-2 text-center text-[11px] text-gray-400">
-        📩 Un SMS de notification sera envoyé au client et au livreur
+        Un SMS de notification sera envoyé au client et au livreur
       </p>
     </div>
   );

@@ -101,5 +101,9 @@ export const queryKeys = {
       [...queryKeys.driver.all, "activity"] as const,
     history: (filters?: Record<string, unknown>) =>
       [...queryKeys.driver.all, "history", filters] as const,
+    settings: () =>
+      [...queryKeys.driver.all, "settings"] as const,
+    payoutSettings: () =>
+      [...queryKeys.driver.all, "payoutSettings"] as const,
   },
 } as const;

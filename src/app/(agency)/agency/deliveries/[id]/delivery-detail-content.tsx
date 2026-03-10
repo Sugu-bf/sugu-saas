@@ -532,7 +532,7 @@ export function DeliveryDetailContent({
           ════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
         {/* ────────────────────────────────────────────────────
-            📍 Suivi en temps réel (col 1, row 1)
+            Suivi en temps réel (col 1, row 1)
             ──────────────────────────────────────────────────── */}
         <section
           className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
@@ -563,7 +563,7 @@ export function DeliveryDetailContent({
         </section>
 
         {/* ────────────────────────────────────────────────────
-            🛵 Livreur (col 2, row 1)
+            Livreur (col 2, row 1)
             ──────────────────────────────────────────────────── */}
         <section
           className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
@@ -661,7 +661,7 @@ export function DeliveryDetailContent({
         </section>
 
         {/* ────────────────────────────────────────────────────
-            👤 Client (col 3, row 1)
+            Client (col 3, row 1)
             ──────────────────────────────────────────────────── */}
         <section
           className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
@@ -710,7 +710,7 @@ export function DeliveryDetailContent({
         </section>
 
         {/* ────────────────────────────────────────────────────
-            📦 Détails commande (col 1, row 2)
+            Détails commande (col 1, row 2)
             ──────────────────────────────────────────────────── */}
         <section
           className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
@@ -833,7 +833,7 @@ export function DeliveryDetailContent({
         </section>
 
         {/* ────────────────────────────────────────────────────
-            📍 Itinéraire + Timeline (col 2, row 2)
+            Itinéraire + Timeline (col 2, row 2)
             ──────────────────────────────────────────────────── */}
         <section
           className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
@@ -969,7 +969,7 @@ export function DeliveryDetailContent({
         </section>
 
         {/* ────────────────────────────────────────────────────
-            ⚡ Actions rapides + 📋 Notes (col 3, row 2)
+            Actions rapides + Notes (col 3, row 2)
             ──────────────────────────────────────────────────── */}
         <div className="space-y-4 lg:space-y-5">
           {/* Actions rapides */}
@@ -1000,7 +1000,7 @@ export function DeliveryDetailContent({
                     })
                   }
                   disabled={isMutating}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 py-3 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-sugu-500 py-3 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.98] disabled:opacity-60"
                 >
                   {isMutating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

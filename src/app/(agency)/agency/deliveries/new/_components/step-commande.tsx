@@ -46,7 +46,7 @@ export function StepCommande({ data, onChange }: StepCommandeProps) {
     <div className="glass-card rounded-2xl p-5 lg:p-6">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
-        <span className="text-2xl">📦</span>
+        <Package className="h-6 w-6 text-gray-400" />
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
             Informations commande

@@ -79,7 +79,7 @@ export function StepMethode({ data, onChange, payoutSettings }: StepMethodeProps
                   className={cn(
                     "flex w-full items-center gap-3 rounded-xl p-4 text-left transition-all",
                     isSelected
-                      ? "border-2 border-sugu-500 bg-sugu-50/30 shadow-md shadow-sugu-500/10"
+                      ? "border-2 border-sugu-500 bg-sugu-50/30"
                       : "border border-gray-200 bg-white/60 hover:border-gray-300 hover:shadow-sm",
                   )}
                 >

@@ -35,8 +35,8 @@ function UsageBar({ used, max }: { used: number; max: number }) {
           className={cn(
             "h-full rounded-full transition-all",
             full
-              ? "bg-gradient-to-r from-red-400 to-red-500"
-              : "bg-gradient-to-r from-sugu-400 to-sugu-500",
+              ? "bg-red-500"
+              : "bg-sugu-500",
           )}
           style={{ width: `${pct}%` }}
         />
@@ -118,7 +118,7 @@ function ProductPromoCard({
       )}
     >
       {/* Product image + discount badge */}
-      <div className="relative mb-3 flex h-20 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-50 to-orange-50 dark:from-sugu-950/20 dark:to-orange-950/10 overflow-hidden">
+      <div className="relative mb-3 flex h-20 items-center justify-center rounded-xl bg-sugu-50 dark:bg-sugu-950/20 overflow-hidden">
         {product.image ? (
           <img
             src={product.image}
@@ -128,7 +128,7 @@ function ProductPromoCard({
         ) : (
           <Package className="h-10 w-10 text-gray-300 dark:text-gray-600" />
         )}
-        <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sugu-500 to-sugu-600 text-[10px] font-black text-white shadow-md shadow-sugu-500/30">
+        <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-sugu-500 text-[10px] font-black text-white">
           -{product.discountPercent}%
         </span>
       </div>
@@ -227,7 +227,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
         <button
           id="btn-create-promotion"
           onClick={onOpenCreatePromotion}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/25 transition-all hover:shadow-lg hover:shadow-sugu-500/35 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
+          className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
         >
           <Plus className="h-4 w-4" />
           Créer une promotion
@@ -310,7 +310,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
               {/* Mini progress */}
               <div className="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-500"
+                  className="h-full rounded-full bg-blue-500"
                   style={{
                     width: `${Math.min((data.kpis.codesUsed / data.kpis.codesTotal) * 100, 100)}%`,
                   }}
@@ -566,7 +566,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
       {/* ════════════ Premium CTA Banner ════════════ */}
       <section
         aria-labelledby="premium-cta-heading"
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-6 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
+        className="relative overflow-hidden rounded-3xl bg-gray-900 p-6 dark:bg-gray-950"
       >
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -577,7 +577,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
 
         <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sugu-400 to-sugu-600 shadow-lg shadow-sugu-500/30">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-sugu-500">
               <Zap className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -585,7 +585,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
                 id="premium-cta-heading"
                 className="flex items-center gap-2 text-base font-bold text-white"
               >
-                🚀 Débloquez le Marketing avancé
+                Débloquez le Marketing avancé
               </h3>
               <p className="mt-0.5 text-sm text-gray-400">
                 Newsletter, campagnes email, push notifications, segments clients, analytics
@@ -596,7 +596,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
           <div className="flex flex-col items-start gap-2 sm:items-end">
             <button
               id="btn-upgrade-premium"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-sugu-500/40 transition-all hover:shadow-lg hover:shadow-sugu-500/50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               <Star className="h-4 w-4 fill-white" />
               Passer en Premium

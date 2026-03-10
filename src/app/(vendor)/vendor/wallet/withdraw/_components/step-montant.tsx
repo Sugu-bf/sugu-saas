@@ -38,10 +38,10 @@ export function StepMontant({ data, onChange, availableBalance }: StepMontantPro
             </span>
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
-            <span>↗</span> +12.5% ce mois
+            <span>+12.5% ce mois</span>
           </p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 text-white shadow-md shadow-green-500/25 lg:h-14 lg:w-14">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white lg:h-14 lg:w-14">
           <Wallet className="h-6 w-6 lg:h-7 lg:w-7" />
         </div>
       </div>
@@ -100,12 +100,12 @@ export function StepMontant({ data, onChange, availableBalance }: StepMontantPro
         {/* Validation message */}
         {amount > 0 && amount < MIN_WITHDRAWAL_AMOUNT && (
           <p className="mt-2 text-xs font-medium text-red-500">
-            ⚠ Le montant minimum est de {formatCurrency(MIN_WITHDRAWAL_AMOUNT)} FCFA
+            Le montant minimum est de {formatCurrency(MIN_WITHDRAWAL_AMOUNT)} FCFA
           </p>
         )}
         {amount > availableBalance && (
           <p className="mt-2 text-xs font-medium text-red-500">
-            ⚠ Le montant dépasse votre solde disponible
+            Le montant dépasse votre solde disponible
           </p>
         )}
       </div>

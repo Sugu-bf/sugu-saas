@@ -361,3 +361,239 @@ export const driverHistoryResponseSchema = z.object({
   }),
 });
 export type DriverHistoryResponse = z.infer<typeof driverHistoryResponseSchema>;
+
+// ============================================================
+// Driver — Settings Schemas (Courier Settings Page)
+// ============================================================
+
+/** Driver profile data */
+export const driverProfileSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string().email(),
+  emailVerified: z.boolean(),
+  phone: z.string(),
+  phoneSecondary: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  city: z.string(),
+  quarter: z.string(),
+  fullAddress: z.string(),
+  actionRadius: z.number(),           // km
+  language: z.string(),
+  timezone: z.string(),
+  rating: z.number(),                 // 4.8
+  totalDeliveries: z.number(),        // 127
+  successRate: z.number(),            // 98
+  avgDeliveryMinutes: z.number(),     // 32
+});
+export type DriverProfile = z.infer<typeof driverProfileSchema>;
+
+/** Vehicle type enum */
+export const vehicleTypeSchema = z.enum(["moto", "velo", "voiture", "tricycle"]);
+export type VehicleType = z.infer<typeof vehicleTypeSchema>;
+
+/** Driver vehicle data */
+export const driverVehicleSchema = z.object({
+  id: z.string(),
+  type: vehicleTypeSchema,
+  brand: z.string(),                  // "Yamaha FZ"
+  licensePlate: z.string(),           // "BKO-1234-ML"
+  color: z.string(),
+  maxCapacityKg: z.number(),
+  year: z.number(),
+  notes: z.string().nullable(),
+  isActive: z.boolean(),
+  photos: z.array(z.object({
+    id: z.string(),
+    url: z.string(),
+    label: z.string(),                // "Vue avant", "Vue côté", "Vue arrière"
+  })),
+});
+export type DriverVehicle = z.infer<typeof driverVehicleSchema>;
+
+/** KYC document status */
+export const kycDocStatusSchema = z.enum(["verified", "pending", "rejected", "not_uploaded"]);
+export type KycDocStatus = z.infer<typeof kycDocStatusSchema>;
+
+/** Single KYC document */
+export const kycDocumentSchema = z.object({
+  id: z.string(),
+  type: z.enum(["cni", "permis", "carte_grise", "assurance"]),
+  label: z.string(),                  // "Pièce d'identité (CNI / Passeport)"
+  status: kycDocStatusSchema,
+  fileName: z.string().nullable(),    // "cni_amadou_diallo.pdf"
+  uploadedAt: z.string().nullable(),  // ISO date
+  rejectionReason: z.string().nullable(),
+});
+export type KycDocument = z.infer<typeof kycDocumentSchema>;
+
+/** KYC verification activity entry */
+export const kycActivitySchema = z.object({
+  id: z.string(),
+  label: z.string(),                  // "CNI vérifiée et approuvée"
+  time: z.string(),                   // "il y a 3 jours"
+  dotColor: z.string(),               // "bg-green-500"
+});
+export type KycActivity = z.infer<typeof kycActivitySchema>;
+
+/** KYC overview */
+export const driverKycSchema = z.object({
+  documents: z.array(kycDocumentSchema),
+  submittedCount: z.number(),         // 3
+  requiredCount: z.number(),          // 4
+  progressPercent: z.number(),        // 75
+  canDeliver: z.boolean(),            // true (can deliver while verifying)
+  recentActivity: z.array(kycActivitySchema),
+});
+export type DriverKyc = z.infer<typeof driverKycSchema>;
+
+/** Notification channel */
+export const notifChannelSchema = z.object({
+  id: z.string(),
+  label: z.string(),                  // "SMS", "Email", "Push (Application)", "WhatsApp"
+  detail: z.string(),                 // "+223 76 12 34 56" or "amadou.diallo@email.com"
+  enabled: z.boolean(),
+  pro: z.boolean(),
+});
+export type NotifChannel = z.infer<typeof notifChannelSchema>;
+
+/** Notification event preference */
+export const notifEventSchema = z.object({
+  id: z.string(),
+  label: z.string(),                  // "Nouvelle livraison assignée"
+  icon: z.string(),                   // lucide icon name: "package", "x-circle", "banknote", etc.
+  sms: z.boolean(),
+  email: z.boolean(),
+  push: z.boolean(),
+  whatsapp: z.boolean(),
+});
+export type NotifEvent = z.infer<typeof notifEventSchema>;
+
+/** Quiet hours */
+export const quietHoursSchema = z.object({
+  enabled: z.boolean(),
+  from: z.string(),                   // "22:00"
+  to: z.string(),                     // "07:00"
+});
+export type QuietHours = z.infer<typeof quietHoursSchema>;
+
+/** Driver notifications settings */
+export const driverNotificationsSchema = z.object({
+  channels: z.array(notifChannelSchema),
+  events: z.array(notifEventSchema),
+  quietHours: quietHoursSchema,
+});
+export type DriverNotifications = z.infer<typeof driverNotificationsSchema>;
+
+/** Active session */
+export const driverSessionSchema = z.object({
+  id: z.string(),
+  device: z.string(),                 // "Samsung Galaxy A54"
+  os: z.string(),                     // "Android 14"
+  location: z.string(),              // "Bamako, Mali"
+  lastActivity: z.string(),          // "il y a 2 min"
+  current: z.boolean(),
+});
+export type DriverSession = z.infer<typeof driverSessionSchema>;
+
+/** Driver security settings */
+export const driverSecuritySchema = z.object({
+  twoFactorEnabled: z.boolean(),
+  sessions: z.array(driverSessionSchema),
+});
+export type DriverSecurity = z.infer<typeof driverSecuritySchema>;
+
+/** Full driver settings response */
+export const driverSettingsSchema = z.object({
+  profile: driverProfileSchema,
+  vehicle: driverVehicleSchema,
+  kyc: driverKycSchema,
+  notifications: driverNotificationsSchema,
+  security: driverSecuritySchema,
+  lastSavedAt: z.string(),            // ISO date
+});
+export type DriverSettings = z.infer<typeof driverSettingsSchema>;
+
+// ============================================================
+// Driver — Earnings / Wallet Schemas
+// ============================================================
+
+/** KPI card for the earnings page */
+export const driverEarningsKpiSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),                    // "45,750" (formatted)
+  subValue: z.string().optional(),      // "FCFA", "3 livraisons", "ce mois"
+  badge: z.string().optional(),         // "+12%", "+8.5%"
+  badgeColor: z.string().optional(),    // "text-green-600 bg-green-100"
+  icon: z.string(),                     // lucide icon name: "wallet", "clock", "arrow-down-to-line", "trending-up"
+  gradient: z.string(),                 // tailwind gradient: "from-green-50/50 to-white"
+  iconBg: z.string(),                   // icon square bg: "bg-green-50 text-green-600"
+});
+export type DriverEarningsKpi = z.infer<typeof driverEarningsKpiSchema>;
+
+/** Revenue chart data point */
+export const earningsChartPointSchema = z.object({
+  day: z.string(),                      // "Lun", "Mar", "Mer", etc.
+  value: z.number(),                    // FCFA amount
+});
+export type EarningsChartPoint = z.infer<typeof earningsChartPointSchema>;
+
+/** Single transaction entry */
+export const driverTransactionSchema = z.object({
+  id: z.string(),
+  date: z.string(),                     // "Aujourd'hui", "Hier", "10 mars"
+  description: z.string(),             // "Livraison #ORD-2847", "Retrait Orange Money"
+  type: z.enum(["credit", "debit"]),
+  referenceType: z.enum(["delivery", "payout", "commission", "bonus"]),
+  amount: z.number(),                   // FCFA (always positive, sign derived from type)
+  status: z.enum(["confirmed", "completed", "pending"]),
+});
+export type DriverTransaction = z.infer<typeof driverTransactionSchema>;
+
+/** Next payout info */
+export const driverNextPayoutSchema = z.object({
+  amount: z.number(),                   // 45750
+  scheduledDate: z.string(),            // "15 mars 2026"
+  method: z.object({
+    provider: z.string(),               // "orange_money"
+    providerLabel: z.string(),          // "Orange Money"
+    accountMasked: z.string(),          // "*** *** ** 56"
+  }).nullable(),
+  minThreshold: z.number(),             // 5000 FCFA
+});
+export type DriverNextPayout = z.infer<typeof driverNextPayoutSchema>;
+
+/** Payout setting (payment method for withdrawals) */
+export const driverPayoutSettingSchema = z.object({
+  id: z.string(),
+  type: z.enum(["mobile_money", "bank_transfer"]),
+  provider: z.string(),                 // "orange_money", "moov_money"
+  providerLabel: z.string(),            // "Orange Money", "Moov Money"
+  accountMasked: z.string(),            // "+223 76 ** ** 56"
+  accountName: z.string().nullable(),   // "Amadou Diallo"
+  isDefault: z.boolean(),
+  isVerified: z.boolean(),
+});
+export type DriverPayoutSetting = z.infer<typeof driverPayoutSettingSchema>;
+
+/** Withdrawal response after submission */
+export const driverWithdrawalResponseSchema = z.object({
+  id: z.string(),
+  payoutNumber: z.string(),             // "WD-20260315-001"
+  amount: z.number(),
+  feeAmount: z.number(),
+  netAmount: z.number(),
+  status: z.string(),                   // "processing"
+  estimatedDate: z.string().optional(), // "Instantané"
+});
+export type DriverWithdrawalResponse = z.infer<typeof driverWithdrawalResponseSchema>;
+
+/** Full earnings page composite response */
+export const driverEarningsDataSchema = z.object({
+  kpis: z.array(driverEarningsKpiSchema),
+  revenueChart: z.array(earningsChartPointSchema),
+  nextPayout: driverNextPayoutSchema,
+  transactions: z.array(driverTransactionSchema),
+});
+export type DriverEarningsData = z.infer<typeof driverEarningsDataSchema>;

@@ -15,6 +15,8 @@ import {
   TrendingDown,
   Lightbulb,
   Trophy,
+  XCircle,
+  Calendar,
 } from "lucide-react";
 import type { AgencyStatsResponse } from "@/features/agency/schema";
 
@@ -383,7 +385,7 @@ export function StatisticsContent({
           </p>
 
           {/* Féliciter */}
-          <button className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all">
+          <button className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-5 py-2 text-xs font-semibold text-white transition-all hover:bg-sugu-600">
             <Award className="h-3.5 w-3.5" />
             Féliciter
           </button>
@@ -402,7 +404,7 @@ export function StatisticsContent({
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "300ms" }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white">
-              <span className="text-base">🏆</span>
+              <Trophy className="h-4 w-4 text-amber-500" />
               Top livreurs
             </h3>
             <span className="text-[10px] text-gray-400">50%</span>
@@ -436,7 +438,7 @@ export function StatisticsContent({
                 <div className="flex items-center gap-2 w-28">
                   <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500"
+                      className="h-full rounded-full bg-sugu-500"
                       style={{ width: `${driver.successRate}%` }}
                     />
                   </div>
@@ -462,7 +464,7 @@ export function StatisticsContent({
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "360ms" }}>
           <div className="flex items-center justify-between mb-1">
             <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white">
-              <span className="text-base">✗</span>
+              <XCircle className="h-4 w-4 text-red-500" />
               Raisons d&apos;échec
             </h3>
             <span className="text-[10px] text-gray-400">50%</span>
@@ -505,7 +507,7 @@ export function StatisticsContent({
         {/* ── Résumé de la semaine ── */}
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "420ms" }}>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-4">
-            <span className="text-base">📅</span>
+            <Calendar className="h-4 w-4 text-gray-500" />
             Résumé de la semaine
           </h3>
 
@@ -516,7 +518,7 @@ export function StatisticsContent({
                 className={cn(
                   "flex flex-col items-center rounded-xl p-2 transition-all",
                   day.isHighlighted
-                    ? "bg-gradient-to-b from-sugu-500 to-sugu-600 text-white shadow-md shadow-sugu-500/25"
+                    ? "bg-sugu-500 text-white"
                     : "bg-gray-50/80 dark:bg-gray-900/60",
                 )}
               >

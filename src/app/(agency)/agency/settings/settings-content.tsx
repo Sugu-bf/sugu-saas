@@ -20,7 +20,6 @@ import {
   MessageCircle,
   Facebook,
   Loader2,
-  Package,
   MapPin,
   Truck,
   Flag,
@@ -132,7 +131,7 @@ function Toggle({
 }
 
 // ────────────────────────────────────────────────────────────
-// Form field helpers
+// Form field helpers — now controlled
 // ────────────────────────────────────────────────────────────
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -146,24 +145,34 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
 
 function FieldInput({
   value,
+  onChange,
   disabled,
   className,
   name,
+  placeholder,
+  type = "text",
 }: {
   value: string;
+  onChange?: (v: string) => void;
   disabled?: boolean;
   className?: string;
   name?: string;
+  placeholder?: string;
+  type?: string;
 }) {
   return (
     <input
-      type="text"
+      type={type}
       name={name}
-      defaultValue={value}
+      value={value}
+      onChange={onChange ? (e) => onChange(e.target.value) : undefined}
       disabled={disabled}
+      readOnly={!onChange}
+      placeholder={placeholder}
       className={cn(
         "form-input py-2 text-sm",
         disabled && "opacity-60 cursor-not-allowed",
+        !onChange && "opacity-60 cursor-not-allowed",
         className,
       )}
     />
@@ -188,20 +197,107 @@ function SocialIcon({ icon }: { icon: string }) {
 }
 
 // ────────────────────────────────────────────────────────────
-// Mon agence tab content
+// File upload helper (logo / photo)
 // ────────────────────────────────────────────────────────────
+
+function useFileUpload(onUpload: (file: File, previewUrl: string) => void) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const trigger = useCallback(() => {
+    inputRef.current?.click();
+  }, []);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      // Validate size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Le fichier est trop volumineux. Maximum 2 MB.");
+        return;
+      }
+      // Validate type
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        alert("Format non supporté. Utilisez JPG, PNG ou WebP.");
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      onUpload(file, previewUrl);
+      // Reset input so re-selecting the same file triggers onChange
+      if (inputRef.current) inputRef.current.value = "";
+    },
+    [onUpload],
+  );
+
+  const renderInput = useCallback(
+    () => (
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleChange}
+      />
+    ),
+    [handleChange],
+  );
+
+  return { trigger, renderInput };
+}
+
+// ────────────────────────────────────────────────────────────
+// Mon agence tab content — fully controlled form
+// ────────────────────────────────────────────────────────────
+
+interface AgencyFormState {
+  agencyName: string;
+  shortName: string;
+  email: string;
+  phonePrimary: string;
+  phoneSecondary: string;
+  rccm: string;
+  address: string;
+  city: string;
+  quartier: string;
+  locationDescription: string;
+  agencyType: string;
+  dailyCapacity: string;
+  description: string;
+}
 
 function AgencyTab({
   data,
-  onFieldChange,
+  formState,
+  onFormChange,
+  vehicles,
+  onVehiclesChange,
+  socialLinks,
+  onSocialLinksChange,
+  logoPreview,
+  onLogoChange,
+  onLogoRemove,
 }: {
   data: AgencySettingsResponse;
-  onFieldChange: () => void;
+  formState: AgencyFormState;
+  onFormChange: (field: keyof AgencyFormState, value: string) => void;
+  vehicles: Array<{ type: string; icon: string; selected: boolean }>;
+  onVehiclesChange: (vehicles: Array<{ type: string; icon: string; selected: boolean }>) => void;
+  socialLinks: AgencySettingsResponse["socialLinks"];
+  onSocialLinksChange: (links: AgencySettingsResponse["socialLinks"]) => void;
+  logoPreview: string | null;
+  onLogoChange: () => void;
+  onLogoRemove: () => void;
 }) {
-  const [vehicles, setVehicles] = useState(data.vehicles);
+  const logoUpload = useFileUpload((_file, previewUrl) => {
+    // In a real production app, we'd upload the file to the server here
+    // For now, just show the preview
+    void previewUrl;
+    onLogoChange();
+  });
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
+      {logoUpload.renderInput()}
       {/* ═══ Left column ═══ */}
       <div className="space-y-4">
         {/* ── Logo & Identité ── */}
@@ -212,21 +308,29 @@ function AgencyTab({
           <div className="flex flex-col gap-5 sm:flex-row">
             {/* Logo */}
             <div className="flex flex-col items-center gap-2">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40">
-                {data.logoUrl ? (
-                  <Package className="h-8 w-8 text-sugu-500" />
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40 overflow-hidden">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="h-full w-full object-cover rounded-xl" />
+                ) : data.logoUrl ? (
+                  <img src={data.logoUrl} alt="Logo" className="h-full w-full object-cover rounded-xl" />
                 ) : (
                   <div className="flex flex-col items-center text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 text-xs font-black text-white">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-sugu-500 text-xs font-black text-white">
                       SUGU
                     </div>
                   </div>
                 )}
               </div>
-              <button className="text-[10px] font-semibold text-sugu-500 hover:text-sugu-600">
+              <button
+                onClick={onLogoChange}
+                className="text-[10px] font-semibold text-sugu-500 hover:text-sugu-600 transition-colors"
+              >
                 Changer le logo
               </button>
-              <button className="text-[10px] font-semibold text-red-500 hover:text-red-600">
+              <button
+                onClick={onLogoRemove}
+                className="text-[10px] font-semibold text-red-500 hover:text-red-600 transition-colors"
+              >
                 Supprimer
               </button>
               <p className="text-[9px] text-gray-400">PNG, JPG • Max 2MB</p>
@@ -236,16 +340,29 @@ function AgencyTab({
             <div className="flex-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <FieldLabel required>Nom de l&apos;agence</FieldLabel>
-                <FieldInput value={data.agencyName} name="agencyName" />
+                <FieldInput
+                  value={formState.agencyName}
+                  onChange={(v) => onFormChange("agencyName", v)}
+                  name="agencyName"
+                />
               </div>
               <div>
                 <FieldLabel>Sigle / Nom court</FieldLabel>
-                <FieldInput value={data.shortName} name="shortName" />
+                <FieldInput
+                  value={formState.shortName}
+                  onChange={(v) => onFormChange("shortName", v)}
+                  name="shortName"
+                />
               </div>
               <div className="sm:col-span-2">
                 <FieldLabel required>Email de l&apos;agence</FieldLabel>
                 <div className="relative">
-                  <FieldInput value={data.email} name="email" />
+                  <FieldInput
+                    value={formState.email}
+                    onChange={(v) => onFormChange("email", v)}
+                    name="email"
+                    type="email"
+                  />
                   {data.emailVerified && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-bold text-green-600 dark:bg-green-950/30">
                       <CheckCircle2 className="h-3 w-3" />
@@ -258,16 +375,30 @@ function AgencyTab({
                 <FieldLabel required>Téléphone principal</FieldLabel>
                 <div className="relative">
                   <Flag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <FieldInput value={data.phonePrimary} className="pl-8" name="phonePrimary" />
+                  <FieldInput
+                    value={formState.phonePrimary}
+                    onChange={(v) => onFormChange("phonePrimary", v)}
+                    className="pl-8"
+                    name="phonePrimary"
+                  />
                 </div>
               </div>
               <div>
                 <FieldLabel>Téléphone secondaire</FieldLabel>
-                <FieldInput value={data.phoneSecondary} name="phoneSecondary" />
+                <FieldInput
+                  value={formState.phoneSecondary}
+                  onChange={(v) => onFormChange("phoneSecondary", v)}
+                  name="phoneSecondary"
+                  placeholder="Optionnel"
+                />
               </div>
               <div>
                 <FieldLabel required>Numéro RCCM / NIF</FieldLabel>
-                <FieldInput value={data.rccm} name="rccm" />
+                <FieldInput
+                  value={formState.rccm}
+                  onChange={(v) => onFormChange("rccm", v)}
+                  name="rccm"
+                />
               </div>
               <div>
                 <FieldLabel>Date de création</FieldLabel>
@@ -286,15 +417,27 @@ function AgencyTab({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="sm:col-span-3">
               <FieldLabel required>Adresse du siège</FieldLabel>
-              <FieldInput value={data.address} name="address" />
+              <FieldInput
+                value={formState.address}
+                onChange={(v) => onFormChange("address", v)}
+                name="address"
+              />
             </div>
             <div>
               <FieldLabel required>Ville</FieldLabel>
-              <FieldInput value={data.city} name="city" />
+              <FieldInput
+                value={formState.city}
+                onChange={(v) => onFormChange("city", v)}
+                name="city"
+              />
             </div>
             <div>
               <FieldLabel required>Quartier</FieldLabel>
-              <FieldInput value={data.quartier} name="quartier" />
+              <FieldInput
+                value={formState.quartier}
+                onChange={(v) => onFormChange("quartier", v)}
+                name="quartier"
+              />
             </div>
             <div>
               <FieldLabel>Pays</FieldLabel>
@@ -307,11 +450,11 @@ function AgencyTab({
               <FieldLabel>Description de l&apos;emplacement</FieldLabel>
               <textarea
                 name="locationDescription"
-                defaultValue={data.locationDescription}
+                value={formState.locationDescription}
+                onChange={(e) => onFormChange("locationDescription", e.target.value)}
                 placeholder="Description de l'emplacement"
                 rows={2}
                 className="form-input py-2 text-sm resize-none"
-                onChange={onFieldChange}
               />
             </div>
           </div>
@@ -326,7 +469,12 @@ function AgencyTab({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <FieldLabel required>Type d&apos;agence</FieldLabel>
-              <select name="agencyType" defaultValue={data.agencyType} className="form-input py-2 text-sm" onChange={onFieldChange}>
+              <select
+                name="agencyType"
+                value={formState.agencyType}
+                onChange={(e) => onFormChange("agencyType", e.target.value)}
+                className="form-input py-2 text-sm"
+              >
                 <option>Livraison express</option>
                 <option>Livraison standard</option>
                 <option>Coursier</option>
@@ -334,7 +482,11 @@ function AgencyTab({
             </div>
             <div>
               <FieldLabel>Capacité journalière</FieldLabel>
-              <FieldInput value={data.dailyCapacity} name="dailyCapacity" />
+              <FieldInput
+                value={formState.dailyCapacity}
+                onChange={(v) => onFormChange("dailyCapacity", v)}
+                name="dailyCapacity"
+              />
             </div>
           </div>
 
@@ -343,11 +495,11 @@ function AgencyTab({
             {vehicles.map((v, i) => (
               <button
                 key={v.type}
+                type="button"
                 onClick={() => {
                   const next = [...vehicles];
                   next[i] = { ...next[i], selected: !next[i].selected };
-                  setVehicles(next);
-                  onFieldChange();
+                  onVehiclesChange(next);
                 }}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
@@ -366,10 +518,10 @@ function AgencyTab({
             <FieldLabel>Description de l&apos;agence</FieldLabel>
             <textarea
               name="description"
-              defaultValue={data.description}
+              value={formState.description}
+              onChange={(e) => onFormChange("description", e.target.value)}
               rows={3}
               className="form-input py-2 text-sm resize-none"
-              onChange={onFieldChange}
             />
           </div>
         </section>
@@ -384,7 +536,7 @@ function AgencyTab({
             Réseaux &amp; Contact public
           </h3>
           <div className="space-y-4">
-            {data.socialLinks.map((link) => (
+            {socialLinks.map((link, idx) => (
               <div key={link.id}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -397,22 +549,45 @@ function AgencyTab({
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
-                    <FieldInput value={link.value} className="pr-8" />
+                    <input
+                      type="text"
+                      value={link.value}
+                      onChange={(e) => {
+                        const updated = [...socialLinks];
+                        updated[idx] = { ...updated[idx], value: e.target.value };
+                        onSocialLinksChange(updated);
+                      }}
+                      className="form-input py-2 text-sm pr-8"
+                      placeholder={link.icon === "globe" ? "https://..." : ""}
+                    />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2">
                       <SocialIcon icon={link.icon} />
                     </span>
                   </div>
-                  <Toggle checked={link.enabled} label={`${link.platform} activé`} />
-                  <Toggle checked={link.visibleOnSugu} label={`${link.platform} visible`} />
+                  <Toggle
+                    checked={link.enabled}
+                    onChange={() => {
+                      const updated = [...socialLinks];
+                      updated[idx] = { ...updated[idx], enabled: !updated[idx].enabled };
+                      onSocialLinksChange(updated);
+                    }}
+                    label={`${link.platform} activé`}
+                  />
+                  <Toggle
+                    checked={link.visibleOnSugu}
+                    onChange={() => {
+                      const updated = [...socialLinks];
+                      updated[idx] = { ...updated[idx], visibleOnSugu: !updated[idx].visibleOnSugu };
+                      onSocialLinksChange(updated);
+                    }}
+                    label={`${link.platform} visible`}
+                  />
                 </div>
               </div>
             ))}
           </div>
         </section>
       </div>
-
-      {/* Hidden fields for collecting React state on submit */}
-      <input type="hidden" name="__vehicles" value={JSON.stringify(vehicles)} />
     </div>
   );
 }
@@ -426,46 +601,69 @@ function AgencyTab({
 export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("agency");
   const [hasChanges, setHasChanges] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+
+  // Agency tab form state — fully controlled
+  const [formState, setFormState] = useState<AgencyFormState>({
+    agencyName: data.agencyName,
+    shortName: data.shortName,
+    email: data.email,
+    phonePrimary: data.phonePrimary,
+    phoneSecondary: data.phoneSecondary,
+    rccm: data.rccm,
+    address: data.address,
+    city: data.city,
+    quartier: data.quartier,
+    locationDescription: data.locationDescription,
+    agencyType: data.agencyType,
+    dailyCapacity: data.dailyCapacity,
+    description: data.description,
+  });
+
+  const [vehicles, setVehicles] = useState(data.vehicles ?? []);
+  const [socialLinks, setSocialLinks] = useState(data.socialLinks ?? []);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const updateMutation = useUpdateAgencySettings();
 
-  // Called by AgencyTab when any field changes
-  const markDirty = useCallback(() => {
+  const handleFormChange = useCallback((field: keyof AgencyFormState, value: string) => {
+    setFormState((prev) => ({ ...prev, [field]: value }));
     if (!hasChanges) setHasChanges(true);
   }, [hasChanges]);
 
-  // Listen for input changes on the form to track dirty state
-  const handleFormChange = useCallback(() => {
+  const handleVehiclesChange = useCallback(
+    (newVehicles: Array<{ type: string; icon: string; selected: boolean }>) => {
+      setVehicles(newVehicles);
+      if (!hasChanges) setHasChanges(true);
+    },
+    [hasChanges],
+  );
+
+  const handleSocialLinksChange = useCallback(
+    (newLinks: AgencySettingsResponse["socialLinks"]) => {
+      setSocialLinks(newLinks);
+      if (!hasChanges) setHasChanges(true);
+    },
+    [hasChanges],
+  );
+
+  const handleLogoChange = useCallback(() => {
+    // For now, just mark as dirty. In production, you'd upload the file to the server.
+    if (!hasChanges) setHasChanges(true);
+  }, [hasChanges]);
+
+  const handleLogoRemove = useCallback(() => {
+    setLogoPreview(null);
     if (!hasChanges) setHasChanges(true);
   }, [hasChanges]);
 
   // Collect form data and submit via mutation
   const handleSave = useCallback(() => {
-    if (!formRef.current || activeTab !== "agency") return;
+    if (activeTab !== "agency") return;
 
-    const fd = new FormData(formRef.current);
-
-    // Parse hidden JSON fields for React-controlled state
-    let vehicles = data.vehicles;
-
-    try { vehicles = JSON.parse(fd.get("__vehicles") as string); } catch { /* noop */ }
-
-    const payload = {
-      agencyName: (fd.get("agencyName") as string) || undefined,
-      shortName: (fd.get("shortName") as string) || undefined,
-      email: (fd.get("email") as string) || undefined,
-      phonePrimary: (fd.get("phonePrimary") as string) || undefined,
-      phoneSecondary: (fd.get("phoneSecondary") as string) || undefined,
-      rccm: (fd.get("rccm") as string) || undefined,
-      address: (fd.get("address") as string) || undefined,
-      city: (fd.get("city") as string) || undefined,
-      quartier: (fd.get("quartier") as string) || undefined,
-      locationDescription: (fd.get("locationDescription") as string) || undefined,
-      agencyType: (fd.get("agencyType") as string) || undefined,
-      dailyCapacity: (fd.get("dailyCapacity") as string) || undefined,
-      description: (fd.get("description") as string) || undefined,
+    const payload: UpdateAgencySettingsPayload = {
+      ...formState,
       vehicles,
+      socialLinks,
     };
 
     updateMutation.mutate(payload, {
@@ -473,15 +671,30 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
         setHasChanges(false);
       },
     });
-  }, [activeTab, data, updateMutation]);
+  }, [activeTab, formState, vehicles, socialLinks, updateMutation]);
 
   // Reset the form to original values
   const handleCancel = useCallback(() => {
-    if (formRef.current) {
-      formRef.current.reset();
-    }
+    setFormState({
+      agencyName: data.agencyName,
+      shortName: data.shortName,
+      email: data.email,
+      phonePrimary: data.phonePrimary,
+      phoneSecondary: data.phoneSecondary,
+      rccm: data.rccm,
+      address: data.address,
+      city: data.city,
+      quartier: data.quartier,
+      locationDescription: data.locationDescription,
+      agencyType: data.agencyType,
+      dailyCapacity: data.dailyCapacity,
+      description: data.description,
+    });
+    setVehicles(data.vehicles ?? []);
+    setSocialLinks(data.socialLinks ?? []);
+    setLogoPreview(null);
     setHasChanges(false);
-  }, []);
+  }, [data]);
 
   const showFooter = hasChanges && activeTab !== "subscription" && activeTab !== "delete";
   const isSaving = updateMutation.isPending;
@@ -502,7 +715,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
             onClick={handleSave}
             disabled={isSaving || !hasChanges}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+              "inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-sugu-600",
               (isSaving || !hasChanges) && "opacity-50 cursor-not-allowed",
             )}
           >
@@ -550,9 +763,18 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
         {/* Tab content */}
         <div className="min-w-0 flex-1">
           {activeTab === "agency" && (
-            <form ref={formRef} onChange={handleFormChange} onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-              <AgencyTab data={data} onFieldChange={markDirty} />
-            </form>
+            <AgencyTab
+              data={data}
+              formState={formState}
+              onFormChange={handleFormChange}
+              vehicles={vehicles}
+              onVehiclesChange={handleVehiclesChange}
+              socialLinks={socialLinks}
+              onSocialLinksChange={handleSocialLinksChange}
+              logoPreview={logoPreview}
+              onLogoChange={handleLogoChange}
+              onLogoRemove={handleLogoRemove}
+            />
           )}
           {activeTab === "account" && <AccountTab data={data} />}
           {activeTab === "vehicles" && <VehiclesTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
@@ -601,7 +823,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
               onClick={handleSave}
               disabled={isSaving}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all",
+                "inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-sugu-600",
                 isSaving && "opacity-50 cursor-not-allowed",
               )}
             >

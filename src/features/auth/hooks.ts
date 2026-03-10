@@ -42,8 +42,12 @@ export function useLogin() {
       // Redirect based on role
       if (result.user.role === "vendor") {
         router.push("/vendor/dashboard");
-      } else {
+      } else if (result.user.role === "agency") {
         router.push("/agency/dashboard");
+      } else if (result.user.role === "courier") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/vendor/dashboard"); // fallback
       }
     },
   });

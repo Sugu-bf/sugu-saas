@@ -90,10 +90,13 @@ function _extractBusinessName(backendUser: Record<string, unknown>): string | nu
   return null;
 }
 
-function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" {
+function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" {
+  // Check roles array first (most explicit)
+  const roles = backendUser.roles as string[] | undefined;
+  if (roles?.includes("courier")) return "courier";
+  if (roles?.includes("delivery_partner")) return "agency";
+  // Then check entity presence
   if (backendUser.agency || backendUser.delivery_partner) return "agency";
   if (backendUser.can_sell || backendUser.store) return "vendor";
-  const roles = backendUser.roles as string[] | undefined;
-  if (roles?.includes("delivery_partner")) return "agency";
   return "vendor";
 }

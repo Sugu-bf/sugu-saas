@@ -118,7 +118,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             Aperçu boutique
           </button>
           <button
-            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-sugu-500/25 transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:shadow-xl lg:hover:shadow-sugu-500/30"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600"
             aria-label="Modifier le produit"
           >
             <Pencil className="h-4 w-4" />
@@ -146,7 +146,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             </h2>
 
             {/* Main photo */}
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-sugu-50 to-amber-50 dark:from-gray-800 dark:to-gray-900">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-sugu-50 dark:bg-gray-800">
               {data.isPromo && (
                 <div className="absolute left-2 top-2 z-10 rounded-lg bg-sugu-500 px-2 py-1 text-xs font-bold text-white shadow-lg">
                   PROMO -{data.discountPercent}%
@@ -160,7 +160,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <span className="text-7xl drop-shadow-lg">📦</span>
+                  <span className="text-7xl drop-shadow-lg"><Package className="h-16 w-16 text-gray-300" /></span>
                 </div>
               )}
             </div>
@@ -174,7 +174,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                   className={cn(
                     "relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                     selectedPhoto === i
-                      ? "border-sugu-500 shadow-md shadow-sugu-500/20"
+                      ? "border-sugu-500"
                       : "border-transparent opacity-70 hover:opacity-100"
                   )}
                   aria-label={`Photo ${i + 1}`}
@@ -187,8 +187,8 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 text-xl dark:from-gray-800 dark:to-gray-900">
-                      📦
+                    <div className="flex h-full w-full items-center justify-center bg-amber-50 text-xl dark:bg-gray-800">
+                      <Package className="h-5 w-5 text-gray-400" />
                     </div>
                   )}
                 </button>
@@ -501,7 +501,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             <Ban className="h-4 w-4" />
             Désactiver
           </button>
-          <button className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-sugu-500/25 transition-all active:scale-[0.98] lg:hover:bg-sugu-600 lg:hover:shadow-xl lg:px-5 lg:text-sm">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:hover:bg-sugu-600 lg:px-5 lg:text-sm">
             <Pencil className="h-4 w-4" />
             Modifier le produit
           </button>
@@ -679,7 +679,7 @@ function VariantsDetailCard({ data }: { data: VendorProductDetail }) {
               className={cn(
                 "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer",
                 w.isActive
-                  ? "bg-sugu-500 text-white shadow-md shadow-sugu-500/20"
+                  ? "bg-sugu-500 text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
@@ -699,7 +699,7 @@ function VariantsDetailCard({ data }: { data: VendorProductDetail }) {
               className={cn(
                 "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer",
                 p.isActive
-                  ? "bg-sugu-500 text-white shadow-md shadow-sugu-500/20"
+                  ? "bg-sugu-500 text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
@@ -780,7 +780,7 @@ function ReviewsDetailCard({ data }: { data: VendorProductDetail }) {
       <div className="space-y-2 pt-1">
         {reviewsDetail.reviews.map((review) => (
           <div key={review.id} className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sugu-100 to-amber-100 text-sm font-bold text-sugu-700 dark:from-sugu-900 dark:to-amber-900 dark:text-sugu-300 lg:h-9 lg:w-9">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sugu-100 text-sm font-bold text-sugu-700 dark:bg-sugu-900 dark:text-sugu-300 lg:h-9 lg:w-9">
               {review.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">

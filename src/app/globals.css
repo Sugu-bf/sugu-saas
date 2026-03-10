@@ -91,6 +91,15 @@ body {
   opacity: 0.5;
 }
 
+/* Hide scrollbar utility (for horizontal scroll containers like tabs) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================================
    Focus Styles
    ============================================================ */
@@ -395,5 +404,54 @@ body {
   .section-title {
     font-size: 1.125rem;
   }
+}
+
+/* ============================================================
+   Earnings — Range Slider
+   ============================================================ */
+
+.earnings-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  height: 8px;
+}
+
+.earnings-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #f15412;
+  box-shadow: 0 2px 8px rgba(241, 84, 18, 0.25);
+  cursor: pointer;
+  position: relative;
+  z-index: 3;
+}
+
+.earnings-range-slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #f15412;
+  box-shadow: 0 2px 8px rgba(241, 84, 18, 0.25);
+  cursor: pointer;
+}
+
+.earnings-range-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.earnings-range-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: transparent;
 }
 

@@ -14,6 +14,9 @@ import {
   Check,
   AlertTriangle,
   ChevronRight,
+  Truck,
+  Clock,
+  ClipboardList,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
@@ -65,12 +68,12 @@ export default function DriverDashboardClient() {
       {/* ════════════ Header ════════════ */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5 lg:gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 shadow-lg shadow-sugu-500/20 lg:h-11 lg:w-11 lg:rounded-2xl">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sugu-500 lg:h-11 lg:w-11 lg:rounded-2xl">
             <Bike className="h-4 w-4 text-white lg:h-5 lg:w-5" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white lg:text-2xl">
-              Bonjour, {data.driverName} 👋
+              Bonjour, {data.driverName}
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 lg:text-sm">
               {data.date} · {data.city}
@@ -91,7 +94,7 @@ export default function DriverDashboardClient() {
 
           {/* Notifications bell */}
           <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/60 bg-white/50 text-gray-500 shadow-sm backdrop-blur-md transition-all active:scale-95 lg:h-10 lg:w-10 lg:rounded-2xl dark:border-gray-700/50 dark:bg-gray-900/50"
+            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/60 bg-white/50 text-gray-500 backdrop-blur-md transition-all active:scale-95 lg:h-10 lg:w-10 lg:rounded-2xl dark:border-gray-700/50 dark:bg-gray-900/50"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -145,73 +148,37 @@ export default function DriverDashboardClient() {
 // Sub-components
 // ════════════════════════════════════════════════════════════
 
-/** KPI Card — copied from AgencyDashboardClient with ring SVG support */
+/** KPI Card — single-line horizontal layout */
 function KpiCard({ kpi, delay }: { kpi: DriverKpi; delay: number }) {
-  const isRing = kpi.ringPercent !== undefined;
-
   return (
     <div
-      className={`kpi-card glass-card rounded-2xl bg-gradient-to-br ${kpi.gradient} p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
+      className={`kpi-card glass-card rounded-2xl p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-4 lg:hover:-translate-y-1 animate-card-enter`}
       style={{ animationDelay: `${delay * 100}ms` }}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-center gap-3">
+        {/* Icon */}
         <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg lg:h-10 lg:w-10 lg:rounded-xl ${kpi.iconBg} shadow-sm`}
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg lg:h-10 lg:w-10 lg:rounded-xl ${kpi.iconBg}`}
         >
           {KPI_ICONS[kpi.icon] ?? <Package className="h-4 w-4 lg:h-5 lg:w-5" />}
         </div>
 
-        {/* Circular ring for success rate */}
-        {isRing && (
-          <div className="relative h-10 w-10 lg:h-12 lg:w-12">
-            <svg
-              viewBox="0 0 36 36"
-              className="h-10 w-10 -rotate-90 lg:h-12 lg:w-12"
-            >
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                className="text-gray-200/60 dark:text-gray-700/40"
-              />
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeDasharray={`${kpi.ringPercent}, 100`}
-                strokeLinecap="round"
-                className="text-green-500"
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700 dark:text-gray-300">
-              {kpi.ringPercent}%
+        {/* Label + Value inline */}
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
+            {kpi.label}
+          </p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-extrabold text-gray-900 dark:text-white lg:text-xl">
+              {kpi.value}
             </span>
+            {kpi.subValue && (
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                {kpi.subValue}
+              </span>
+            )}
           </div>
-        )}
-
-        {kpi.badge && !isRing && (
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${kpi.badgeColor ?? "text-gray-600 bg-gray-100"}`}
-          >
-            {kpi.badge}
-          </span>
-        )}
-      </div>
-
-      <p className="mt-3 text-xs font-medium text-gray-500 dark:text-gray-400">
-        {kpi.label}
-      </p>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-lg font-extrabold text-gray-900 dark:text-white lg:text-2xl">
-          {kpi.value}
-        </span>
-        {kpi.subValue && (
-          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-            {kpi.subValue}
-          </span>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -236,7 +203,7 @@ function CurrentDeliveryCard({ delivery }: { delivery: CurrentDelivery }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-          🚚 Livraison en cours
+          <Truck className="h-4 w-4 mr-1.5 inline" /> Livraison en cours
         </h2>
         <span
           className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${statusStyles[delivery.status]}`}
@@ -289,7 +256,7 @@ function CurrentDeliveryCard({ delivery }: { delivery: CurrentDelivery }) {
         <div className="mt-4 flex items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500 transition-all duration-700"
+              className="h-full rounded-full bg-sugu-500 transition-all duration-700"
               style={{ width: `${delivery.progressPercent}%` }}
             />
           </div>
@@ -308,7 +275,7 @@ function CurrentDeliveryCard({ delivery }: { delivery: CurrentDelivery }) {
           <Phone className="h-3.5 w-3.5" />
           Appeler client
         </button>
-        <button className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-green-500/25 transition-all hover:shadow-lg hover:shadow-green-500/30 active:scale-[0.97]">
+        <button className="flex items-center gap-1.5 rounded-xl bg-green-500 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-green-600 active:scale-[0.97]">
           <Check className="h-3.5 w-3.5" />
           Marquer livré
         </button>
@@ -367,9 +334,9 @@ function DeliveryQueueCard({
               {d.route}
             </p>
             <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
-              <span>📦 {d.itemCount} colis</span>
+              <span className="flex items-center gap-1"><Package className="h-3 w-3" /> {d.itemCount} colis</span>
               <span>·</span>
-              <span>🕐 {d.timeSlot}</span>
+              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {d.timeSlot}</span>
             </div>
           </div>
         ))}
@@ -446,7 +413,7 @@ function EarningsChart({
           id="earnings-chart-title"
           className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg"
         >
-          💰 Gains de la semaine
+          <Banknote className="h-4 w-4 mr-1.5 inline" /> Gains de la semaine
         </h2>
         <div className="flex gap-1">
           {(["7j", "30j"] as const).map((p) => (
@@ -455,7 +422,7 @@ function EarningsChart({
               onClick={() => setPeriod(p)}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                 period === p
-                  ? "bg-sugu-500 text-white shadow-sm"
+                  ? "bg-sugu-500 text-white"
                   : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               }`}
             >
@@ -580,7 +547,7 @@ function ActivityTimeline({ events }: { events: ActivityEvent[] }) {
       aria-label="Activité récente"
     >
       <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-        📋 Activité récente
+        <ClipboardList className="h-4 w-4 mr-1.5 inline" /> Activité récente
       </h2>
 
       <div className="mt-4 space-y-0">

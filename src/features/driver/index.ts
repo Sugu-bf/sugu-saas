@@ -1,4 +1,4 @@
-export { getDriverDashboard, getDriverDeliveries, acceptDelivery, refuseDelivery, markDelivered, signalDelay, markFailed, getDriverDeliveryDetail, confirmCollection, getDriverHistory } from "./service";
+export { getDriverDashboard, getDriverDeliveries, acceptDelivery, refuseDelivery, markDelivered, signalDelay, markFailed, getDriverDeliveryDetail, confirmCollection, getDriverHistory, getDriverSettings, updateDriverProfile, updateDriverVehicle, uploadKycDocument, updateDriverNotifications, updateDriverPassword, toggleDriver2FA, revokeDriverSession, revokeOtherDriverSessions, deleteDriverAccount, getDriverEarnings, getDriverPayoutSettings, submitDriverWithdrawal } from "./service";
 
 export type {
   DriverDashboardData,
@@ -22,6 +22,27 @@ export type {
   DriverHistoryCounts,
   DriverHistoryResponse,
   DriverHistoryStatus,
+  DriverSettings,
+  DriverProfile,
+  DriverVehicle,
+  VehicleType,
+  KycDocument,
+  KycDocStatus,
+  KycActivity,
+  DriverKyc,
+  NotifChannel,
+  NotifEvent,
+  QuietHours,
+  DriverNotifications,
+  DriverSession,
+  DriverSecurity,
+  DriverEarningsKpi,
+  EarningsChartPoint,
+  DriverTransaction,
+  DriverNextPayout,
+  DriverPayoutSetting,
+  DriverWithdrawalResponse,
+  DriverEarningsData,
 } from "./schema";
 
 export type { DriverDeliveryFilters, DriverHistoryFilters } from "./service";

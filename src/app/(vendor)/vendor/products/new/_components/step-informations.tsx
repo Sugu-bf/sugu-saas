@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bold, Italic, Underline, List, Link2, X, ChevronDown } from "lucide-react";
+import { Bold, Italic, Underline, List, Link2, X, ChevronDown, ClipboardList } from "lucide-react";
 import {
   type ProductFormData,
   type FormUpdater,
@@ -53,7 +53,7 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
     <section className="glass-card animate-slide-in-right rounded-3xl p-5 sm:p-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <span className="text-2xl">📋</span>
+        <ClipboardList className="h-6 w-6 text-gray-400" />
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Informations générales

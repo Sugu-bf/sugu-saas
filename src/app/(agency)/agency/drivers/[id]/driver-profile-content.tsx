@@ -25,6 +25,10 @@ import {
   MoreHorizontal,
   Loader2,
   PlayCircle,
+  User,
+  BarChart3,
+  Banknote,
+  Package,
 } from "lucide-react";
 import {
   useDriverProfileData,
@@ -161,7 +165,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
                 {data.initials}
               </div>
               {data.rank && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-sugu-500 to-sugu-600 px-2.5 py-0.5 text-[10px] font-black text-white shadow-md">
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-sugu-500 px-2.5 py-0.5 text-[10px] font-black text-white">
                   Livreur #{data.rank}
                 </span>
               )}
@@ -296,7 +300,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         {/* ── Informations personnelles ── */}
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "0ms" }}>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-3">
-            <span className="text-base">👤</span>
+            <User className="h-4 w-4 text-gray-500" />
             Informations personnelles
           </h3>
           <dl className="space-y-2">
@@ -324,7 +328,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "60ms" }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white">
-              <span className="text-base">📊</span>
+              <BarChart3 className="h-4 w-4 text-gray-500" />
               Performance mensuelle
             </h3>
             <div className="flex gap-1">
@@ -346,7 +350,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
                     "w-full rounded-t-sm transition-all",
                     i === data.perfBars.length - 5
                       ? "bg-sugu-500"
-                      : "bg-gradient-to-t from-green-400/60 to-green-300/40",
+                      : "bg-green-400/60",
                   )}
                   style={{ height: `${(bar.value / maxBar) * 100}%` }}
                 />
@@ -379,7 +383,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         {/* ── Revenus ── */}
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "120ms" }}>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-3">
-            <span className="text-base">💰</span>
+            <Banknote className="h-4 w-4 text-gray-500" />
             Revenus
           </h3>
           <p className="text-xl font-black text-gray-900 dark:text-white mb-2">{data.revTotal}</p>
@@ -423,7 +427,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         {/* ── Avis clients ── */}
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "180ms" }}>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-3">
-            <span className="text-base">⭐</span>
+            <Star className="h-4 w-4 text-amber-500" />
             Avis clients
           </h3>
 
@@ -472,7 +476,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         {/* ── Véhicule & Documents ── */}
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "240ms" }}>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white mb-3">
-            <span className="text-base">🛵</span>
+            <Bike className="h-4 w-4 text-gray-500" />
             Véhicule &amp; Documents
           </h3>
           <dl className="space-y-1.5 mb-4">
@@ -512,7 +516,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
         <section className="glass-card animate-card-enter rounded-2xl p-5" style={{ animationDelay: "300ms" }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white">
-              <span className="text-base">📦</span>
+              <Package className="h-4 w-4 text-gray-500" />
               Dernières livraisons
             </h3>
             <button className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -639,7 +643,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
             <MessageCircle className="h-3 w-3" />
             WhatsApp
           </button>
-          <button className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg">
+          <button className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-sugu-600">
             <Pencil className="h-3 w-3" />
             Modifier le profil
           </button>

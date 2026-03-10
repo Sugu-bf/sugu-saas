@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
-import { Camera, X, Star, Plus, ImagePlus, Loader2, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react";
+import { Camera, X, Star, Plus, ImagePlus, Loader2, AlertTriangle, CheckCircle2, Wand2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type ProductFormData, type ProductPhoto } from "./types";
@@ -214,7 +214,7 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
     <section className="glass-card animate-slide-in-right rounded-3xl p-5 sm:p-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <span className="text-2xl">📸</span>
+        <Camera className="h-6 w-6 text-gray-400" />
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Photos du produit
@@ -304,7 +304,7 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
 
       {/* ── Tip ── */}
       <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-amber-50/50 px-4 py-3 dark:bg-amber-950/20">
-        <span className="text-base leading-none">✨</span>
+        <Sparkles className="h-4 w-4" />
         <p className="text-xs text-amber-700 dark:text-amber-400">
           <span className="font-semibold">Détourage optionnel :</span> Cliquez
           sur le bouton <Wand2 className="inline h-3 w-3" /> sous une image pour
@@ -431,7 +431,7 @@ function PhotoCard({ photo, onSetMain, onRemove, onDetour }: PhotoCardProps) {
           <button
             type="button"
             onClick={() => onDetour(photo.id, photo.file)}
-            className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-violet-500 to-purple-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition-all hover:from-violet-600 hover:to-purple-700 hover:shadow active:scale-95"
+            className="inline-flex items-center gap-1 rounded-md bg-violet-500 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-violet-600 active:scale-95"
           >
             <Wand2 className="h-3 w-3" />
             Détourer

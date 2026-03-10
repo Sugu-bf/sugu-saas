@@ -3,20 +3,30 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SectionCard, Toggle, PillInput, PillBadge, PillButton, Field } from "./settings-ui";
-import { Eye, EyeOff, Shield, Key, Loader2, Monitor, MapPin, Clock, CheckCircle2, CircleDot, ShieldOff } from "lucide-react";
+import {
+  Eye, EyeOff, Shield, Key, Loader2, Monitor, MapPin, Clock,
+  CheckCircle2, CircleDot, ShieldOff, ShieldCheck, QrCode,
+  Copy, Check, AlertTriangle, Globe,
+} from "lucide-react";
 import {
   useUpdatePassword,
-  useToggle2FA,
+  useEnable2FA,
+  useDisable2FA,
+  use2FAQrCode,
+  useConfirm2FA,
+  use2FARecoveryCodes,
+  useRegenerate2FARecoveryCodes,
+  useActiveSessions,
   useRevokeSession,
   useRevokeOtherSessions,
+  useUpdateSecurityAlerts,
+  useLoginHistory,
   useVendorSettings,
 } from "@/features/vendor/hooks";
 
 // ────────────────────────────────────────────────────────────
-// Onglet 5 — Sécurité
+// Onglet 5 — Sécurité (Production-grade)
 // ────────────────────────────────────────────────────────────
-
-// Login history — no backend endpoint yet, shown as empty state
 
 type PasswordStrength = "weak" | "medium" | "strong";
 
@@ -29,15 +39,36 @@ export function TabSecurity() {
   const [confirmPwd, setConfirmPwd] = useState("");
   const [showCurrentPwd, setShowCurrentPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
-  const [suspiciousAlert, setSuspiciousAlert] = useState(true);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  // 2FA state
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [twoFACode, setTwoFACode] = useState("");
+  const [twoFAError, setTwoFAError] = useState<string | null>(null);
+  const [twoFASuccess, setTwoFASuccess] = useState(false);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+  const [copiedCodes, setCopiedCodes] = useState(false);
+
   // Mutation hooks
   const updatePasswordMutation = useUpdatePassword();
-  const toggle2FAMutation = useToggle2FA();
+  const enable2FAMutation = useEnable2FA();
+  const disable2FAMutation = useDisable2FA();
+  const confirm2FAMutation = useConfirm2FA();
+  const regenerateCodesMutation = useRegenerate2FARecoveryCodes();
   const revokeSessionMutation = useRevokeSession();
   const revokeOtherSessionsMutation = useRevokeOtherSessions();
+  const updateSecurityAlertsMutation = useUpdateSecurityAlerts();
+
+  // Query hooks
+  const is2FAEnabled = settingsData?.security?.isTwoFactorEnabled ?? false;
+  const { data: qrCodeData, isLoading: qrLoading } = use2FAQrCode(show2FASetup && !is2FAEnabled);
+  const { data: recoveryCodes, isLoading: codesLoading } = use2FARecoveryCodes(showRecoveryCodes && is2FAEnabled);
+  const { data: activeSessions, isLoading: sessionsLoading } = useActiveSessions();
+  const { data: loginHistory, isLoading: historyLoading } = useLoginHistory();
+
+  // Security alerts
+  const suspiciousAlert = settingsData?.security?.suspiciousLoginAlert ?? true;
 
   const getStrength = (pwd: string): PasswordStrength => {
     if (pwd.length < 6) return "weak";
@@ -50,9 +81,6 @@ export function TabSecurity() {
   const strengthLabels = { weak: "Faible", medium: "Moyen", strong: "Fort" };
   const strengthWidths = { weak: "33%", medium: "66%", strong: "100%" };
 
-  // Get sessions from the transformed VendorSettings data
-  const apiSessions = settingsData?.security?.activeSessions ?? [];
-
   /** Handle password update */
   const handleUpdatePassword = async () => {
     setPasswordError(null);
@@ -60,6 +88,11 @@ export function TabSecurity() {
 
     if (newPwd !== confirmPwd) {
       setPasswordError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    if (newPwd.length < 8) {
+      setPasswordError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
@@ -80,12 +113,63 @@ export function TabSecurity() {
     }
   };
 
-  /** Handle 2FA toggle */
-  const handleToggle2FA = async () => {
+  /** Handle enabling 2FA */
+  const handleEnable2FA = async () => {
+    setTwoFAError(null);
     try {
-      await toggle2FAMutation.mutateAsync();
+      await enable2FAMutation.mutateAsync();
+      setShow2FASetup(true);
     } catch (err) {
-      console.error("[security] 2FA toggle failed:", err);
+      setTwoFAError("Impossible d'activer la 2FA. Veuillez réessayer.");
+      console.error("[security] Enable 2FA failed:", err);
+    }
+  };
+
+  /** Handle confirming 2FA with code */
+  const handleConfirm2FA = async () => {
+    setTwoFAError(null);
+    if (!twoFACode || twoFACode.length < 6) {
+      setTwoFAError("Veuillez entrer un code à 6 chiffres.");
+      return;
+    }
+    try {
+      await confirm2FAMutation.mutateAsync({ code: twoFACode });
+      setTwoFASuccess(true);
+      setShow2FASetup(false);
+      setTwoFACode("");
+      setShowRecoveryCodes(true);
+      setTimeout(() => setTwoFASuccess(false), 5000);
+    } catch (err) {
+      setTwoFAError("Code invalide. Veuillez réessayer.");
+      console.error("[security] Confirm 2FA failed:", err);
+    }
+  };
+
+  /** Handle disabling 2FA */
+  const handleDisable2FA = async () => {
+    try {
+      await disable2FAMutation.mutateAsync();
+      setShowRecoveryCodes(false);
+      setShow2FASetup(false);
+    } catch (err) {
+      console.error("[security] Disable 2FA failed:", err);
+    }
+  };
+
+  /** Copy recovery codes to clipboard */
+  const handleCopyRecoveryCodes = () => {
+    if (!recoveryCodes?.length) return;
+    navigator.clipboard?.writeText(recoveryCodes.join("\n"));
+    setCopiedCodes(true);
+    setTimeout(() => setCopiedCodes(false), 2000);
+  };
+
+  /** Handle regenerating recovery codes */
+  const handleRegenerateCodes = async () => {
+    try {
+      await regenerateCodesMutation.mutateAsync();
+    } catch (err) {
+      console.error("[security] Regenerate codes failed:", err);
     }
   };
 
@@ -104,6 +188,17 @@ export function TabSecurity() {
       await revokeOtherSessionsMutation.mutateAsync();
     } catch (err) {
       console.error("[security] Revoke other sessions failed:", err);
+    }
+  };
+
+  /** Handle toggling suspicious login alerts */
+  const handleToggleSuspiciousAlert = async () => {
+    try {
+      await updateSecurityAlertsMutation.mutateAsync({
+        suspiciousLoginAlert: !suspiciousAlert,
+      });
+    } catch (err) {
+      console.error("[security] Toggle alerts failed:", err);
     }
   };
 
@@ -171,26 +266,120 @@ export function TabSecurity() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 2: 2FA ─── */}
+      {/* ─── Card 2: 2FA (Fortify-based) ─── */}
       <SectionCard title="Authentification à deux facteurs (2FA)" id="security-2fa">
         <div className="mt-4 space-y-4">
-          {/* 2FA state — currently no toggle on backend, only stub */}
-          <>
-            <div className="flex items-center gap-2">
+          {/* 2FA Status Badge */}
+          <div className="flex items-center gap-2">
+            {is2FAEnabled ? (
+              <PillBadge variant="green"><ShieldCheck className="inline h-3 w-3" /> Activé</PillBadge>
+            ) : (
               <PillBadge variant="red"><ShieldOff className="inline h-3 w-3" /> Désactivé</PillBadge>
+            )}
+          </div>
+
+          {!is2FAEnabled && !show2FASetup && (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Protégez votre compte avec une vérification SMS. Chaque connexion nécessitera un code envoyé sur votre téléphone.
+              </p>
+              <PillButton
+                variant="primary"
+                onClick={handleEnable2FA}
+                disabled={enable2FAMutation.isPending}
+              >
+                {enable2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                Activer la 2FA
+              </PillButton>
+            </>
+          )}
+
+          {/* 2FA Setup Flow - QR Code Step */}
+          {show2FASetup && !is2FAEnabled && (
+            <div className="space-y-4 rounded-xl border border-sugu-200 bg-sugu-50/30 p-4 dark:border-sugu-800 dark:bg-sugu-950/10">
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-sugu-500" />
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Configuration de la 2FA</h4>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                1. Ouvrez votre application d&apos;authentification (Google Authenticator, Authy, etc.)
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                2. Scannez le QR code ci-dessous ou entrez la clé manuellement
+              </p>
+
+              {/* QR Code */}
+              <div className="flex justify-center rounded-xl bg-white p-6 dark:bg-gray-800">
+                {qrLoading ? (
+                  <div className="flex h-48 w-48 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-sugu-500" />
+                  </div>
+                ) : qrCodeData?.svg ? (
+                  <div
+                    className="[&_svg]:h-48 [&_svg]:w-48"
+                    dangerouslySetInnerHTML={{ __html: qrCodeData.svg }}
+                  />
+                ) : (
+                  <div className="flex h-48 w-48 items-center justify-center text-sm text-gray-400">
+                    Impossible de charger le QR code
+                  </div>
+                )}
+              </div>
+
+              {/* Confirmation code input */}
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                3. Entrez le code à 6 chiffres affiché dans l&apos;application
+              </p>
+              <div className="flex items-center gap-3">
+                <PillInput
+                  value={twoFACode}
+                  onChange={setTwoFACode}
+                  placeholder="000000"
+                  className="max-w-[180px] text-center font-mono text-lg tracking-widest"
+                />
+                <PillButton
+                  variant="primary"
+                  onClick={handleConfirm2FA}
+                  disabled={confirm2FAMutation.isPending || twoFACode.length < 6}
+                >
+                  {confirm2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Confirmer
+                </PillButton>
+              </div>
+              {twoFAError && (
+                <p className="text-xs text-red-500">{twoFAError}</p>
+              )}
+              <button
+                onClick={() => { setShow2FASetup(false); setTwoFACode(""); setTwoFAError(null); }}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500"
+              >
+                Annuler
+              </button>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Ajoutez une couche de sécurité supplémentaire à votre compte en activant la vérification par SMS.
-            </p>
-            <PillButton
-              variant="primary"
-              onClick={handleToggle2FA}
-              disabled={toggle2FAMutation.isPending}
-            >
-              {toggle2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              Activer la 2FA
-            </PillButton>
-          </>
+          )}
+
+          {/* 2FA Enabled - Show disable + recovery */}
+          {is2FAEnabled && (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                L&apos;authentification à deux facteurs est activée. Votre compte est protégé.
+              </p>
+              <PillButton
+                variant="danger-outline"
+                onClick={handleDisable2FA}
+                disabled={disable2FAMutation.isPending}
+              >
+                {disable2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+                Désactiver la 2FA
+              </PillButton>
+            </>
+          )}
+
+          {twoFASuccess && (
+            <p className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> 2FA activée avec succès !</p>
+          )}
+
+          {/* Recovery Codes */}
           <div className="rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
             <div className="flex items-center gap-2">
               <Key className="h-4 w-4 text-gray-400" />
@@ -199,27 +388,97 @@ export function TabSecurity() {
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
               Ces codes vous permettent de vous connecter si vous perdez votre téléphone.
             </p>
-            <button className="mt-2 text-xs font-medium text-sugu-500 hover:text-sugu-600 dark:text-sugu-400">
-              Générer des codes de secours →
-            </button>
+
+            {is2FAEnabled && (
+              <>
+                <button
+                  className="mt-2 text-xs font-medium text-sugu-500 hover:text-sugu-600 dark:text-sugu-400"
+                  onClick={() => setShowRecoveryCodes(!showRecoveryCodes)}
+                >
+                  {showRecoveryCodes ? "Masquer les codes →" : "Afficher les codes de secours →"}
+                </button>
+
+                {showRecoveryCodes && (
+                  <div className="mt-3 space-y-3">
+                    {codesLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-sugu-500" />
+                      </div>
+                    ) : recoveryCodes && recoveryCodes.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3 font-mono text-xs dark:bg-gray-800">
+                          {recoveryCodes.map((code, idx) => (
+                            <span key={idx} className="text-gray-700 dark:text-gray-300">{code}</span>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <PillButton variant="outline" size="sm" onClick={handleCopyRecoveryCodes}>
+                            {copiedCodes ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            {copiedCodes ? "Copié !" : "Copier les codes"}
+                          </PillButton>
+                          <PillButton
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRegenerateCodes}
+                            disabled={regenerateCodesMutation.isPending}
+                          >
+                            {regenerateCodesMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                            Régénérer
+                          </PillButton>
+                        </div>
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          <AlertTriangle className="inline h-3 w-3" /> Sauvegardez ces codes dans un endroit sûr. Ils ne seront plus affichés.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">
+                        Aucun code de secours disponible.
+                        <button
+                          className="ml-1 text-sugu-500 hover:text-sugu-600"
+                          onClick={handleRegenerateCodes}
+                        >
+                          Générer des codes
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {!is2FAEnabled && (
+              <p className="mt-2 text-[10px] text-gray-400">
+                Activez d&apos;abord la 2FA pour accéder aux codes de secours.
+              </p>
+            )}
           </div>
         </div>
       </SectionCard>
 
-      {/* ─── Card 3: Sessions actives (from API) ─── */}
+      {/* ─── Card 3: Sessions actives ─── */}
       <SectionCard title="Sessions actives" id="security-sessions">
         <div className="mt-4 space-y-2">
-          {apiSessions.length > 0 ? (
-            apiSessions.map((s) => (
+          {sessionsLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-500">Chargement des sessions...</span>
+            </div>
+          ) : activeSessions && activeSessions.length > 0 ? (
+            activeSessions.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
                 <Monitor className="h-5 w-5 text-gray-400" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{s.device}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {s.device}
+                      {s.browser ? ` — ${s.browser}` : ""}
+                    </span>
                     {s.current && <PillBadge variant="green"><CircleDot className="inline h-3 w-3 text-green-500" /> Session actuelle</PillBadge>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    <MapPin className="inline h-3 w-3" /> {s.location} • <Clock className="inline h-3 w-3" /> {s.time}
+                    {s.ip && <><Globe className="inline h-3 w-3" /> {s.ip} • </>}
+                    <MapPin className="inline h-3 w-3" /> {s.location}
+                    {s.time && <> • <Clock className="inline h-3 w-3" /> {_formatTimeAgo(s.time)}</>}
                   </p>
                 </div>
                 {!s.current && (
@@ -236,12 +495,15 @@ export function TabSecurity() {
               </div>
             ))
           ) : (
-            <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              Aucune session active trouvée. Les données de session ne sont pas disponibles via l'API actuelle.
-            </p>
+            <div className="py-4 text-center">
+              <Monitor className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Seule votre session actuelle est active.
+              </p>
+            </div>
           )}
         </div>
-        {apiSessions.length > 1 && (
+        {activeSessions && activeSessions.length > 1 && (
           <PillButton
             variant="danger-outline"
             size="sm"
@@ -259,24 +521,94 @@ export function TabSecurity() {
       <SectionCard title="Alertes de sécurité" id="security-alerts">
         <div className="mt-4">
           <div className="flex items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
-            <Toggle checked={suspiciousAlert} onChange={() => setSuspiciousAlert(!suspiciousAlert)} label="Alertes connexions suspectes" />
+            <Toggle
+              checked={suspiciousAlert}
+              onChange={handleToggleSuspiciousAlert}
+              label="Alertes connexions suspectes"
+            />
             <span className="text-sm text-gray-600 dark:text-gray-400">Alertes lors de connexions suspectes</span>
+            {updateSecurityAlertsMutation.isPending && <Loader2 className="h-3 w-3 animate-spin text-sugu-500" />}
           </div>
+          <p className="mt-2 px-4 text-[10px] text-gray-400 dark:text-gray-500">
+            Recevez un email si une connexion est détectée depuis un appareil ou une localisation inhabituelle.
+          </p>
         </div>
       </SectionCard>
 
       {/* ─── Card 5: Historique de connexion ─── */}
       <SectionCard title="Historique de connexion" id="security-history">
-        <div className="mt-4 py-6 text-center">
-          <Clock className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            L&apos;historique de connexion n&apos;est pas encore disponible.
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            Cette fonctionnalité sera bientôt ajoutée.
-          </p>
+        <div className="mt-4">
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-500">Chargement de l&apos;historique...</span>
+            </div>
+          ) : loginHistory && loginHistory.length > 0 ? (
+            <div className="space-y-2">
+              {loginHistory.slice(0, 10).map((entry) => (
+                <div key={entry.id} className="flex items-center gap-3 rounded-xl bg-white/30 px-4 py-2.5 backdrop-blur dark:bg-white/5">
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full",
+                    entry.success ? "bg-green-50 text-green-500 dark:bg-green-950/30" : "bg-red-50 text-red-500 dark:bg-red-950/30"
+                  )}>
+                    {entry.success ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-900 dark:text-white">
+                        {entry.device || entry.browser || "Appareil inconnu"}
+                      </span>
+                      <PillBadge variant={entry.success ? "green" : "red"}>
+                        {entry.success ? "Succès" : "Échoué"}
+                      </PillBadge>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                      {entry.ip && <><Globe className="inline h-3 w-3" /> {entry.ip} • </>}
+                      <MapPin className="inline h-3 w-3" /> {entry.location}
+                      {entry.time && <> • <Clock className="inline h-3 w-3" /> {_formatTimeAgo(entry.time)}</>}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {loginHistory.length > 10 && (
+                <p className="pt-2 text-center text-xs text-gray-400">
+                  {loginHistory.length - 10} connexions supplémentaires non affichées
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="py-6 text-center">
+              <Clock className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Aucun historique de connexion disponible pour le moment.
+              </p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                L&apos;historique s&apos;affichera après vos prochaines connexions.
+              </p>
+            </div>
+          )}
         </div>
       </SectionCard>
     </div>
   );
+}
+
+/** Format ISO time string to relative time */
+function _formatTimeAgo(time: string): string {
+  try {
+    const date = new Date(time);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMin < 1) return "À l'instant";
+    if (diffMin < 60) return `Il y a ${diffMin} min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays < 7) return `Il y a ${diffDays}j`;
+    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  } catch {
+    return time;
+  }
 }

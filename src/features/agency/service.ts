@@ -1391,6 +1391,56 @@ export async function removeCourier(
   );
 }
 
+/** Payload for registering a new courier (full form) */
+export interface RegisterCourierPayload {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone: string;
+  phone_prefix?: string;
+  date_of_birth?: string;
+  gender?: string;
+  quartier?: string;
+  address?: string;
+  vehicle_type: string;
+  vehicle_make?: string;
+  vehicle_plate?: string;
+  vehicle_color?: string;
+  vehicle_year?: string;
+  auto_password?: boolean;
+  send_sms?: boolean;
+  send_email?: boolean;
+}
+
+/**
+ * Register a new courier for the agency (full creation flow).
+ *
+ * POST /agencies/{agencyId}/couriers/register
+ *
+ * Unlike addCourier() which links an existing user_id,
+ * this endpoint creates the user + courier in one step.
+ *
+ * For MVP: uses mock delay. Will call real API later.
+ */
+export async function registerCourier(
+  agencyId: string,
+  data: RegisterCourierPayload,
+): Promise<{ courierId: string; password?: string }> {
+  // MVP: mock response
+  await new Promise((r) => setTimeout(r, 1200));
+  console.info("[registerCourier] Would POST to:", `agencies/${agencyId}/couriers/register`, data);
+  return {
+    courierId: "cour-" + Date.now(),
+    password: data.auto_password ? "TempPass2026!" : undefined,
+  };
+  // TODO: Uncomment when backend endpoint is ready
+  // const raw = await api.post<{ success: boolean; data: { courier_id: string; password?: string } }>(
+  //   `agencies/${agencyId}/couriers/register`,
+  //   data,
+  // );
+  // return { courierId: raw.data.courier_id, password: raw.data.password };
+}
+
 /**
  * Fetch the agency statistics from the real API.
  *

@@ -21,6 +21,7 @@ export {
   deleteAgency,
   addShipmentNote,
   createDelivery,
+  registerCourier,
 } from "./service";
 
 export type {
@@ -28,6 +29,7 @@ export type {
   CreateDeliveryPayload,
   DriverFilters,
   AddCourierPayload,
+  RegisterCourierPayload,
   UpdateAgencySettingsPayload,
   UpdatePasswordPayload,
 } from "./service";
@@ -70,4 +72,7 @@ export type {
   AgencyStatsResponse,
   StatsTopDriver,
   AgencySettingsResponse,
+  CreateCourierFormData,
+  FormVehicleType,
+  UploadedDocument,
 } from "./schema";

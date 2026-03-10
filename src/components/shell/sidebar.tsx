@@ -19,8 +19,8 @@ import {
   Megaphone,
   MessageSquare,
   Wallet,
-  MapPin,
   Banknote,
+  History,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import type { UserRole } from "@/types";
@@ -88,7 +88,7 @@ const courierSections: SideNavSection[] = [
     items: [
       { label: "Dashboard", href: "/driver/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
       { label: "Mes Livraisons", href: "/driver/deliveries", icon: <Package className="h-5 w-5" />, badge: 3 },
-      { label: "Navigation", href: "/driver/navigation", icon: <MapPin className="h-5 w-5" /> },
+      { label: "Historique", href: "/driver/history", icon: <History className="h-5 w-5" /> },
       { label: "Gains", href: "/driver/earnings", icon: <Banknote className="h-5 w-5" /> },
     ],
   },
@@ -96,7 +96,6 @@ const courierSections: SideNavSection[] = [
     title: "COMPTE",
     items: [
       { label: "Paramètres", href: "/driver/settings", icon: <Settings className="h-5 w-5" /> },
-      { label: "Support", href: "/driver/support", icon: <MessageSquare className="h-5 w-5" /> },
     ],
   },
 ];

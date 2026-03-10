@@ -428,7 +428,7 @@ function CreateTicketModal({
           <button
             type="submit"
             disabled={!subject.trim() || !description.trim() || createTicket.isPending}
-            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-sugu-500 px-4 py-2.5 text-xs font-semibold text-white hover:bg-sugu-600 transition-all disabled:opacity-50"
           >
             {createTicket.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -484,7 +484,7 @@ export function TicketsContent() {
         </h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sugu-500/25 hover:shadow-lg transition-all"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white hover:bg-sugu-600 transition-all"
         >
           <Plus className="h-3.5 w-3.5" />
           Nouveau ticket
