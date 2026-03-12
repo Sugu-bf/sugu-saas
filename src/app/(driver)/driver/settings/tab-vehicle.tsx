@@ -27,6 +27,7 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   velo: "Vélo",
   voiture: "Voiture",
   tricycle: "Tricycle",
+  car: "Voiture",
 };
 
 interface TabVehicleProps {
@@ -109,6 +110,7 @@ export function TabVehicle({ data }: TabVehicleProps) {
                 { value: "moto", label: "Moto" },
                 { value: "velo", label: "Vélo" },
                 { value: "voiture", label: "Voiture" },
+                { value: "car", label: "Voiture (Car)" },
                 { value: "tricycle", label: "Tricycle" },
               ]}
             />
