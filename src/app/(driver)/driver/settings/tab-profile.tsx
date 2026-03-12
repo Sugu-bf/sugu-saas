@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
-import { useUpdateDriverProfile } from "@/features/driver/hooks";
 import { SectionCard, Field, PillInput, PillSelect } from "./settings-ui";
-import { toast } from "sonner";
 import {
   Camera,
   Phone,
@@ -38,30 +36,6 @@ export function TabProfile({ data }: TabProfileProps) {
   const [actionRadius, setActionRadius] = useState(String(p.actionRadius));
   const [language, setLanguage] = useState(p.language);
   const [timezone, setTimezone] = useState(p.timezone);
-
-  const updateProfileMutation = useUpdateDriverProfile();
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleSave = async () => {
-    try {
-      await updateProfileMutation.mutateAsync({
-        firstName,
-        lastName,
-        email,
-        phone,
-        phoneSecondary: phoneSecondary || null,
-        city,
-        quarter,
-        fullAddress,
-        actionRadius: Number(actionRadius),
-        language,
-        timezone,
-      });
-      toast.success("Profil mis à jour avec succès");
-    } catch {
-      toast.error("Erreur lors de la mise à jour du profil");
-    }
-  };
 
   // Star rendering
   const fullStars = Math.floor(p.rating);

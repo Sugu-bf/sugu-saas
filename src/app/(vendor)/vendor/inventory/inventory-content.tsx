@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { cn, formatCurrency, formatCompactCurrency } from "@/lib/utils";
 import type {
   VendorInventoryResponse,
@@ -697,13 +698,13 @@ function InventoryRow({
       {/* Product */}
       <td className="py-3.5 pl-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100/80 dark:bg-gray-800/60">
+          <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100/80 dark:bg-gray-800/60">
             {product.image ? (
-              <img
+              <Image
                 src={product.image}
                 alt={product.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
+                fill
+                className="object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                   (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
@@ -1127,13 +1128,13 @@ function AddStockModal({
           {/* Selected product preview */}
           {selectedProduct && (
             <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700">
+              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700">
                 {selectedProduct.image ? (
-                  <img
+                  <Image
                     src={selectedProduct.image}
                     alt={selectedProduct.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <Package className="h-5 w-5 text-gray-400" />

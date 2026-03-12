@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -120,10 +121,11 @@ function ProductPromoCard({
       {/* Product image + discount badge */}
       <div className="relative mb-3 flex h-20 items-center justify-center rounded-xl bg-sugu-50 dark:bg-sugu-950/20 overflow-hidden">
         {product.image ? (
-          <img
+          <Image
             src={product.image}
             alt={product.name}
-            className="h-full w-full object-contain p-2"
+            fill
+            className="object-contain p-2"
           />
         ) : (
           <Package className="h-10 w-10 text-gray-300 dark:text-gray-600" />
@@ -601,7 +603,7 @@ export function MarketingContent({ data, onToggleCoupon, onOpenCreateCoupon, onO
               <Star className="h-4 w-4 fill-white" />
               Passer en Premium
             </button>
-            <span className="text-[11px] text-gray-500">14 jours d'essai gratuit</span>
+            <span className="text-[11px] text-gray-500">14 jours d&apos;essai gratuit</span>
           </div>
         </div>
       </section>

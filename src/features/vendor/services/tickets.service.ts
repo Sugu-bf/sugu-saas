@@ -310,7 +310,7 @@ export async function getTicketMessages(ticketId: string): Promise<TicketMessage
 export async function createTicket(
   data: CreateTicketRequest,
 ): Promise<{ message: string; ticket: { id: string; ticket_number: string; status: string } }> {
-  let payload: Record<string, unknown> = { ...data };
+  const payload: Record<string, unknown> = { ...data };
 
   // The backend requires store_id — fetch it from settings if not provided
   if (!payload.store_id) {

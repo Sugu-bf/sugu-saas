@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import Image from "next/image";
 import type {
   KpiCard,
   RecentOrder,
@@ -393,11 +394,14 @@ function TopProductRow({ product }: { product: TopProduct }) {
     <div className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 transition-colors active:bg-white/40 dark:active:bg-white/5 lg:gap-3 lg:py-3 lg:hover:bg-white/40 lg:dark:hover:bg-white/5">
       {/* Product image */}
       {product.image ? (
-        <img
-          src={product.image}
-          alt={product.name}
-          className="h-8 w-8 rounded-lg object-cover lg:h-10 lg:w-10 lg:rounded-xl"
-        />
+        <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg lg:h-10 lg:w-10 lg:rounded-xl">
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover"
+          />
+        </div>
       ) : (
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl">
           <Package className="h-4 w-4 text-gray-500 dark:text-gray-400 lg:h-5 lg:w-5" />

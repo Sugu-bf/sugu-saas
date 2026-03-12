@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import {
   ArrowUpRight,
   Banknote,
@@ -48,12 +48,11 @@ export function StepConfirmation({
   const providerConfig = PROVIDER_CONFIG[providerKey] ?? PROVIDER_CONFIG.orange_money;
 
   // PIN input refs
-  const pinRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const pinRef0 = useRef<HTMLInputElement>(null);
+  const pinRef1 = useRef<HTMLInputElement>(null);
+  const pinRef2 = useRef<HTMLInputElement>(null);
+  const pinRef3 = useRef<HTMLInputElement>(null);
+  const pinRefs = useMemo(() => [pinRef0, pinRef1, pinRef2, pinRef3], [pinRef0, pinRef1, pinRef2, pinRef3]);
 
   const handlePinInput = useCallback(
     (index: number, value: string) => {

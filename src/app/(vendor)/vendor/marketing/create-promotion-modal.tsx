@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { X, Flame, Percent, DollarSign, Loader2, Search, Package } from "lucide-react";
 import type { CreatePromotionRequest } from "@/features/vendor/service";
@@ -167,9 +168,9 @@ export function CreatePromotionModal({ open, onClose, onSubmit, isPending }: Cre
 
             {selectedProduct ? (
               <div className="flex items-center gap-3 rounded-xl border border-sugu-200 bg-sugu-50/40 p-3 dark:border-sugu-900/40 dark:bg-sugu-950/20">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
+                <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
                   {selectedProduct.imageUrl ? (
-                    <img src={selectedProduct.imageUrl} alt="" className="h-full w-full object-contain" />
+                    <Image src={selectedProduct.imageUrl} alt="" fill className="object-contain" />
                   ) : (
                     <Package className="h-5 w-5 text-gray-300" />
                   )}
@@ -232,9 +233,9 @@ export function CreatePromotionModal({ open, onClose, onSubmit, isPending }: Cre
                           onClick={() => handleSelectProduct(product)}
                           className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                         >
-                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                          <div className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
                             {product.imageUrl ? (
-                              <img src={product.imageUrl} alt="" className="h-full w-full object-contain" />
+                              <Image src={product.imageUrl} alt="" fill className="object-contain" />
                             ) : (
                               <Package className="h-4 w-4 text-gray-300" />
                             )}

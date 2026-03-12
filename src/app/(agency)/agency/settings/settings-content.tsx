@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -283,13 +284,13 @@ function AgencyTab({
           <div className="flex flex-col gap-5 sm:flex-row">
             {/* Logo */}
             <div className="flex flex-col items-center gap-2">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40 overflow-hidden">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40 overflow-hidden">
                 {isUploading ? (
                   <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
                 ) : logoPreview ? (
-                  <img src={logoPreview} alt="Logo" className="h-full w-full object-cover rounded-xl" />
+                  <Image src={logoPreview} alt="Logo" fill className="object-cover rounded-xl" />
                 ) : data.logoUrl ? (
-                  <img src={data.logoUrl} alt="Logo" className="h-full w-full object-cover rounded-xl" />
+                  <Image src={data.logoUrl} alt="Logo" fill className="object-cover rounded-xl" />
                 ) : (
                   <div className="flex flex-col items-center text-center">
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-sugu-500 text-xs font-black text-white">
