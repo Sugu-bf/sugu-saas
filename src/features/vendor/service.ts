@@ -99,6 +99,10 @@ export {
   getLoginHistory,
   // Settings — Invoices
   getInvoices,
+  // Settings — Media uploads & categories
+  uploadLogo,
+  uploadCover,
+  getStoreCategories,
   // Tickets
   getVendorTickets,
   getTicketDetail,

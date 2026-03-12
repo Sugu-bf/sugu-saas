@@ -244,6 +244,77 @@ export async function updateSettingsIdentity(data: UpdateIdentityRequest): Promi
 }
 
 // ────────────────────────────────────────────────────────────
+// Upload Helper (shared by logo & cover uploads)
+// ────────────────────────────────────────────────────────────
+
+async function _uploadFile(endpoint: string, fieldName: string, file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append(fieldName, file);
+
+  const token = typeof window !== "undefined"
+    ? document.cookie.match(/(?:^|; )sugu_token=([^;]*)/)?.[1]
+    : null;
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.endsWith("/")
+    ? process.env.NEXT_PUBLIC_API_BASE_URL
+    : `${process.env.NEXT_PUBLIC_API_BASE_URL}/`;
+
+  const res = await fetch(`${baseUrl}${SETTINGS_BASE}/${endpoint}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Upload failed" }));
+    throw new Error(err.message ?? "Upload échoué");
+  }
+
+  const json = await res.json();
+  return { url: json.url };
+}
+
+// ────────────────────────────────────────────────────────────
+// POST — Upload Logo (multipart/form-data)
+// ────────────────────────────────────────────────────────────
+
+export async function uploadLogo(file: File): Promise<{ url: string }> {
+  return _uploadFile("upload-logo", "logo", file);
+}
+
+// ────────────────────────────────────────────────────────────
+// POST — Upload Cover / Banner (multipart/form-data)
+// ────────────────────────────────────────────────────────────
+
+export async function uploadCover(file: File): Promise<{ url: string }> {
+  return _uploadFile("upload-cover", "cover", file);
+}
+
+// ────────────────────────────────────────────────────────────
+// GET — Store Categories (for dropdown selection)
+// ────────────────────────────────────────────────────────────
+
+export interface StoreCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  children: { id: string; name: string; slug: string }[];
+}
+
+export async function getStoreCategories(): Promise<StoreCategory[]> {
+  try {
+    const res = await api.get<{ success: boolean; data: StoreCategory[] }>(`${SETTINGS_BASE}/categories`);
+    return (res as { success: boolean; data: StoreCategory[] }).data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ────────────────────────────────────────────────────────────
 // PUT — Update Contact
 // ────────────────────────────────────────────────────────────
 
@@ -409,9 +480,9 @@ export async function enable2FA(): Promise<TwoFactorEnableResponse> {
   }
 }
 
-/** Disable 2FA — calls the backend toggle endpoint with action=disable */
-export async function disable2FA(): Promise<void> {
-  await api.post(`${SETTINGS_BASE}/security/2fa`, { action: "disable" });
+/** Disable 2FA — requires password confirmation to prevent session hijack abuse */
+export async function disable2FA(password: string): Promise<void> {
+  await api.post(`${SETTINGS_BASE}/security/2fa`, { action: "disable", password });
 }
 
 /** Get QR code SVG for 2FA setup */
@@ -577,8 +648,9 @@ export async function deactivateSettingsAccount(data: DeactivateAccountRequest):
 // DELETE — Delete Account
 // ────────────────────────────────────────────────────────────
 
-export async function deleteSettingsAccount(_data: DeleteAccountRequest): Promise<void> {
-  await api.delete(`${SETTINGS_BASE}/account`);
+export async function deleteSettingsAccount(data: DeleteAccountRequest): Promise<void> {
+  // Uses POST instead of DELETE because the http client doesn't support body in DELETE requests
+  await api.post(`${SETTINGS_BASE}/account/delete`, { password: data.password });
 }
 
 // ────────────────────────────────────────────────────────────

@@ -1093,6 +1093,52 @@ export function useUpdateIdentity() {
 }
 
 /**
+ * Hook: Upload store logo.
+ * Invalidates settings cache on success so the new logo URL is reflected.
+ */
+export function useUploadLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => vendorService.uploadLogo(file),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Upload store cover/banner.
+ * Invalidates settings cache on success so the new banner URL is reflected.
+ */
+export function useUploadCover() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => vendorService.uploadCover(file),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.settings(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook: Fetch store categories for the dropdown.
+ * Categories are cached for 10 minutes since they rarely change.
+ */
+export function useStoreCategories() {
+  return useQuery({
+    queryKey: [...queryKeys.vendor.settings(), "categories"],
+    queryFn: () => vendorService.getStoreCategories(),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+/**
  * Hook: Update store contact info (email, phone, address, socials).
  * Invalidates settings cache on success.
  */
@@ -1243,7 +1289,7 @@ export function useDisable2FA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => vendorService.disable2FA(),
+    mutationFn: (password: string) => vendorService.disable2FA(password),
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.settings(),

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type {
   VendorSettings,
   SocialLink,
@@ -11,6 +12,9 @@ import {
   useUpdateIdentity,
   useUpdateContact,
   useUpdateProfile,
+  useUploadLogo,
+  useUploadCover,
+  useStoreCategories,
 } from "@/features/vendor/hooks";
 import {
   buildIdentityRequest,
@@ -175,11 +179,62 @@ export function SettingsContent({ data }: SettingsContentProps) {
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(data.socialLinks);
   const [showSocialOnShop, setShowSocialOnShop] = useState(data.showSocialOnShop);
 
+  // File upload refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   // Mutation hooks
   const updateIdentityMutation = useUpdateIdentity();
   const updateContactMutation = useUpdateContact();
   const updateProfileMutation = useUpdateProfile();
+  const uploadLogoMutation = useUploadLogo();
+  const uploadCoverMutation = useUploadCover();
   const isSaving = updateIdentityMutation.isPending || updateContactMutation.isPending || updateProfileMutation.isPending;
+
+  // Load categories from API
+  const { data: categories = [] } = useStoreCategories();
+
+  // Compute subcategories based on selected main category
+  const selectedMainCat = categories.find(
+    (c) => c.name === shop.mainCategory || c.id === shop.mainCategory
+  );
+  const subCategories = selectedMainCat?.children ?? [];
+
+  // File upload handlers
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Le logo ne doit pas dépasser 2 Mo");
+      return;
+    }
+    try {
+      const result = await uploadLogoMutation.mutateAsync(file);
+      setShop((prev) => ({ ...prev, logoUrl: result.url }));
+      toast.success("Logo mis à jour avec succès");
+    } catch {
+      toast.error("Erreur lors de l'upload du logo");
+    }
+    // Reset the input so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La bannière ne doit pas dépasser 5 Mo");
+      return;
+    }
+    try {
+      const result = await uploadCoverMutation.mutateAsync(file);
+      setShop((prev) => ({ ...prev, bannerUrl: result.url }));
+      toast.success("Bannière mise à jour avec succès");
+    } catch {
+      toast.error("Erreur lors de l'upload de la bannière");
+    }
+    e.target.value = "";
+  };
 
   const copySlug = () => {
     navigator.clipboard?.writeText(`${shop.baseUrl}${shop.slug}`);
@@ -397,14 +452,26 @@ export function SettingsContent({ data }: SettingsContentProps) {
                     <Field label="Adresse complète"><PillInput value={shop.fullAddress} onChange={(v) => updateShop("fullAddress", v)} /></Field>
                   </div>
 
+                  {/* Hidden file inputs */}
+                  <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleLogoUpload} />
+                  <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverUpload} />
+
                   {/* Logo & Banner */}
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Logo de la boutique</p>
                       <div className="mt-2 flex items-center gap-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-sugu-500 text-xl font-bold text-white">S</div>
+                        {shop.logoUrl ? (
+                          <img src={shop.logoUrl} alt="Logo" className="h-16 w-16 rounded-xl object-cover" />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-sugu-500 text-xl font-bold text-white">
+                            {shop.name?.charAt(0)?.toUpperCase() ?? "S"}
+                          </div>
+                        )}
                         <div className="flex flex-col gap-1.5">
-                          <PillButton variant="outline" size="sm"><Upload className="h-3 w-3" /> Changer le logo</PillButton>
+                          <PillButton variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadLogoMutation.isPending}>
+                            <Upload className="h-3 w-3" /> {uploadLogoMutation.isPending ? "Envoi..." : "Changer le logo"}
+                          </PillButton>
                           <button className="text-[11px] text-gray-400 hover:text-gray-600">Supprimer</button>
                         </div>
                       </div>
@@ -413,32 +480,49 @@ export function SettingsContent({ data }: SettingsContentProps) {
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Bannière de la boutique</p>
                       <div className="mt-2">
                         <div className="relative h-20 overflow-hidden rounded-xl bg-sugu-100 dark:bg-sugu-900/20">
-                          <div className="absolute inset-0 flex items-center justify-center"><Store className="h-8 w-8 text-gray-400 opacity-40" /></div>
+                          {shop.bannerUrl ? (
+                            <img src={shop.bannerUrl} alt="Bannière" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center"><Store className="h-8 w-8 text-gray-400 opacity-40" /></div>
+                          )}
                         </div>
                         <div className="mt-2 flex items-center gap-3">
-                          <PillButton variant="outline" size="sm"><Upload className="h-3 w-3" /> Changer la bannière</PillButton>
+                          <PillButton variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={uploadCoverMutation.isPending}>
+                            <Upload className="h-3 w-3" /> {uploadCoverMutation.isPending ? "Envoi..." : "Changer la bannière"}
+                          </PillButton>
                           <span className="text-[10px] text-gray-400">Recommandé: 1200×400px</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Category */}
+                  {/* Category — loaded from API */}
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Catégorie principale">
-                      <PillSelect value={shop.mainCategory} onChange={(v) => updateShop("mainCategory", v)} options={[
-                        { value: "Alimentaire & Bio", label: "Alimentaire & Bio" },
-                        { value: "Cosmétique & Beauté", label: "Cosmétique & Beauté" },
-                        { value: "Artisanat", label: "Artisanat" },
-                        { value: "Textile & Mode", label: "Textile & Mode" },
-                      ]} />
+                      <PillSelect
+                        value={shop.mainCategory}
+                        onChange={(v) => {
+                          // Reset subcategory when main category changes
+                          setShop((prev) => ({ ...prev, mainCategory: v, subCategory: undefined }));
+                          setHasChanges(true);
+                        }}
+                        options={
+                          categories.length > 0
+                            ? categories.map((c) => ({ value: c.name, label: c.name }))
+                            : [{ value: shop.mainCategory, label: shop.mainCategory }]
+                        }
+                      />
                     </Field>
                     <Field label="Sous-catégorie">
-                      <PillSelect value={shop.subCategory ?? ""} onChange={(v) => updateShop("subCategory", v)} options={[
-                        { value: "Épices & Condiments", label: "Épices & Condiments" },
-                        { value: "Huiles & Beurres", label: "Huiles & Beurres" },
-                        { value: "Miels & Sucres", label: "Miels & Sucres" },
-                      ]} />
+                      <PillSelect
+                        value={shop.subCategory ?? ""}
+                        onChange={(v) => updateShop("subCategory", v)}
+                        options={
+                          subCategories.length > 0
+                            ? [{ value: "", label: "— Sélectionner —" }, ...subCategories.map((c) => ({ value: c.name, label: c.name }))]
+                            : [{ value: shop.subCategory ?? "", label: shop.subCategory || "Aucune sous-catégorie" }]
+                        }
+                      />
                     </Field>
                   </div>
                 </SectionCard>

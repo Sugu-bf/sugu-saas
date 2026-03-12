@@ -49,6 +49,9 @@ export function TabSecurity() {
   const [twoFASuccess, setTwoFASuccess] = useState(false);
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
   const [copiedCodes, setCopiedCodes] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [disableError, setDisableError] = useState<string | null>(null);
 
   // Mutation hooks
   const updatePasswordMutation = useUpdatePassword();
@@ -145,13 +148,26 @@ export function TabSecurity() {
     }
   };
 
-  /** Handle disabling 2FA */
+  /** Handle disabling 2FA — requires password confirmation */
   const handleDisable2FA = async () => {
+    if (!showDisableConfirm) {
+      setShowDisableConfirm(true);
+      setDisableError(null);
+      return;
+    }
+    if (!disablePassword) {
+      setDisableError("Veuillez entrer votre mot de passe.");
+      return;
+    }
+    setDisableError(null);
     try {
-      await disable2FAMutation.mutateAsync();
+      await disable2FAMutation.mutateAsync(disablePassword);
       setShowRecoveryCodes(false);
       setShow2FASetup(false);
+      setShowDisableConfirm(false);
+      setDisablePassword("");
     } catch (err) {
+      setDisableError("Mot de passe incorrect.");
       console.error("[security] Disable 2FA failed:", err);
     }
   };
@@ -364,14 +380,39 @@ export function TabSecurity() {
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 L&apos;authentification à deux facteurs est activée. Votre compte est protégé.
               </p>
-              <PillButton
-                variant="danger-outline"
-                onClick={handleDisable2FA}
-                disabled={disable2FAMutation.isPending}
-              >
-                {disable2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
-                Désactiver la 2FA
-              </PillButton>
+              {showDisableConfirm && (
+                <div className="space-y-2 rounded-xl bg-red-50/50 p-3 dark:bg-red-950/20">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Entrez votre mot de passe pour confirmer la désactivation :
+                  </p>
+                  <input
+                    type="password"
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                    placeholder="Mot de passe actuel"
+                    className="w-full max-w-xs rounded-xl border border-gray-200 bg-white/60 px-3 py-2 text-sm backdrop-blur dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200"
+                  />
+                  {disableError && <p className="text-xs text-red-500">{disableError}</p>}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <PillButton
+                  variant="danger-outline"
+                  onClick={handleDisable2FA}
+                  disabled={disable2FAMutation.isPending}
+                >
+                  {disable2FAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+                  {showDisableConfirm ? "Confirmer la désactivation" : "Désactiver la 2FA"}
+                </PillButton>
+                {showDisableConfirm && (
+                  <PillButton
+                    variant="outline"
+                    onClick={() => { setShowDisableConfirm(false); setDisablePassword(""); setDisableError(null); }}
+                  >
+                    Annuler
+                  </PillButton>
+                )}
+              </div>
             </>
           )}
 

@@ -102,6 +102,10 @@ export {
   getLoginHistory,
   // Invoices
   getInvoices,
+  // Media uploads & categories
+  uploadLogo,
+  uploadCover,
+  getStoreCategories,
 } from "./settings.service";
 
 export type {
@@ -114,6 +118,7 @@ export type {
   ActiveSession,
   LoginHistoryEntry,
   Invoice,
+  StoreCategory,
 } from "./settings.service";
 
 // Tickets

@@ -2,12 +2,11 @@
 
 import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Monitor, Smartphone, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useUpdatePassword } from "@/features/agency/hooks";
 
 export function SecurityTab() {
   const [pwStrength, setPwStrength] = useState(0); // 0=empty, 1=weak, 2=medium, 3=strong
-  const [twoFa, setTwoFa] = useState(false);
 
   const currentPwRef = useRef<HTMLInputElement>(null);
   const newPwRef = useRef<HTMLInputElement>(null);
@@ -134,85 +133,27 @@ export function SecurityTab() {
                 Mise à jour…
               </span>
             ) : (
-              "Mettre à jour"
+              "Mettre à jour le mot de passe"
             )}
           </button>
-          <p className="text-[10px] text-gray-400">Dernière modification : il y a 2 mois</p>
         </div>
       </section>
 
-      {/* 2FA */}
+      {/* 2FA — informational only (no backend endpoint yet) */}
       <section className="glass-card rounded-2xl p-5">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
           Authentification à deux facteurs (2FA)
         </h3>
-        {!twoFa ? (
-          <div className="space-y-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/30">
-              <span className="h-2 w-2 rounded-full bg-red-500" /> Désactivé
-            </span>
-            <p className="text-xs text-gray-500">
-              Protégez votre compte avec une vérification SMS.
-            </p>
-            <button
-              onClick={() => setTwoFa(true)}
-              className="rounded-full bg-sugu-500 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-sugu-600"
-            >
-              Activer la 2FA
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-600 dark:bg-green-950/30">
-              <span className="h-2 w-2 rounded-full bg-green-500" /> Activé
-            </span>
-            <p className="text-xs text-gray-500">
-              Vérification via ****3456
-            </p>
-            <button
-              onClick={() => setTwoFa(false)}
-              className="rounded-full border border-red-200 bg-red-50 px-5 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20"
-            >
-              Désactiver
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Sessions */}
-      <section className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
-          Sessions actives
-        </h3>
-        <div className="space-y-2.5">
-          {/* Current */}
-          <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50/40 p-3 dark:border-green-900/40 dark:bg-green-950/10">
-            <Monitor className="h-5 w-5 text-gray-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-900 dark:text-white">Chrome sur Windows</span>
-                <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-600 dark:bg-green-950/30">
-                  Session actuelle
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-400">Bamako, Mali · Depuis 2h</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rounded-xl bg-gray-50/80 p-4 dark:bg-gray-900/60">
+            <ShieldCheck className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-gray-500">
+                L&apos;authentification à deux facteurs sera bientôt disponible pour sécuriser davantage votre compte.
+              </p>
             </div>
-          </div>
-          {/* Other */}
-          <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white/60 p-3 dark:border-gray-800 dark:bg-gray-900/40">
-            <Smartphone className="h-5 w-5 text-gray-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-gray-900 dark:text-white">Safari sur iPhone</p>
-              <p className="text-[10px] text-gray-400">Bamako · Il y a 3 jours</p>
-            </div>
-            <button className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20">
-              Déconnecter
-            </button>
           </div>
         </div>
-        <button className="mt-3 text-xs font-semibold text-red-500 hover:text-red-600">
-          Déconnecter toutes les autres sessions
-        </button>
       </section>
     </div>
   );

@@ -5,33 +5,9 @@ import { cn } from "@/lib/utils";
 import { Plus, Trash2, MapPin, Save, Loader2 } from "lucide-react";
 import type { AgencySettingsResponse, AgencyZone } from "@/features/agency/schema";
 import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
+import { Toggle } from "../components/toggle";
 
-// Default zones used when API returns no zone data
-const DEFAULT_ZONES: AgencyZone[] = [
-  { id: "z1", name: "Bamako Centre", tarif: "2,500 FCFA", delay: "1-2h", enabled: true },
-  { id: "z2", name: "Bamako Périphérie", tarif: "3,500 FCFA", delay: "2-4h", enabled: true },
-  { id: "z3", name: "Kati", tarif: "5,000 FCFA", delay: "3-5h", enabled: true },
-  { id: "z4", name: "Koulikoro", tarif: "7,500 FCFA", delay: "4-6h", enabled: false },
-  { id: "z5", name: "Sikasso", tarif: "12,000 FCFA", delay: "24-48h", enabled: false },
-];
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-200",
-        checked ? "bg-sugu-500" : "bg-gray-300 dark:bg-gray-600",
-      )}
-    >
-      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200", checked ? "translate-x-4" : "translate-x-0.5")} />
-    </button>
-  );
-}
 
 interface ZonesTabProps {
   data: AgencySettingsResponse;
@@ -40,17 +16,16 @@ interface ZonesTabProps {
 }
 
 export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
-  // Use zones from API or fall back to defaults
-  const initialZones = data.zones?.length ? data.zones : DEFAULT_ZONES;
-  const [zones, setZones] = useState(initialZones);
+  // Use strictly API data — no fallback mock zones
+  const [zones, setZones] = useState<AgencyZone[]>(data.zones ?? []);
 
-  // Zone rules from API or defaults
+  // Zone rules from API or empty defaults
   const initialRules = data.zoneRules ?? {
-    maxRadius: "50",
+    maxRadius: "",
     acceptOutside: false,
-    outsideSurcharge: "2,000 FCFA",
+    outsideSurcharge: "",
     freeAbove: false,
-    freeAboveAmount: "25,000 FCFA",
+    freeAboveAmount: "",
   };
   const [maxRadius, setMaxRadius] = useState(initialRules.maxRadius);
   const [acceptOutside, setAcceptOutside] = useState(initialRules.acceptOutside);
@@ -65,7 +40,9 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
     setZones((prev) => prev.filter((z) => z.id !== id));
   };
   const addZone = () => {
-    const newId = `z-${Date.now()}`;
+    const newId = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `z-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setZones((prev) => [...prev, { id: newId, name: "", tarif: "", delay: "", enabled: true }]);
   };
 
@@ -89,52 +66,64 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
           Zones actives
         </h3>
-        <div className="space-y-2">
-          {zones.map((zone) => (
-            <div
-              key={zone.id}
-              className={cn(
-                "flex flex-col gap-2 sm:flex-row sm:items-center rounded-xl border p-3 transition-all",
-                zone.enabled
-                  ? "border-gray-100 bg-white/60 dark:border-gray-800 dark:bg-gray-900/40"
-                  : "border-gray-100/50 bg-gray-50/40 opacity-60 dark:border-gray-800/50 dark:bg-gray-900/20",
-              )}
-            >
-              <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} label={`Zone ${zone.name}`} />
-              <span className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white min-w-[140px]">
-                <MapPin className="h-3.5 w-3.5 text-sugu-500 flex-shrink-0" />
+
+        {zones.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <MapPin className="h-8 w-8 text-gray-300 mb-2" />
+            <p className="text-xs text-gray-400 mb-1">Aucune zone configurée</p>
+            <p className="text-[10px] text-gray-400 max-w-xs">
+              Ajoutez des zones de couverture pour définir vos tarifs et délais de livraison par secteur.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {zones.map((zone) => (
+              <div
+                key={zone.id}
+                className={cn(
+                  "flex flex-col gap-2 sm:flex-row sm:items-center rounded-xl border p-3 transition-all",
+                  zone.enabled
+                    ? "border-gray-100 bg-white/60 dark:border-gray-800 dark:bg-gray-900/40"
+                    : "border-gray-100/50 bg-gray-50/40 opacity-60 dark:border-gray-800/50 dark:bg-gray-900/20",
+                )}
+              >
+                <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} label={`Zone ${zone.name}`} />
+                <span className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white min-w-[140px]">
+                  <MapPin className="h-3.5 w-3.5 text-sugu-500 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={zone.name}
+                    onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, name: e.target.value } : z))}
+                    className="bg-transparent border-none p-0 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 min-w-[100px]"
+                    placeholder="Nom de la zone"
+                  />
+                </span>
                 <input
                   type="text"
-                  value={zone.name}
-                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, name: e.target.value } : z))}
-                  className="bg-transparent border-none p-0 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 min-w-[100px]"
-                  placeholder="Nom de la zone"
+                  value={zone.tarif}
+                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, tarif: e.target.value } : z))}
+                  className="form-input py-1.5 text-xs w-28"
+                  placeholder="Tarif (FCFA)"
                 />
-              </span>
-              <input
-                type="text"
-                value={zone.tarif}
-                onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, tarif: e.target.value } : z))}
-                className="form-input py-1.5 text-xs w-28"
-                placeholder="Tarif"
-              />
-              <input
-                type="text"
-                value={zone.delay}
-                onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, delay: e.target.value } : z))}
-                className="form-input py-1.5 text-xs w-20"
-                placeholder="Délai"
-              />
-              <button
-                onClick={() => removeZone(zone.id)}
-                className="ml-auto rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
-                aria-label={`Supprimer ${zone.name}`}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
+                <input
+                  type="text"
+                  value={zone.delay}
+                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, delay: e.target.value } : z))}
+                  className="form-input py-1.5 text-xs w-20"
+                  placeholder="Délai"
+                />
+                <button
+                  onClick={() => removeZone(zone.id)}
+                  className="ml-auto rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
+                  aria-label={`Supprimer ${zone.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           onClick={addZone}
           className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sugu-300 bg-white px-4 py-2 text-xs font-semibold text-sugu-600 hover:bg-sugu-50 dark:border-sugu-700 dark:bg-gray-900 dark:text-sugu-400"
@@ -159,6 +148,7 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
               value={maxRadius}
               onChange={(e) => setMaxRadius(e.target.value)}
               className="form-input py-2 text-sm"
+              placeholder="Ex: 50"
             />
           </div>
           <div className="space-y-2">
@@ -174,6 +164,7 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
                   value={outsideSurcharge}
                   onChange={(e) => setOutsideSurcharge(e.target.value)}
                   className="form-input py-2 text-sm"
+                  placeholder="Ex: 2,000 FCFA"
                 />
               </div>
             )}
@@ -190,6 +181,7 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
                   value={freeAboveAmount}
                   onChange={(e) => setFreeAboveAmount(e.target.value)}
                   className="form-input py-2 text-sm"
+                  placeholder="Ex: 25,000 FCFA"
                 />
               </div>
             )}

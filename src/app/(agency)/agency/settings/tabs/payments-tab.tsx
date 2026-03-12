@@ -5,15 +5,9 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2, Info, Banknote, Wallet, CreditCard, BookOpen, Save, Loader2 } from "lucide-react";
 import type { AgencySettingsResponse } from "@/features/agency/schema";
 import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
+import { Toggle } from "../components/toggle";
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange}
-      className={cn("relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-200", checked ? "bg-sugu-500" : "bg-gray-300 dark:bg-gray-600")}>
-      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200", checked ? "translate-x-4" : "translate-x-0.5")} />
-    </button>
-  );
-}
+
 
 type PayMethod = "orange" | "wave" | "bank";
 
@@ -35,8 +29,8 @@ export function PaymentsTab({ data, onSave, isSaving }: PaymentsTabProps) {
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">(
     (apiSettings?.frequency as "daily" | "weekly" | "monthly") ?? "weekly",
   );
-  const [autoTransfer, setAutoTransfer] = useState(apiSettings?.autoTransfer ?? true);
-  const [minAmount, setMinAmount] = useState(apiSettings?.minAmount ?? "5,000 FCFA");
+  const [autoTransfer, setAutoTransfer] = useState(apiSettings?.autoTransfer ?? false);
+  const [minAmount, setMinAmount] = useState(apiSettings?.minAmount ?? "");
 
   // Bank details
   const [bankName, setBankName] = useState(apiSettings?.bankDetails?.bank ?? "");

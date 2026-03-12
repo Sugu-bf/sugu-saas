@@ -1659,31 +1659,7 @@ function _transformSettingsResponse(raw: Record<string, unknown>): Record<string
     lastSaved = _formatRelativeDate(updatedAt);
   }
 
-  // Default schedule if not in metadata
-  const defaultSchedule = [
-    { day: "Lundi", enabled: true, openTime: "07:00", closeTime: "21:00" },
-    { day: "Mardi", enabled: true, openTime: "07:00", closeTime: "21:00" },
-    { day: "Mercredi", enabled: true, openTime: "07:00", closeTime: "21:00" },
-    { day: "Jeudi", enabled: true, openTime: "07:00", closeTime: "21:00" },
-    { day: "Vendredi", enabled: true, openTime: "07:00", closeTime: "19:00" },
-    { day: "Samedi", enabled: true, openTime: "08:00", closeTime: "18:00" },
-    { day: "Dimanche", enabled: false, openTime: "", closeTime: "" },
-  ];
-
-  // Default vehicles
-  const defaultVehicles = [
-    { type: "Moto", icon: "bike", selected: true },
-    { type: "Voiture", icon: "car", selected: true },
-    { type: "Vélo", icon: "bike", selected: false },
-    { type: "Camionnette", icon: "truck", selected: false },
-  ];
-
-  // Default social links
-  const defaultSocialLinks = [
-    { id: "sl-1", platform: "WhatsApp Business", value: "", icon: "whatsapp", enabled: false, visibleOnSugu: false },
-    { id: "sl-2", platform: "Facebook", value: "", icon: "facebook", enabled: false, visibleOnSugu: false },
-    { id: "sl-3", platform: "Site web", value: "", icon: "globe", enabled: false, visibleOnSugu: false },
-  ];
+  // No mock/default data — only real API data is used
 
   // Determine emailVerified from the nested owner or direct flag
   const ownerMeta = raw.owner as Record<string, unknown> | undefined;
@@ -1711,23 +1687,23 @@ function _transformSettingsResponse(raw: Record<string, unknown>): Record<string
     countryFlag: country.flag,
     locationDescription: String(meta.location_description ?? raw.locationDescription ?? ""),
 
-    agencyType: String(meta.agency_type ?? raw.agencyType ?? "Livraison express"),
+    agencyType: String(meta.agency_type ?? raw.agencyType ?? ""),
     dailyCapacity: String(meta.daily_capacity ?? raw.dailyCapacity ?? ""),
     vehicles: Array.isArray(meta.vehicles) ? meta.vehicles
       : Array.isArray(raw.vehicles) ? raw.vehicles
-      : defaultVehicles,
+      : [],
     description: String(raw.description ?? ""),
 
     schedule: Array.isArray(meta.schedule) ? meta.schedule
       : Array.isArray(raw.schedule) ? raw.schedule
-      : defaultSchedule,
+      : [],
     sameHoursWeekdays: Boolean(meta.same_hours_weekdays ?? raw.sameHoursWeekdays ?? false),
     acceptAfterHours: Boolean(meta.accept_after_hours ?? raw.acceptAfterHours ?? false),
-    afterHoursSurcharge: String(meta.after_hours_surcharge ?? raw.afterHoursSurcharge ?? "50%"),
+    afterHoursSurcharge: String(meta.after_hours_surcharge ?? raw.afterHoursSurcharge ?? ""),
 
     socialLinks: Array.isArray(meta.social_links) ? meta.social_links
       : Array.isArray(raw.socialLinks) ? raw.socialLinks
-      : defaultSocialLinks,
+      : [],
 
     lastSaved: String(raw.lastSaved ?? lastSaved),
 
@@ -1833,6 +1809,59 @@ export interface UpdatePasswordPayload {
  */
 export async function updatePassword(data: UpdatePasswordPayload): Promise<void> {
   await api.put("auth/password", data);
+}
+
+// ── Logo Upload / Delete ─────────────────────────────────────
+
+/**
+ * Upload or replace the agency logo.
+ *
+ * POST /agencies/{agencyId}/settings/logo
+ *
+ * Uses raw fetch because the central HTTP client forces Content-Type: application/json
+ * which is incompatible with multipart/form-data file uploads.
+ */
+export async function uploadAgencyLogo(
+  agencyId: string,
+  file: File,
+): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("logo", file);
+
+  // Read token from cookie (same logic as the central HTTP client)
+  const token = typeof window !== "undefined"
+    ? document.cookie.match(/(?:^|; )sugu_token=([^;]*)/)?.[1]
+    : null;
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.endsWith("/")
+    ? process.env.NEXT_PUBLIC_API_BASE_URL
+    : `${process.env.NEXT_PUBLIC_API_BASE_URL}/`;
+
+  const res = await fetch(`${baseUrl}agencies/${agencyId}/settings/logo`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Upload échoué" }));
+    throw new Error(err.message ?? "Erreur lors de l'upload du logo");
+  }
+
+  const json = await res.json();
+  return { url: json.url };
+}
+
+/**
+ * Delete the agency logo.
+ *
+ * DELETE /agencies/{agencyId}/settings/logo
+ */
+export async function deleteAgencyLogo(agencyId: string): Promise<void> {
+  await api.delete(`agencies/${agencyId}/settings/logo`);
 }
 
 /**

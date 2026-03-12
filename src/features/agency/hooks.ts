@@ -435,7 +435,7 @@ export function useAgencyStats(period?: string) {
  * Hook: Fetch agency settings for the settings page.
  *
  * 5-minute staleTime — settings change rarely.
- * Falls back to mock automatically via the service layer.
+ * All data comes directly from the backend API.
  */
 export function useAgencySettings() {
   const { data: user } = useSession();
@@ -491,6 +491,44 @@ export function useUpdatePassword() {
   return useMutation({
     mutationFn: (data: UpdatePasswordPayload) =>
       agencyService.updatePassword(data),
+  });
+}
+
+/**
+ * Hook: Upload agency logo.
+ *
+ * Invalidates settings cache on success so the new logo URL appears.
+ */
+export function useUploadAgencyLogo() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (file: File) =>
+      agencyService.uploadAgencyLogo(agencyId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
+  });
+}
+
+/**
+ * Hook: Delete agency logo.
+ *
+ * Invalidates settings cache on success so the logo is removed from the UI.
+ */
+export function useDeleteAgencyLogo() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: () =>
+      agencyService.deleteAgencyLogo(agencyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
   });
 }
 

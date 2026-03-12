@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -28,7 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { AgencySettingsResponse } from "@/features/agency/schema";
-import { useUpdateAgencySettings } from "@/features/agency/hooks";
+import { useUpdateAgencySettings, useUploadAgencyLogo, useDeleteAgencyLogo } from "@/features/agency/hooks";
 import type { UpdateAgencySettingsPayload } from "@/features/agency/service";
 import { AccountTab } from "./tabs/account-tab";
 import { VehiclesTab } from "./tabs/vehicles-tab";
@@ -38,6 +38,7 @@ import { NotificationsTab } from "./tabs/notifications-tab";
 import { SecurityTab } from "./tabs/security-tab";
 import { SubscriptionTab } from "./tabs/subscription-tab";
 import { DeleteTab } from "./tabs/delete-tab";
+import { Toggle } from "./components/toggle";
 
 // ────────────────────────────────────────────────────────────
 // Vehicle icon helper (maps icon name → Lucide component)
@@ -95,40 +96,7 @@ const SETTINGS_TABS: {
   },
 ];
 
-// ────────────────────────────────────────────────────────────
-// Toggle switch
-// ────────────────────────────────────────────────────────────
 
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange?: () => void;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-200",
-        checked ? "bg-sugu-500" : "bg-gray-300 dark:bg-gray-600",
-      )}
-    >
-      <span
-        className={cn(
-          "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200",
-          checked ? "translate-x-4" : "translate-x-0.5",
-        )}
-      />
-    </button>
-  );
-}
 
 // ────────────────────────────────────────────────────────────
 // Form field helpers — now controlled
@@ -151,6 +119,7 @@ function FieldInput({
   name,
   placeholder,
   type = "text",
+  maxLength,
 }: {
   value: string;
   onChange?: (v: string) => void;
@@ -159,6 +128,7 @@ function FieldInput({
   name?: string;
   placeholder?: string;
   type?: string;
+  maxLength?: number;
 }) {
   return (
     <input
@@ -169,6 +139,7 @@ function FieldInput({
       disabled={disabled}
       readOnly={!onChange}
       placeholder={placeholder}
+      maxLength={maxLength}
       className={cn(
         "form-input py-2 text-sm",
         disabled && "opacity-60 cursor-not-allowed",
@@ -196,54 +167,7 @@ function SocialIcon({ icon }: { icon: string }) {
   }
 }
 
-// ────────────────────────────────────────────────────────────
-// File upload helper (logo / photo)
-// ────────────────────────────────────────────────────────────
 
-function useFileUpload(onUpload: (file: File, previewUrl: string) => void) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const trigger = useCallback(() => {
-    inputRef.current?.click();
-  }, []);
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      // Validate size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Le fichier est trop volumineux. Maximum 2 MB.");
-        return;
-      }
-      // Validate type
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        alert("Format non supporté. Utilisez JPG, PNG ou WebP.");
-        return;
-      }
-      const previewUrl = URL.createObjectURL(file);
-      onUpload(file, previewUrl);
-      // Reset input so re-selecting the same file triggers onChange
-      if (inputRef.current) inputRef.current.value = "";
-    },
-    [onUpload],
-  );
-
-  const renderInput = useCallback(
-    () => (
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={handleChange}
-      />
-    ),
-    [handleChange],
-  );
-
-  return { trigger, renderInput };
-}
 
 // ────────────────────────────────────────────────────────────
 // Mon agence tab content — fully controlled form
@@ -274,8 +198,9 @@ function AgencyTab({
   socialLinks,
   onSocialLinksChange,
   logoPreview,
-  onLogoChange,
-  onLogoRemove,
+  onLogoPreviewChange,
+  uploadLogoMutation,
+  deleteLogoMutation,
 }: {
   data: AgencySettingsResponse;
   formState: AgencyFormState;
@@ -285,19 +210,69 @@ function AgencyTab({
   socialLinks: AgencySettingsResponse["socialLinks"];
   onSocialLinksChange: (links: AgencySettingsResponse["socialLinks"]) => void;
   logoPreview: string | null;
-  onLogoChange: () => void;
-  onLogoRemove: () => void;
+  onLogoPreviewChange: (url: string | null) => void;
+  uploadLogoMutation: ReturnType<typeof useUploadAgencyLogo>;
+  deleteLogoMutation: ReturnType<typeof useDeleteAgencyLogo>;
 }) {
-  const logoUpload = useFileUpload((_file, previewUrl) => {
-    // In a real production app, we'd upload the file to the server here
-    // For now, just show the preview
-    void previewUrl;
-    onLogoChange();
-  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isUploading = uploadLogoMutation.isPending;
+  const isDeleting = deleteLogoMutation.isPending;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Le fichier est trop volumineux. Maximum 2 MB.");
+      return;
+    }
+    // Validate type
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Format non supporté. Utilisez JPG, PNG ou WebP.");
+      return;
+    }
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    onLogoPreviewChange(previewUrl);
+
+    // Upload to backend
+    uploadLogoMutation.mutate(file, {
+      onError: () => {
+        onLogoPreviewChange(null);
+        URL.revokeObjectURL(previewUrl);
+        alert("Erreur lors de l'upload du logo.");
+      },
+      onSuccess: (result) => {
+        URL.revokeObjectURL(previewUrl);
+        onLogoPreviewChange(result.url);
+      },
+    });
+
+    // Reset input so re-selecting the same file triggers onChange
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDeleteLogo = () => {
+    deleteLogoMutation.mutate(undefined, {
+      onSuccess: () => {
+        onLogoPreviewChange(null);
+      },
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
-      {logoUpload.renderInput()}
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* ═══ Left column ═══ */}
       <div className="space-y-4">
         {/* ── Logo & Identité ── */}
@@ -309,7 +284,9 @@ function AgencyTab({
             {/* Logo */}
             <div className="flex flex-col items-center gap-2">
               <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-sugu-50 dark:border-gray-700 dark:bg-gray-900/40 overflow-hidden">
-                {logoPreview ? (
+                {isUploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
+                ) : logoPreview ? (
                   <img src={logoPreview} alt="Logo" className="h-full w-full object-cover rounded-xl" />
                 ) : data.logoUrl ? (
                   <img src={data.logoUrl} alt="Logo" className="h-full w-full object-cover rounded-xl" />
@@ -322,16 +299,24 @@ function AgencyTab({
                 )}
               </div>
               <button
-                onClick={onLogoChange}
-                className="text-[10px] font-semibold text-sugu-500 hover:text-sugu-600 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className={cn(
+                  "text-[10px] font-semibold text-sugu-500 hover:text-sugu-600 transition-colors",
+                  isUploading && "opacity-50 cursor-not-allowed",
+                )}
               >
-                Changer le logo
+                {isUploading ? "Upload en cours…" : "Changer le logo"}
               </button>
               <button
-                onClick={onLogoRemove}
-                className="text-[10px] font-semibold text-red-500 hover:text-red-600 transition-colors"
+                onClick={handleDeleteLogo}
+                disabled={isDeleting || isUploading || (!data.logoUrl && !logoPreview)}
+                className={cn(
+                  "text-[10px] font-semibold text-red-500 hover:text-red-600 transition-colors",
+                  (isDeleting || (!data.logoUrl && !logoPreview)) && "opacity-50 cursor-not-allowed",
+                )}
               >
-                Supprimer
+                {isDeleting ? "Suppression…" : "Supprimer"}
               </button>
               <p className="text-[9px] text-gray-400">PNG, JPG • Max 2MB</p>
             </div>
@@ -340,18 +325,24 @@ function AgencyTab({
             <div className="flex-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <FieldLabel required>Nom de l&apos;agence</FieldLabel>
-                <FieldInput
-                  value={formState.agencyName}
-                  onChange={(v) => onFormChange("agencyName", v)}
+                <input
+                  type="text"
                   name="agencyName"
+                  value={formState.agencyName}
+                  onChange={(e) => onFormChange("agencyName", e.target.value)}
+                  maxLength={255}
+                  className="form-input py-2 text-sm"
                 />
               </div>
               <div>
                 <FieldLabel>Sigle / Nom court</FieldLabel>
-                <FieldInput
-                  value={formState.shortName}
-                  onChange={(v) => onFormChange("shortName", v)}
+                <input
+                  type="text"
                   name="shortName"
+                  value={formState.shortName}
+                  onChange={(e) => onFormChange("shortName", e.target.value)}
+                  maxLength={50}
+                  className="form-input py-2 text-sm"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -394,10 +385,13 @@ function AgencyTab({
               </div>
               <div>
                 <FieldLabel required>Numéro RCCM / NIF</FieldLabel>
-                <FieldInput
-                  value={formState.rccm}
-                  onChange={(v) => onFormChange("rccm", v)}
+                <input
+                  type="text"
                   name="rccm"
+                  value={formState.rccm}
+                  onChange={(e) => onFormChange("rccm", e.target.value)}
+                  maxLength={255}
+                  className="form-input py-2 text-sm"
                 />
               </div>
               <div>
@@ -454,6 +448,7 @@ function AgencyTab({
                 onChange={(e) => onFormChange("locationDescription", e.target.value)}
                 placeholder="Description de l'emplacement"
                 rows={2}
+                maxLength={500}
                 className="form-input py-2 text-sm resize-none"
               />
             </div>
@@ -475,9 +470,10 @@ function AgencyTab({
                 onChange={(e) => onFormChange("agencyType", e.target.value)}
                 className="form-input py-2 text-sm"
               >
-                <option>Livraison express</option>
-                <option>Livraison standard</option>
-                <option>Coursier</option>
+                <option value="">Sélectionner un type</option>
+                <option value="Livraison express">Livraison express</option>
+                <option value="Livraison standard">Livraison standard</option>
+                <option value="Coursier">Coursier</option>
               </select>
             </div>
             <div>
@@ -521,6 +517,7 @@ function AgencyTab({
               value={formState.description}
               onChange={(e) => onFormChange("description", e.target.value)}
               rows={3}
+              maxLength={2000}
               className="form-input py-2 text-sm resize-none"
             />
           </div>
@@ -601,6 +598,8 @@ function AgencyTab({
 export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("agency");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
 
   // Agency tab form state — fully controlled
   const [formState, setFormState] = useState<AgencyFormState>({
@@ -624,41 +623,55 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const updateMutation = useUpdateAgencySettings();
+  const uploadLogoMutation = useUploadAgencyLogo();
+  const deleteLogoMutation = useDeleteAgencyLogo();
+
+  // Mark form as dirty — no deps on hasChanges to avoid stale closure
+  const markDirty = useCallback(() => setHasChanges(true), []);
 
   const handleFormChange = useCallback((field: keyof AgencyFormState, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-    if (!hasChanges) setHasChanges(true);
-  }, [hasChanges]);
+    markDirty();
+  }, [markDirty]);
 
   const handleVehiclesChange = useCallback(
     (newVehicles: Array<{ type: string; icon: string; selected: boolean }>) => {
       setVehicles(newVehicles);
-      if (!hasChanges) setHasChanges(true);
+      markDirty();
     },
-    [hasChanges],
+    [markDirty],
   );
 
   const handleSocialLinksChange = useCallback(
     (newLinks: AgencySettingsResponse["socialLinks"]) => {
       setSocialLinks(newLinks);
-      if (!hasChanges) setHasChanges(true);
+      markDirty();
     },
-    [hasChanges],
+    [markDirty],
   );
 
-  const handleLogoChange = useCallback(() => {
-    // For now, just mark as dirty. In production, you'd upload the file to the server.
-    if (!hasChanges) setHasChanges(true);
-  }, [hasChanges]);
 
-  const handleLogoRemove = useCallback(() => {
-    setLogoPreview(null);
-    if (!hasChanges) setHasChanges(true);
-  }, [hasChanges]);
 
   // Collect form data and submit via mutation
   const handleSave = useCallback(() => {
+    // Only the agency tab uses this global save button
     if (activeTab !== "agency") return;
+    // Prevent double-submit
+    if (updateMutation.isPending) return;
+
+    // Client-side validation for required fields
+    if (!formState.agencyName.trim()) {
+      setShowErrorToast(true);
+      return;
+    }
+    if (!formState.email.trim()) {
+      setShowErrorToast(true);
+      return;
+    }
+    if (!formState.phonePrimary.trim()) {
+      setShowErrorToast(true);
+      return;
+    }
 
     const payload: UpdateAgencySettingsPayload = {
       ...formState,
@@ -669,9 +682,28 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
     updateMutation.mutate(payload, {
       onSuccess: () => {
         setHasChanges(false);
+        setShowSuccessToast(true);
+      },
+      onError: () => {
+        setShowErrorToast(true);
       },
     });
   }, [activeTab, formState, vehicles, socialLinks, updateMutation]);
+
+  // Auto-dismiss toasts after 3s
+  useEffect(() => {
+    if (showSuccessToast) {
+      const t = setTimeout(() => setShowSuccessToast(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [showSuccessToast]);
+
+  useEffect(() => {
+    if (showErrorToast) {
+      const t = setTimeout(() => setShowErrorToast(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [showErrorToast]);
 
   // Reset the form to original values
   const handleCancel = useCallback(() => {
@@ -772,8 +804,9 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
               socialLinks={socialLinks}
               onSocialLinksChange={handleSocialLinksChange}
               logoPreview={logoPreview}
-              onLogoChange={handleLogoChange}
-              onLogoRemove={handleLogoRemove}
+              onLogoPreviewChange={setLogoPreview}
+              uploadLogoMutation={uploadLogoMutation}
+              deleteLogoMutation={deleteLogoMutation}
             />
           )}
           {activeTab === "account" && <AccountTab data={data} />}
@@ -787,16 +820,16 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
         </div>
       </div>
 
-      {/* ══ Success toast indicator ══ */}
-      {updateMutation.isSuccess && !hasChanges && (
+      {/* ══ Success toast indicator — auto-dismisses after 3s ══ */}
+      {showSuccessToast && (
         <div className="fixed bottom-6 right-6 z-50 animate-card-enter inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg">
           <CheckCircle2 className="h-4 w-4" />
           Paramètres sauvegardés
         </div>
       )}
 
-      {/* ══ Error indicator ══ */}
-      {updateMutation.isError && (
+      {/* ══ Error indicator — auto-dismisses after 4s ══ */}
+      {showErrorToast && (
         <div className="fixed bottom-6 right-6 z-50 animate-card-enter inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg">
           <AlertTriangle className="h-4 w-4" /> Erreur lors de la sauvegarde
         </div>
