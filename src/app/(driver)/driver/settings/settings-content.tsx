@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
-import { useDriverSettings, useUpdateDriverProfile } from "@/features/driver/hooks";
+import { useDriverSettings } from "@/features/driver/hooks";
 import { PillButton } from "./settings-ui";
 import { TabProfile } from "./tab-profile";
 import { TabVehicle } from "./tab-vehicle";
@@ -18,10 +18,11 @@ import {
   Bell,
   Shield,
   Trash2,
-  Save,
+  RefreshCw,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query";
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -36,15 +37,6 @@ interface NavItem {
   badge?: number;
   danger?: boolean;
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { key: "profile", label: "Mon profil", icon: <User className="h-4 w-4" /> },
-  { key: "vehicle", label: "Véhicule", icon: <Bike className="h-4 w-4" /> },
-  { key: "kyc", label: "Documents KYC", icon: <FileCheck className="h-4 w-4" />, badge: 2 },
-  { key: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
-  { key: "security", label: "Sécurité", icon: <Shield className="h-4 w-4" /> },
-  { key: "delete", label: "Supprimer le compte", icon: <Trash2 className="h-4 w-4" />, danger: true },
-];
 
 // ────────────────────────────────────────────────────────────
 // Page Client Wrapper (with React Query)
@@ -112,23 +104,25 @@ interface SettingsContentProps {
 
 function SettingsContent({ data }: SettingsContentProps) {
   const [activeTab, setActiveTab] = useState<DriverSettingsTab>("profile");
-  const [hasChanges, setHasChanges] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const qc = useQueryClient();
 
-  // Mutation hooks
-  const updateProfileMutation = useUpdateDriverProfile();
-  const isSaving = updateProfileMutation.isPending;
+  // Dynamic KYC badge: count of not_uploaded documents
+  const kycMissing = data.kyc.documents.filter((d) => d.status === "not_uploaded").length;
 
-  const handleSaveAll = async () => {
-    try {
-      await updateProfileMutation.mutateAsync({});
-      setHasChanges(false);
-    } catch (err) {
-      console.error("[settings] Save failed:", err);
-    }
-  };
+  const NAV_ITEMS: NavItem[] = [
+    { key: "profile", label: "Mon profil", icon: <User className="h-4 w-4" /> },
+    { key: "vehicle", label: "Véhicule", icon: <Bike className="h-4 w-4" /> },
+    { key: "kyc", label: "Documents KYC", icon: <FileCheck className="h-4 w-4" />, badge: kycMissing > 0 ? kycMissing : undefined },
+    { key: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+    { key: "security", label: "Sécurité", icon: <Shield className="h-4 w-4" /> },
+    { key: "delete", label: "Supprimer le compte", icon: <Trash2 className="h-4 w-4" />, danger: true },
+  ];
 
-  const handleCancelChanges = () => {
-    setHasChanges(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await qc.invalidateQueries({ queryKey: queryKeys.driver.settings() });
+    setIsRefreshing(false);
   };
 
   /* eslint-disable react-hooks/purity */
@@ -149,9 +143,9 @@ function SettingsContent({ data }: SettingsContentProps) {
             <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
             <span className="text-gray-500 dark:text-gray-400">Dernière sauvegarde: {lastSaveLabel}</span>
           </div>
-          <PillButton variant="primary" onClick={handleSaveAll} disabled={isSaving}>
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Sauvegarder tout
+          <PillButton variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Rafraîchir
           </PillButton>
         </div>
       </header>
@@ -199,27 +193,7 @@ function SettingsContent({ data }: SettingsContentProps) {
           {activeTab === "delete" && <TabDeleteAccount />}
         </div>
       </div>
-
-      {/* ════════════ Sticky Bottom Bar ════════════ */}
-      {hasChanges && activeTab !== "delete" && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/60 bg-white/90 backdrop-blur-xl dark:border-gray-800/60 dark:bg-gray-950/90">
-          <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <span className="font-medium text-gray-700 dark:text-gray-300">Modifications non sauvegardées</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <PillButton variant="outline" onClick={handleCancelChanges}>
-                Annuler les modifications
-              </PillButton>
-              <PillButton variant="primary" onClick={handleSaveAll} disabled={isSaving}>
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Sauvegarder les modifications
-              </PillButton>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

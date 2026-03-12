@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings, KycDocStatus } from "@/features/driver/schema";
 import { useUploadKycDocument } from "@/features/driver/hooks";
@@ -40,20 +41,41 @@ const STATUS_ICON_COLOR: Record<KycDocStatus, string> = {
 export function TabKyc({ data }: TabKycProps) {
   const kyc = data.kyc;
   const uploadMutation = useUploadKycDocument();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingDocTypeRef = useRef<string | null>(null);
 
-  const handleUpload = async (docType: string) => {
-    // In a real app, a file picker would open here
-    const fakeFile = new File([""], "document.pdf", { type: "application/pdf" });
+  const handleUploadClick = (docType: string) => {
+    pendingDocTypeRef.current = docType;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const docType = pendingDocTypeRef.current;
+    if (!file || !docType) return;
+
     try {
-      await uploadMutation.mutateAsync({ docType, file: fakeFile });
+      await uploadMutation.mutateAsync({ docType, file });
       toast.success("Document téléchargé avec succès");
     } catch {
       toast.error("Erreur lors du téléchargement du document");
     }
+
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+    pendingDocTypeRef.current = null;
   };
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for KYC uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       {/* Card 1: Vérification KYC — Status banner */}
       <SectionCard title="Vérification KYC" id="kyc-status" className="animate-card-enter">
         <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -154,8 +176,13 @@ export function TabKyc({ data }: TabKycProps) {
                 <PillBadge variant="red"><XCircle className="inline h-3 w-3" /> Rejeté</PillBadge>
               )}
               {doc.status === "not_uploaded" && (
-                <PillButton variant="outline" size="sm" onClick={() => handleUpload(doc.type)}>
+                <PillButton variant="outline" size="sm" onClick={() => handleUploadClick(doc.type)} disabled={uploadMutation.isPending}>
                   <Upload className="h-3.5 w-3.5" /> Télécharger
+                </PillButton>
+              )}
+              {doc.status === "rejected" && (
+                <PillButton variant="outline" size="sm" onClick={() => handleUploadClick(doc.type)} disabled={uploadMutation.isPending}>
+                  <Upload className="h-3.5 w-3.5" /> Re-télécharger
                 </PillButton>
               )}
 

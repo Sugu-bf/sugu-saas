@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
-import { SectionCard, Field, PillInput, PillSelect } from "./settings-ui";
+import { useUpdateDriverProfile } from "@/features/driver/hooks";
+import { SectionCard, Field, PillInput, PillSelect, PillButton } from "./settings-ui";
+import { toast } from "sonner";
 import {
   Camera,
   Phone,
@@ -12,6 +14,8 @@ import {
   Star,
   CheckCircle,
   Clock,
+  Save,
+  Loader2,
 } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
@@ -36,6 +40,29 @@ export function TabProfile({ data }: TabProfileProps) {
   const [actionRadius, setActionRadius] = useState(String(p.actionRadius));
   const [language, setLanguage] = useState(p.language);
   const [timezone, setTimezone] = useState(p.timezone);
+
+  const updateProfileMutation = useUpdateDriverProfile();
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfileMutation.mutateAsync({
+        firstName,
+        lastName,
+        email,
+        phone,
+        phoneSecondary: phoneSecondary || null,
+        city,
+        quarter,
+        fullAddress,
+        actionRadius: Number(actionRadius),
+        language,
+        timezone,
+      });
+      toast.success("Profil mis à jour avec succès");
+    } catch {
+      toast.error("Erreur lors de la mise à jour du profil");
+    }
+  };
 
   // Star rendering
   const fullStars = Math.floor(p.rating);
@@ -104,8 +131,10 @@ export function TabProfile({ data }: TabProfileProps) {
                 value={city}
                 onChange={setCity}
                 options={[
-                  { value: "Bamako", label: "Bamako" },
+                  { value: "", label: "— Sélectionner —" },
                   { value: "Ouagadougou", label: "Ouagadougou" },
+                  { value: "Bobo-Dioulasso", label: "Bobo-Dioulasso" },
+                  { value: "Bamako", label: "Bamako" },
                   { value: "Dakar", label: "Dakar" },
                   { value: "Abidjan", label: "Abidjan" },
                 ]}
@@ -130,6 +159,15 @@ export function TabProfile({ data }: TabProfileProps) {
             </Field>
           </div>
         </SectionCard>
+
+        {/* Save button for profile */}
+        <div className="flex items-center justify-end gap-3">
+          <PillButton variant="outline">Annuler</PillButton>
+          <PillButton variant="primary" onClick={handleSaveProfile} disabled={updateProfileMutation.isPending}>
+            {updateProfileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Enregistrer le profil
+          </PillButton>
+        </div>
       </main>
 
       {/* ──── Aside column (xl:col-span-5) ──── */}
@@ -198,8 +236,8 @@ export function TabProfile({ data }: TabProfileProps) {
                 onChange={setLanguage}
                 prefix={<Globe className="h-3.5 w-3.5 text-gray-400" />}
                 options={[
-                  { value: "Français", label: "Français" },
-                  { value: "English", label: "English" },
+                  { value: "fr", label: "Français" },
+                  { value: "en", label: "English" },
                 ]}
               />
             </Field>
@@ -208,10 +246,11 @@ export function TabProfile({ data }: TabProfileProps) {
                 value={timezone}
                 onChange={setTimezone}
                 options={[
-                  { value: "Africa/Bamako (GMT+0)", label: "Africa/Bamako (GMT+0)" },
-                  { value: "Africa/Ouagadougou (GMT+0)", label: "Africa/Ouagadougou (GMT+0)" },
-                  { value: "Africa/Dakar (GMT+0)", label: "Africa/Dakar (GMT+0)" },
-                  { value: "Africa/Lagos (GMT+1)", label: "Africa/Lagos (GMT+1)" },
+                  { value: "Africa/Ouagadougou", label: "Africa/Ouagadougou (GMT+0)" },
+                  { value: "Africa/Bamako", label: "Africa/Bamako (GMT+0)" },
+                  { value: "Africa/Dakar", label: "Africa/Dakar (GMT+0)" },
+                  { value: "Africa/Lagos", label: "Africa/Lagos (GMT+1)" },
+                  { value: "Africa/Abidjan", label: "Africa/Abidjan (GMT+0)" },
                 ]}
               />
             </Field>
