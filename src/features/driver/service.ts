@@ -1541,6 +1541,7 @@ export async function deleteDriverAccount(data: { password: string; confirmText:
 // ── Mock Driver Settings Data (preserved for reference/fallback) ──
 
 // @ts-expect-error TS6133 — mock data preserved for reference/fallback
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _MOCK_DRIVER_SETTINGS = {
   profile: {
     firstName: "Amadou",
