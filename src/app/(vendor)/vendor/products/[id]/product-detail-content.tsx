@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
@@ -153,10 +154,11 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                 </div>
               )}
               {data.photos[selectedPhoto]?.url ? (
-                <img
+                <Image
                   src={data.photos[selectedPhoto].url}
                   alt={data.photos[selectedPhoto].alt || data.name}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
@@ -180,11 +182,11 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                   aria-label={`Photo ${i + 1}`}
                 >
                   {photo.url ? (
-                    <img
+                    <Image
                       src={photo.url}
                       alt={photo.alt || `Photo ${i + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-amber-50 text-xl dark:bg-gray-800">

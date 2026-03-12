@@ -26,11 +26,12 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
 
   // Cleanup abort controllers on unmount
   useEffect(() => {
+    const controllers = abortControllersRef.current;
     return () => {
-      abortControllersRef.current.forEach((controller) => {
+      controllers.forEach((controller) => {
         controller.abort();
       });
-      abortControllersRef.current.clear();
+      controllers.clear();
     };
   }, []);
 

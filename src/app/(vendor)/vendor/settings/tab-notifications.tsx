@@ -37,22 +37,18 @@ interface Channel {
   pro?: boolean;
 }
 
-// Event keys that map to backend eventPreferences
-const EVENT_KEYS = [
-  "new_order",
-  "payment_received",
-  "order_shipped",
-  "order_delivered",
-  "order_cancelled",
-  "low_stock",
-  "out_of_stock",
-  "new_review",
-  "new_support_message",
-  "weekly_report",
-  "promotion",
-] as const;
-
-type EventKey = typeof EVENT_KEYS[number];
+type EventKey =
+  | "new_order"
+  | "payment_received"
+  | "order_shipped"
+  | "order_delivered"
+  | "order_cancelled"
+  | "low_stock"
+  | "out_of_stock"
+  | "new_review"
+  | "new_support_message"
+  | "weekly_report"
+  | "promotion";
 
 interface EventRow {
   key: EventKey;
@@ -130,6 +126,7 @@ export function TabNotifications() {
   const updateNotificationsMutation = useUpdateNotifications();
 
   // Update channels when API data changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (settingsData) {
       setChannels(prev => prev.map(ch => {
@@ -148,6 +145,7 @@ export function TabNotifications() {
       setEvents(buildEventsFromApi());
     }
   }, [settingsData, buildEventsFromApi]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleChannel = (id: string) => {
     setChannels((c) => c.map((ch) => (ch.id === id ? { ...ch, enabled: !ch.enabled } : ch)));

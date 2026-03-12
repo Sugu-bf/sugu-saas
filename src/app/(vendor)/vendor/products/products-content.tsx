@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -350,11 +351,11 @@ function ProductCard({ product, delay }: { product: VendorProduct; delay: number
         {/* Product image */}
         <div className="relative mb-2 flex h-28 items-center justify-center overflow-hidden rounded-xl bg-gray-50/80 dark:bg-gray-800/40 lg:mb-3 lg:h-36">
           {product.image ? (
-            <img
+            <Image
               src={product.image}
               alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <span className="text-4xl lg:text-5xl">{product.emoji}</span>
@@ -533,13 +534,13 @@ function ProductRow({
           className="hidden h-4 w-4 rounded border-gray-300 text-sugu-500 focus:ring-sugu-500 lg:block"
           aria-label={`Sélectionner ${product.name}`}
         />
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50/80 dark:bg-gray-800/50 lg:h-10 lg:w-10">
+        <div className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-50/80 dark:bg-gray-800/50 lg:h-10 lg:w-10">
           {product.image ? (
-            <img
+            <Image
               src={product.image}
               alt={product.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
+              fill
+              className="object-cover"
             />
           ) : (
             <span className="text-lg lg:text-xl">{product.emoji}</span>

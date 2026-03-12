@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -190,12 +191,15 @@ export function StatsContent({ data }: { data: VendorStats }) {
               <div key={p.rank} className="flex items-center gap-3">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sugu-50 text-xs font-bold text-sugu-600">{p.rank}</span>
                 {p.image ? (
-                  <img
-                    src={p.image}
-                    alt={p.name}
-                    className="h-9 w-9 rounded-lg object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
-                  />
+                  <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
+                    <Image
+                      src={p.image}
+                      alt={p.name}
+                      fill
+                      className="object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                    />
+                  </div>
                 ) : null}
                 <span className={`text-xl ${p.image ? 'hidden' : ''}`}><Package className="h-5 w-5 text-gray-400" /></span>
                 <div className="flex-1 min-w-0">
@@ -229,22 +233,21 @@ export function StatsContent({ data }: { data: VendorStats }) {
             <div className="relative h-32 w-32">
               <svg viewBox="0 0 36 36" className="h-32 w-32 -rotate-90">
                 {(() => {
-                  let offset = 0;
                   const colors = ["#f97316", "#a855f7", "#3b82f6", "#10b981", "#f59e0b", "#9ca3af"];
-                  return data.categorySales.map((cat, i) => {
-                    const dash = cat.percent;
-                    const el = (
-                      <circle
-                        key={cat.name}
-                        cx="18" cy="18" r="15.9155"
-                        fill="none" stroke={colors[i]} strokeWidth="3"
-                        strokeDasharray={`${dash} ${100 - dash}`}
-                        strokeDashoffset={`-${offset}`}
-                      />
-                    );
-                    offset += dash;
-                    return el;
-                  });
+                  const segments = data.categorySales.reduce<{ name: string; dash: number; offset: number; color: string }[]>((acc, cat, i) => {
+                    const prevOffset = acc.length > 0 ? acc[acc.length - 1].offset + acc[acc.length - 1].dash : 0;
+                    acc.push({ name: cat.name, dash: cat.percent, offset: prevOffset, color: colors[i] });
+                    return acc;
+                  }, []);
+                  return segments.map((seg) => (
+                    <circle
+                      key={seg.name}
+                      cx="18" cy="18" r="15.9155"
+                      fill="none" stroke={seg.color} strokeWidth="3"
+                      strokeDasharray={`${seg.dash} ${100 - seg.dash}`}
+                      strokeDashoffset={`-${seg.offset}`}
+                    />
+                  ));
                 })()}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
