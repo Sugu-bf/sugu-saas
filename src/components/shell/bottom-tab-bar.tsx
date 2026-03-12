@@ -109,9 +109,11 @@ export function BottomTabBar({ role }: BottomTabBarProps) {
   }, [drawerOpen]);
 
   // Close drawer on route change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 

@@ -32,6 +32,7 @@ export function TabLegal() {
   const updateLegalMutation = useUpdateLegal();
 
   // Sync form state when API data loads/updates
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (apiLegal) {
       setBusinessName(apiLegal.businessName ?? "");
@@ -42,6 +43,7 @@ export function TabLegal() {
       setCgvAccepted(apiLegal.termsAccepted ?? true);
     }
   }, [apiLegal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSaveLegal = async () => {
     try {

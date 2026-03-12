@@ -24,6 +24,7 @@ export function TabDelivery() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Sync state when API data arrives
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (settingsData) {
       setPickupEnabled(settingsData.operations?.delivery?.pickup ?? false);
@@ -32,6 +33,7 @@ export function TabDelivery() {
       );
     }
   }, [settingsData]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSaveDelivery = async () => {
     try {

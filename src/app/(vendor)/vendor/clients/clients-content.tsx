@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -87,18 +87,18 @@ export function ClientsContent({ initialData }: ClientsContentProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Debounce search input
-  const searchTimeoutRef = useState<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
-      if (searchTimeoutRef[0]) clearTimeout(searchTimeoutRef[0]);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       const timeout = setTimeout(() => {
         setDebouncedSearch(value);
         setCurrentPage(1); // Reset to page 1 on new search
       }, 400);
-      searchTimeoutRef[0] = timeout;
+      searchTimeoutRef.current = timeout;
     },
-    [searchTimeoutRef],
+    [],
   );
 
   // Fetch clients with filters via React Query (inherits from initial data)

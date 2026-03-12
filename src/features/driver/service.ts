@@ -24,7 +24,7 @@ export async function getDriverDashboard(): Promise<DriverDashboardData> {
 
 // ── Mock Data ──────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export const _MOCK_DRIVER_DASHBOARD = {
   driverName: "Ousmane",
   date: "Samedi 8 Mars 2026",
@@ -1045,7 +1045,7 @@ export async function getDriverHistory(
 
 // ── Mock History Data ──────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export const _MOCK_HISTORY_ROWS = [
   {
     id: "hist-001",
@@ -1881,7 +1881,7 @@ export async function submitDriverWithdrawal(data: {
 
 // ── Mock Earnings Data (preserved for reference) ────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export const _MOCK_DRIVER_EARNINGS = {
   kpis: [
     {
@@ -1993,7 +1993,7 @@ export const _MOCK_DRIVER_EARNINGS = {
   ],
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export const _MOCK_PAYOUT_SETTINGS = [
   {
     id: "ps-1",

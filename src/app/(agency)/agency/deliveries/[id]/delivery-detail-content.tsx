@@ -481,6 +481,7 @@ export function DeliveryDetailContent({
   const completionPercent = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
   // Relative status update time
+  /* eslint-disable react-hooks/purity */
   const statusUpdateLabel = detailRow.statusUpdatedAt
     ? (() => {
         const diffSec = Math.floor((Date.now() - new Date(detailRow.statusUpdatedAt).getTime()) / 1000);
@@ -490,6 +491,7 @@ export function DeliveryDetailContent({
         return `il y a ${Math.floor(diffMin / 60)}h`;
       })()
     : "—";
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className="animate-fade-in space-y-4 lg:space-y-5">

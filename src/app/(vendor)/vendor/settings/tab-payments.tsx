@@ -34,6 +34,7 @@ export function TabPayments() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Sync state when API data loads
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (settingsData) {
       setOrangeNum(settingsData.profile.phone);
@@ -42,6 +43,7 @@ export function TabPayments() {
       else if (pm?.wave) setMethod("wave");
     }
   }, [settingsData]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSavePayment = async () => {
     try {

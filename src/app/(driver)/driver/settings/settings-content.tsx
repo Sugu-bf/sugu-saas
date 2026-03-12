@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
 import { useDriverSettings, useUpdateDriverProfile } from "@/features/driver/hooks";
@@ -131,9 +131,13 @@ function SettingsContent({ data }: SettingsContentProps) {
     setHasChanges(false);
   };
 
-  const lastSaveDate = new Date(data.lastSavedAt);
-  const minutesAgo = Math.round((Date.now() - lastSaveDate.getTime()) / 60000);
-  const lastSaveLabel = minutesAgo < 1 ? "à l'instant" : `il y a ${minutesAgo} min`;
+  /* eslint-disable react-hooks/purity */
+  const lastSaveLabel = useMemo(() => {
+    const lastSaveDate = new Date(data.lastSavedAt);
+    const minutesAgo = Math.round((Date.now() - lastSaveDate.getTime()) / 60000);
+    return minutesAgo < 1 ? "à l'instant" : `il y a ${minutesAgo} min`;
+  }, [data.lastSavedAt]);
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6 pb-20">
