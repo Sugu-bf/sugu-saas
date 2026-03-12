@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/tests/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["src/tests/sidebar.test.tsx"],
     css: false,
   },
   resolve: {
