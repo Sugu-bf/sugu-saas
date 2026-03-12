@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { X, Pencil, Percent, DollarSign, Loader2, Calendar, Package } from "lucide-react";
 import type { PromotedProduct } from "@/features/vendor/schema";
@@ -26,6 +27,7 @@ export function EditPromotionModal({
   const [endsAt, setEndsAt] = useState("");
 
   // Sync form with product when opened
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (product && open) {
       // Guess type from the product data
@@ -39,6 +41,7 @@ export function EditPromotionModal({
       setEndsAt("");
     }
   }, [product, open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!open || !product) return null;
 
@@ -106,11 +109,14 @@ export function EditPromotionModal({
         {/* Current info */}
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-800 dark:bg-gray-800/30">
           {product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              className="h-12 w-12 rounded-lg object-contain bg-white dark:bg-gray-800"
-            />
+            <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-white dark:bg-gray-800">
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                className="object-contain"
+              />
+            </div>
           ) : (
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400">
               <Package className="h-4 w-4 text-gray-400" />

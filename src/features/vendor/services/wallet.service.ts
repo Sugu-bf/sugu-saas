@@ -143,6 +143,7 @@ export async function getVendorWallet(): Promise<VendorWalletData> {
  * @deprecated Use submitWithdrawal() instead — this is kept for backward compat.
  */
 export async function requestPayout(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _amount: number,
 ): Promise<{ success: boolean }> {
   console.warn(

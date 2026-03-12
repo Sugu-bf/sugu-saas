@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type {
@@ -287,9 +288,13 @@ export function SettingsContent({ data }: SettingsContentProps) {
     setHasChanges(false);
   };
 
-  const lastSaveDate = new Date(data.lastSavedAt);
-  const minutesAgo = Math.round((Date.now() - lastSaveDate.getTime()) / 60000);
-  const lastSaveLabel = minutesAgo < 1 ? "à l'instant" : `il y a ${minutesAgo} min`;
+  /* eslint-disable react-hooks/purity */
+  const lastSaveLabel = useMemo(() => {
+    const lastSaveDate = new Date(data.lastSavedAt);
+    const minutesAgo = Math.round((Date.now() - lastSaveDate.getTime()) / 60000);
+    return minutesAgo < 1 ? "à l'instant" : `il y a ${minutesAgo} min`;
+  }, [data.lastSavedAt]);
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6 pb-20">
@@ -462,7 +467,9 @@ export function SettingsContent({ data }: SettingsContentProps) {
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Logo de la boutique</p>
                       <div className="mt-2 flex items-center gap-4">
                         {shop.logoUrl ? (
-                          <img src={shop.logoUrl} alt="Logo" className="h-16 w-16 rounded-xl object-cover" />
+                          <div className="relative h-16 w-16 overflow-hidden rounded-xl">
+                            <Image src={shop.logoUrl} alt="Logo" fill className="object-cover" />
+                          </div>
                         ) : (
                           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-sugu-500 text-xl font-bold text-white">
                             {shop.name?.charAt(0)?.toUpperCase() ?? "S"}
@@ -481,7 +488,7 @@ export function SettingsContent({ data }: SettingsContentProps) {
                       <div className="mt-2">
                         <div className="relative h-20 overflow-hidden rounded-xl bg-sugu-100 dark:bg-sugu-900/20">
                           {shop.bannerUrl ? (
-                            <img src={shop.bannerUrl} alt="Bannière" className="h-full w-full object-cover" />
+                            <Image src={shop.bannerUrl} alt="Bannière" fill className="object-cover" />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center"><Store className="h-8 w-8 text-gray-400 opacity-40" /></div>
                           )}

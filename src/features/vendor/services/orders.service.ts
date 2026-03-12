@@ -127,6 +127,7 @@ interface RawOrderDetail {
 export async function getVendorOrders(
   status?: string,
   page?: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _search?: string,
 ): Promise<VendorOrdersResponse> {
   const params: Record<string, string | number | boolean | undefined> = {
