@@ -1,21 +1,9 @@
 "use client";
 
-import { ErrorState } from "@/components/feedback";
+import { createPageError } from "@/components/feedback/create-page-error";
 
-export default function VendorDashboardError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <ErrorState
-        title="Erreur du tableau de bord"
-        description={error.message || "Impossible de charger le tableau de bord. Veuillez réessayer."}
-        onRetry={reset}
-      />
-    </div>
-  );
-}
+export default createPageError({
+  title: "Erreur du tableau de bord",
+  description: "Impossible de charger le tableau de bord. Veuillez réessayer.",
+  logPrefix: "[Vendor Dashboard]",
+});

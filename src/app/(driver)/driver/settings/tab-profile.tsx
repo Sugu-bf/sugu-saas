@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
 import { useUpdateDriverProfile } from "@/features/driver/hooks";
-import { SectionCard, Field, PillInput, PillSelect, PillButton } from "./settings-ui";
+import { SectionCard, Field, PillInput, PillSelect, PillButton } from "@/components/shared/settings-ui";
 import { toast } from "sonner";
 import {
   Camera,

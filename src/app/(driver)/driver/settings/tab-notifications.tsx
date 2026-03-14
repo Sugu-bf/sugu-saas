@@ -4,7 +4,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings } from "@/features/driver/schema";
 import { useUpdateDriverNotifications } from "@/features/driver/hooks";
-import { SectionCard, Toggle, PillBadge, PillButton, PillInput, Field } from "./settings-ui";
+import { SectionCard, Toggle, PillBadge, PillButton, PillInput, Field } from "@/components/shared/settings-ui";
+import { EventPreferencesTable, type EventRow } from "@/components/shared/event-preferences-table";
 import { toast } from "sonner";
 import {
   Save,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
-// Onglet 4 — Notifications
+// Onglet 4 — Notifications (Driver)
 // ────────────────────────────────────────────────────────────
 
 interface TabNotificationsProps {
@@ -54,8 +55,23 @@ export function TabNotifications({ data }: TabNotificationsProps) {
   // Channels state
   const [channels, setChannels] = useState(notif.channels.map((ch) => ({ ...ch })));
 
-  // Events state
-  const [events, setEvents] = useState(notif.events.map((ev) => ({ ...ev })));
+  // Events state — map to EventRow format for shared table
+  // Keep a stable iconKey map (id → original icon key string) to avoid fragile JSX ref comparison on save
+  const [iconKeyMap] = useState<Record<string, string>>(() =>
+    Object.fromEntries(notif.events.map((ev) => [ev.id, ev.icon]))
+  );
+
+  const [events, setEvents] = useState<EventRow[]>(
+    notif.events.map((ev) => ({
+      id: ev.id,
+      icon: EVENT_ICONS[ev.icon] ?? <Package className="h-4 w-4 text-gray-400" />,
+      label: ev.label,
+      sms: ev.sms,
+      email: ev.email,
+      push: ev.push,
+      whatsapp: ev.whatsapp,
+    }))
+  );
 
   // Quiet hours state
   const [quietEnabled, setQuietEnabled] = useState(notif.quietHours.enabled);
@@ -74,7 +90,15 @@ export function TabNotifications({ data }: TabNotificationsProps) {
     try {
       await updateNotifMutation.mutateAsync({
         channels,
-        events,
+        events: events.map((ev) => ({
+          id: ev.id,
+          icon: iconKeyMap[ev.id] ?? "package",
+          label: ev.label,
+          sms: ev.sms,
+          email: ev.email,
+          push: ev.push,
+          whatsapp: ev.whatsapp,
+        })),
         quietHours: { enabled: quietEnabled, from: quietFrom, to: quietTo },
       });
       toast.success("Préférences de notification sauvegardées");
@@ -107,38 +131,13 @@ export function TabNotifications({ data }: TabNotificationsProps) {
         </div>
       </SectionCard>
 
-      {/* ─── Card 2: Préférences par événement ─── */}
-      <SectionCard title="Préférences par événement" id="notif-events" className="animate-card-enter" style={{ animationDelay: "60ms" } as React.CSSProperties}>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Événement</th>
-                {["SMS", "Email", "Push", "WhatsApp"].map((h) => (
-                  <th key={h} className="w-16 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-              {events.map((ev, idx) => (
-                <tr key={ev.id} className="transition-colors hover:bg-white/30 dark:hover:bg-white/5">
-                  <td className="py-2.5">
-                    <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <span>{EVENT_ICONS[ev.icon] ?? <Package className="h-4 w-4 text-gray-400" />}</span>
-                      {ev.label}
-                    </span>
-                  </td>
-                  {(["sms", "email", "push", "whatsapp"] as const).map((key) => (
-                    <td key={key} className="py-2.5 text-center">
-                      <MiniToggle checked={ev[key]} onChange={() => toggleEvent(idx, key)} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </SectionCard>
+      {/* ─── Card 2: Préférences par événement (shared) ─── */}
+      <EventPreferencesTable
+        events={events}
+        onToggle={toggleEvent}
+        className="animate-card-enter"
+        style={{ animationDelay: "60ms" } as React.CSSProperties}
+      />
 
       {/* ─── Card 3: Mode silencieux ─── */}
       <SectionCard title="Mode silencieux" id="notif-quiet" className="animate-card-enter" style={{ animationDelay: "120ms" } as React.CSSProperties}>
@@ -182,25 +181,5 @@ export function TabNotifications({ data }: TabNotificationsProps) {
         </PillButton>
       </div>
     </div>
-  );
-}
-
-/** Mini inline toggle for the matrix */
-function MiniToggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors duration-200",
-        checked ? "bg-sugu-500" : "bg-gray-200 dark:bg-gray-700",
-      )}
-    >
-      <span
-        className="inline-block rounded-full bg-white shadow-sm transition-transform duration-200"
-        style={{ width: "14px", height: "14px", transform: checked ? "translateX(18px)" : "translateX(2px)" }}
-      />
-    </button>
   );
 }

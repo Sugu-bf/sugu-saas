@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { SectionCard, Toggle, PillBadge, PillButton } from "./settings-ui";
+import { SectionCard, Toggle, PillBadge, PillButton } from "@/components/shared/settings-ui";
+import { EventPreferencesTable, type EventRow } from "@/components/shared/event-preferences-table";
 import { useUpdateNotifications, useVendorSettings } from "@/features/vendor/hooks";
 import {
   Save,
@@ -50,30 +50,20 @@ type EventKey =
   | "weekly_report"
   | "promotion";
 
-interface EventRow {
-  key: EventKey;
-  icon: React.ReactNode;
-  label: string;
-  sms: boolean;
-  email: boolean;
-  push: boolean;
-  whatsapp: boolean;
-}
-
 // Default event rows (used when backend has no eventPreferences saved)
 function getDefaultEvents(emailAlerts: {newOrder: boolean; lowStock: boolean; marketing: boolean}): EventRow[] {
   return [
-    { key: "new_order",     icon: <ShoppingCart className="h-4 w-4 text-sugu-500" />,   label: "Nouvelle commande",   sms: true,  email: emailAlerts.newOrder, push: true,  whatsapp: true },
-    { key: "payment_received", icon: <Banknote className="h-4 w-4 text-green-500" />,   label: "Paiement reçu",       sms: true,  email: true,                push: false, whatsapp: false },
-    { key: "order_shipped",  icon: <Truck className="h-4 w-4 text-blue-500" />,          label: "Commande expédiée",   sms: false, email: true,                push: false, whatsapp: false },
-    { key: "order_delivered", icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, label: "Commande livrée",     sms: false, email: true,                push: false, whatsapp: false },
-    { key: "order_cancelled", icon: <XCircle className="h-4 w-4 text-red-500" />,        label: "Commande annulée",    sms: true,  email: true,                push: true,  whatsapp: false },
-    { key: "low_stock",       icon: <AlertTriangle className="h-4 w-4 text-amber-500" />, label: "Stock faible",       sms: true,  email: emailAlerts.lowStock, push: true,  whatsapp: false },
-    { key: "out_of_stock",    icon: <CircleOff className="h-4 w-4 text-red-600" />,       label: "Rupture de stock",   sms: true,  email: true,                push: true,  whatsapp: true },
-    { key: "new_review",      icon: <Star className="h-4 w-4 text-amber-400" />,          label: "Nouvel avis client", sms: false, email: true,                push: false, whatsapp: false },
-    { key: "new_support_message", icon: <MessageSquare className="h-4 w-4 text-blue-500" />, label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
-    { key: "weekly_report",   icon: <BarChart3 className="h-4 w-4 text-indigo-500" />,    label: "Rapport hebdomadaire", sms: false, email: true,              push: false, whatsapp: false },
-    { key: "promotion",       icon: <PartyPopper className="h-4 w-4 text-pink-500" />,    label: "Promotion / Offre SUGU", sms: false, email: emailAlerts.marketing, push: false, whatsapp: false },
+    { id: "new_order",     icon: <ShoppingCart className="h-4 w-4 text-sugu-500" />,   label: "Nouvelle commande",   sms: true,  email: emailAlerts.newOrder, push: true,  whatsapp: true },
+    { id: "payment_received", icon: <Banknote className="h-4 w-4 text-green-500" />,   label: "Paiement reçu",       sms: true,  email: true,                push: false, whatsapp: false },
+    { id: "order_shipped",  icon: <Truck className="h-4 w-4 text-blue-500" />,          label: "Commande expédiée",   sms: false, email: true,                push: false, whatsapp: false },
+    { id: "order_delivered", icon: <CheckCircle2 className="h-4 w-4 text-green-500" />, label: "Commande livrée",     sms: false, email: true,                push: false, whatsapp: false },
+    { id: "order_cancelled", icon: <XCircle className="h-4 w-4 text-red-500" />,        label: "Commande annulée",    sms: true,  email: true,                push: true,  whatsapp: false },
+    { id: "low_stock",       icon: <AlertTriangle className="h-4 w-4 text-amber-500" />, label: "Stock faible",       sms: true,  email: emailAlerts.lowStock, push: true,  whatsapp: false },
+    { id: "out_of_stock",    icon: <CircleOff className="h-4 w-4 text-red-600" />,       label: "Rupture de stock",   sms: true,  email: true,                push: true,  whatsapp: true },
+    { id: "new_review",      icon: <Star className="h-4 w-4 text-amber-400" />,          label: "Nouvel avis client", sms: false, email: true,                push: false, whatsapp: false },
+    { id: "new_support_message", icon: <MessageSquare className="h-4 w-4 text-blue-500" />, label: "Nouveau message support", sms: true, email: true, push: true, whatsapp: false },
+    { id: "weekly_report",   icon: <BarChart3 className="h-4 w-4 text-indigo-500" />,    label: "Rapport hebdomadaire", sms: false, email: true,              push: false, whatsapp: false },
+    { id: "promotion",       icon: <PartyPopper className="h-4 w-4 text-pink-500" />,    label: "Promotion / Offre SUGU", sms: false, email: emailAlerts.marketing, push: false, whatsapp: false },
   ];
 }
 
@@ -99,9 +89,8 @@ export function TabNotifications() {
     const defaults = getDefaultEvents(emailAlerts);
 
     if (apiEventPreferences && apiEventPreferences.length > 0) {
-      // Map backend eventPreferences to our EventRow format
       return defaults.map(defaultRow => {
-        const apiEvent = apiEventPreferences.find(e => e.event === defaultRow.key);
+        const apiEvent = apiEventPreferences.find(e => e.event === defaultRow.id);
         if (apiEvent) {
           return {
             ...defaultRow,
@@ -167,13 +156,13 @@ export function TabNotifications() {
     const whatsappChannel = channels.find((c) => c.id === "whatsapp");
 
     // Build email alerts from the events matrix
-    const newOrderEmailEnabled = events.find((e) => e.key === "new_order")?.email ?? true;
-    const lowStockEmailEnabled = events.find((e) => e.key === "low_stock")?.email ?? true;
-    const marketingEmailEnabled = events.find((e) => e.key === "promotion")?.email ?? false;
+    const newOrderEmailEnabled = events.find((e) => e.id === "new_order")?.email ?? true;
+    const lowStockEmailEnabled = events.find((e) => e.id === "low_stock")?.email ?? true;
+    const marketingEmailEnabled = events.find((e) => e.id === "promotion")?.email ?? false;
 
     // Build event preferences array for the backend
     const eventPreferences = events.map(ev => ({
-      event: ev.key,
+      event: ev.id as EventKey,
       sms: ev.sms && (smsChannel?.enabled ?? true),
       email: ev.email && (emailChannel?.enabled ?? true),
       push: ev.push && (pushChannel?.enabled ?? false),
@@ -228,38 +217,11 @@ export function TabNotifications() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 2: Préférences par événement ─── */}
-      <SectionCard title="Préférences par événement" id="notif-events">
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Événement</th>
-                {["SMS", "Email", "Push", "WhatsApp"].map((h) => (
-                  <th key={h} className="py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-400 w-16">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-              {events.map((ev, idx) => (
-                <tr key={ev.key} className="transition-colors hover:bg-white/30 dark:hover:bg-white/5">
-                  <td className="py-2.5">
-                    <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <span>{ev.icon}</span>
-                      {ev.label}
-                    </span>
-                  </td>
-                  {(["sms", "email", "push", "whatsapp"] as const).map((key) => (
-                    <td key={key} className="py-2.5 text-center">
-                      <MiniToggle checked={ev[key]} onChange={() => toggleEvent(idx, key)} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </SectionCard>
+      {/* ─── Card 2: Préférences par événement (shared) ─── */}
+      <EventPreferencesTable
+        events={events}
+        onToggle={toggleEvent}
+      />
 
       {/* ─── Save button ─── */}
       <div className="flex items-center gap-3">
@@ -282,25 +244,5 @@ export function TabNotifications() {
         )}
       </div>
     </div>
-  );
-}
-
-/** Mini inline toggle for the matrix */
-function MiniToggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors duration-200",
-        checked ? "bg-sugu-500" : "bg-gray-200 dark:bg-gray-700",
-      )}
-    >
-      <span
-        className="inline-block rounded-full bg-white shadow-sm transition-transform duration-200"
-        style={{ width: "14px", height: "14px", transform: checked ? "translateX(18px)" : "translateX(2px)" }}
-      />
-    </button>
   );
 }

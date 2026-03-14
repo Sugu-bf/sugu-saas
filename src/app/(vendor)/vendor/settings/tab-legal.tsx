@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SectionCard, Toggle, PillInput, PillButton, Field } from "./settings-ui";
+import { SectionCard, Toggle, PillInput, PillButton, Field } from "@/components/shared/settings-ui";
 import { ExternalLink, Loader2, Save, CheckCircle2 } from "lucide-react";
 import { useUpdateLegal, useVendorSettings } from "@/features/vendor/hooks";
 

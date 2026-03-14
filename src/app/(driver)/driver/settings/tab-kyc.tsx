@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { DriverSettings, KycDocStatus } from "@/features/driver/schema";
 import { useUploadKycDocument } from "@/features/driver/hooks";
-import { SectionCard, PillBadge, PillButton } from "./settings-ui";
+import { SectionCard, PillBadge, PillButton } from "@/components/shared/settings-ui";
 import { toast } from "sonner";
 import {
   FileText,

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { SectionCard, PillBadge, PillButton } from "./settings-ui";
+import { SectionCard, PillBadge, PillButton } from "@/components/shared/settings-ui";
 import { Download, Star, Check, X as XIcon, CheckCircle2 } from "lucide-react";
 import { useVendorSettings } from "@/features/vendor/hooks";
 

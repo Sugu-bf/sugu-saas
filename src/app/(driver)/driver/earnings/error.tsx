@@ -1,24 +1,9 @@
 "use client";
 
-import { ErrorState } from "@/components/feedback";
+import { createPageError } from "@/components/feedback/create-page-error";
 
-export default function DriverEarningsError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <ErrorState
-        title="Erreur des gains"
-        description={
-          error.message ||
-          "Une erreur est survenue lors du chargement de vos gains."
-        }
-        onRetry={reset}
-      />
-    </div>
-  );
-}
+export default createPageError({
+  title: "Erreur des gains",
+  description: "Une erreur est survenue lors du chargement de vos gains.",
+  logPrefix: "[Driver Gains]",
+});

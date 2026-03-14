@@ -1,6 +1,6 @@
 "use client";
 
-import { SectionCard, PillBadge } from "./settings-ui";
+import { SectionCard, PillBadge } from "@/components/shared/settings-ui";
 import { MessageCircle, BarChart3, Facebook, BookOpen, Puzzle } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────

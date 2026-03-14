@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard, Toggle, PillInput, PillBadge, PillButton, Field } from "./settings-ui";
+import { SectionCard, Toggle, PillInput, PillBadge, PillButton } from "@/components/shared/settings-ui";
+import { PasswordSection } from "@/components/shared/settings-security/password-section";
+import { SessionsList, type UnifiedSession } from "@/components/shared/settings-security/sessions-list";
 import {
-  Eye, EyeOff, Shield, Key, Loader2, Monitor, MapPin, Clock,
-  CheckCircle2, CircleDot, ShieldOff, ShieldCheck, QrCode,
+  Shield, Key, Loader2, MapPin, Clock,
+  CheckCircle2, ShieldOff, ShieldCheck, QrCode,
   Copy, Check, AlertTriangle, Globe,
 } from "lucide-react";
 import {
@@ -25,22 +27,12 @@ import {
 } from "@/features/vendor/hooks";
 
 // ────────────────────────────────────────────────────────────
-// Onglet 5 — Sécurité (Production-grade)
+// Onglet 5 — Sécurité (Production-grade, Vendor)
 // ────────────────────────────────────────────────────────────
-
-type PasswordStrength = "weak" | "medium" | "strong";
 
 export function TabSecurity() {
   // Fetch security state from API via React Query
   const { data: settingsData } = useVendorSettings();
-
-  const [currentPwd, setCurrentPwd] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
-  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
-  const [showNewPwd, setShowNewPwd] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // 2FA state
   const [show2FASetup, setShow2FASetup] = useState(false);
@@ -73,47 +65,16 @@ export function TabSecurity() {
   // Security alerts
   const suspiciousAlert = settingsData?.security?.suspiciousLoginAlert ?? true;
 
-  const getStrength = (pwd: string): PasswordStrength => {
-    if (pwd.length < 6) return "weak";
-    if (pwd.length < 10 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return "medium";
-    return "strong";
-  };
-
-  const strength = getStrength(newPwd);
-  const strengthColors = { weak: "bg-red-500", medium: "bg-amber-500", strong: "bg-green-500" };
-  const strengthLabels = { weak: "Faible", medium: "Moyen", strong: "Fort" };
-  const strengthWidths = { weak: "33%", medium: "66%", strong: "100%" };
-
   /** Handle password update */
-  const handleUpdatePassword = async () => {
-    setPasswordError(null);
-    setPasswordSuccess(false);
-
-    if (newPwd !== confirmPwd) {
-      setPasswordError("Les mots de passe ne correspondent pas.");
-      return;
+  const handleUpdatePassword = async (currentPassword: string, newPassword: string, newPasswordConfirmation: string) => {
+    if (newPassword.length < 8) {
+      throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
     }
-
-    if (newPwd.length < 8) {
-      setPasswordError("Le mot de passe doit contenir au moins 8 caractères.");
-      return;
-    }
-
-    try {
-      await updatePasswordMutation.mutateAsync({
-        currentPassword: currentPwd,
-        newPassword: newPwd,
-        newPasswordConfirmation: confirmPwd,
-      });
-      setPasswordSuccess(true);
-      setCurrentPwd("");
-      setNewPwd("");
-      setConfirmPwd("");
-      setTimeout(() => setPasswordSuccess(false), 5000);
-    } catch (err) {
-      setPasswordError("Le mot de passe actuel est incorrect ou la requête a échoué.");
-      console.error("[security] Password update failed:", err);
-    }
+    await updatePasswordMutation.mutateAsync({
+      currentPassword,
+      newPassword,
+      newPasswordConfirmation,
+    });
   };
 
   /** Handle enabling 2FA */
@@ -173,11 +134,15 @@ export function TabSecurity() {
   };
 
   /** Copy recovery codes to clipboard */
-  const handleCopyRecoveryCodes = () => {
+  const handleCopyRecoveryCodes = async () => {
     if (!recoveryCodes?.length) return;
-    navigator.clipboard?.writeText(recoveryCodes.join("\n"));
-    setCopiedCodes(true);
-    setTimeout(() => setCopiedCodes(false), 2000);
+    try {
+      await navigator.clipboard.writeText(recoveryCodes.join("\n"));
+      setCopiedCodes(true);
+      setTimeout(() => setCopiedCodes(false), 2000);
+    } catch (err) {
+      console.error("[security] Clipboard copy failed:", err);
+    }
   };
 
   /** Handle regenerating recovery codes */
@@ -218,71 +183,32 @@ export function TabSecurity() {
     }
   };
 
+  // Map vendor sessions to unified format
+  const unifiedSessions: UnifiedSession[] = (activeSessions ?? []).map((s) => ({
+    id: s.id,
+    device: s.device,
+    browser: s.browser,
+    ip: s.ip,
+    location: s.location,
+    time: s.time,
+    current: s.current,
+  }));
+
   return (
     <div className="space-y-6">
-      {/* ─── Card 1: Mot de passe ─── */}
-      <SectionCard title="Mot de passe" id="security-password">
-        <div className="mt-5 space-y-4">
-          <Field label="Mot de passe actuel">
-            <PillInput
-              type={showCurrentPwd ? "text" : "password"}
-              value={currentPwd}
-              onChange={setCurrentPwd}
-              suffix={
-                <button onClick={() => setShowCurrentPwd(!showCurrentPwd)} className="text-gray-400 hover:text-gray-600">
-                  {showCurrentPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              }
-            />
-          </Field>
-          <Field label="Nouveau mot de passe">
-            <PillInput
-              type={showNewPwd ? "text" : "password"}
-              value={newPwd}
-              onChange={setNewPwd}
-              suffix={
-                <button onClick={() => setShowNewPwd(!showNewPwd)} className="text-gray-400 hover:text-gray-600">
-                  {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              }
-            />
-            {newPwd && (
-              <div className="mt-2 space-y-1">
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                  <div className={cn("h-full rounded-full transition-all duration-300", strengthColors[strength])} style={{ width: strengthWidths[strength] }} />
-                </div>
-                <p className={cn("text-xs font-medium", strength === "strong" ? "text-green-600" : strength === "medium" ? "text-amber-600" : "text-red-600")}>
-                  {strengthLabels[strength]}
-                </p>
-              </div>
-            )}
-          </Field>
-          <Field label="Confirmer le nouveau mot de passe">
-            <PillInput type="password" value={confirmPwd} onChange={setConfirmPwd} />
-          </Field>
-          {passwordError && (
-            <p className="text-xs text-red-500">{passwordError}</p>
-          )}
-          {passwordSuccess && (
-            <p className="text-xs text-green-600"><CheckCircle2 className="inline h-3 w-3" /> Mot de passe mis à jour avec succès.</p>
-          )}
-          <div className="flex flex-wrap items-center justify-between">
-            <PillButton
-              variant="outline"
-              onClick={handleUpdatePassword}
-              disabled={updatePasswordMutation.isPending || !currentPwd || !newPwd || !confirmPwd}
-            >
-              {updatePasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Mettre à jour le mot de passe
-            </PillButton>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              ※ Au moins 8 caractères, 1 majuscule, 1 chiffre
-            </span>
-          </div>
-        </div>
-      </SectionCard>
+      {/* ─── Card 1: Mot de passe (shared) ─── */}
+      <PasswordSection
+        onSubmit={handleUpdatePassword}
+        isPending={updatePasswordMutation.isPending}
+        buttonVariant="outline"
+        extraContent={
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            ※ Au moins 8 caractères, 1 majuscule, 1 chiffre
+          </span>
+        }
+      />
 
-      {/* ─── Card 2: 2FA (Fortify-based) ─── */}
+      {/* ─── Card 2: 2FA (Fortify-based) — vendor-specific ─── */}
       <SectionCard title="Authentification à deux facteurs (2FA)" id="security-2fa">
         <div className="mt-4 space-y-4">
           {/* 2FA Status Badge */}
@@ -333,7 +259,7 @@ export function TabSecurity() {
                 ) : qrCodeData?.svg ? (
                   <div
                     className="[&_svg]:h-48 [&_svg]:w-48"
-                    dangerouslySetInnerHTML={{ __html: qrCodeData.svg }}
+                    dangerouslySetInnerHTML={{ __html: _sanitizeSvg(qrCodeData.svg) }}
                   />
                 ) : (
                   <div className="flex h-48 w-48 items-center justify-center text-sm text-gray-400">
@@ -496,69 +422,19 @@ export function TabSecurity() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 3: Sessions actives ─── */}
-      <SectionCard title="Sessions actives" id="security-sessions">
-        <div className="mt-4 space-y-2">
-          {sessionsLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-              <span className="ml-2 text-sm text-gray-500">Chargement des sessions...</span>
-            </div>
-          ) : activeSessions && activeSessions.length > 0 ? (
-            activeSessions.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
-                <Monitor className="h-5 w-5 text-gray-400" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {s.device}
-                      {s.browser ? ` — ${s.browser}` : ""}
-                    </span>
-                    {s.current && <PillBadge variant="green"><CircleDot className="inline h-3 w-3 text-green-500" /> Session actuelle</PillBadge>}
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    {s.ip && <><Globe className="inline h-3 w-3" /> {s.ip} • </>}
-                    <MapPin className="inline h-3 w-3" /> {s.location}
-                    {s.time && <> • <Clock className="inline h-3 w-3" /> {_formatTimeAgo(s.time)}</>}
-                  </p>
-                </div>
-                {!s.current && (
-                  <PillButton
-                    variant="danger-outline"
-                    size="sm"
-                    onClick={() => handleRevokeSession(s.id)}
-                    disabled={revokeSessionMutation.isPending}
-                  >
-                    {revokeSessionMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                    Déconnecter
-                  </PillButton>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="py-4 text-center">
-              <Monitor className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Seule votre session actuelle est active.
-              </p>
-            </div>
-          )}
-        </div>
-        {activeSessions && activeSessions.length > 1 && (
-          <PillButton
-            variant="danger-outline"
-            size="sm"
-            className="mt-3"
-            onClick={handleRevokeOtherSessions}
-            disabled={revokeOtherSessionsMutation.isPending}
-          >
-            {revokeOtherSessionsMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            Déconnecter toutes les autres sessions
-          </PillButton>
-        )}
-      </SectionCard>
+      {/* ─── Card 3: Sessions actives (shared) ─── */}
+      <SessionsList
+        sessions={unifiedSessions}
+        onRevoke={handleRevokeSession}
+        onRevokeAll={handleRevokeOtherSessions}
+        isRevoking={revokeSessionMutation.isPending}
+        isRevokingAll={revokeOtherSessionsMutation.isPending}
+        isLoading={sessionsLoading}
+        revokeLabel="Déconnecter"
+        revokeAllLabel="Déconnecter toutes les autres sessions"
+      />
 
-      {/* ─── Card 4: Alertes de sécurité ─── */}
+      {/* ─── Card 4: Alertes de sécurité (vendor-specific) ─── */}
       <SectionCard title="Alertes de sécurité" id="security-alerts">
         <div className="mt-4">
           <div className="flex items-center gap-3 rounded-xl bg-white/30 px-4 py-3 backdrop-blur dark:bg-white/5">
@@ -576,7 +452,7 @@ export function TabSecurity() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 5: Historique de connexion ─── */}
+      {/* ─── Card 5: Historique de connexion (vendor-specific) ─── */}
       <SectionCard title="Historique de connexion" id="security-history">
         <div className="mt-4">
           {historyLoading ? (
@@ -634,6 +510,19 @@ export function TabSecurity() {
   );
 }
 
+/** Sanitize SVG string to prevent XSS — strips scripts, event handlers, and data URIs */
+function _sanitizeSvg(svg: string): string {
+  return svg
+    // Remove script tags and their content
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    // Remove on* event handlers (onclick, onload, onerror, etc.)
+    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+    // Remove javascript: protocol URLs
+    .replace(/javascript\s*:/gi, "blocked:")
+    // Remove data: URIs except safe image types
+    .replace(/data\s*:\s*(?!image\/(png|jpeg|gif|svg\+xml))/gi, "blocked:");
+}
+
 /** Format ISO time string to relative time */
 function _formatTimeAgo(time: string): string {
   try {
@@ -653,3 +542,4 @@ function _formatTimeAgo(time: string): string {
     return time;
   }
 }
+

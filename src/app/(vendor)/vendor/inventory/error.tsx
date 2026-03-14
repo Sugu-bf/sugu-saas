@@ -1,20 +1,9 @@
 "use client";
 
-import { ErrorState } from "@/components/feedback/error-state";
+import { createPageError } from "@/components/feedback/create-page-error";
 
-export default function InventoryError({
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return (
-    <div className="mx-auto max-w-7xl py-12">
-      <ErrorState
-        title="Impossible de charger l'inventaire"
-        description="Une erreur est survenue lors du chargement des données de stock. Veuillez réessayer."
-        onRetry={reset}
-      />
-    </div>
-  );
-}
+export default createPageError({
+  title: "Erreur de chargement",
+  description: "Impossible de charger l'inventaire. Veuillez réessayer.",
+  logPrefix: "[Vendor Inventaire]",
+});

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { DriverSettings } from "@/features/driver/schema";
 import { useUpdateDriverVehicle } from "@/features/driver/hooks";
-import { SectionCard, Field, PillInput, PillSelect, PillBadge, PillButton } from "./settings-ui";
+import { SectionCard, Field, PillInput, PillSelect, PillBadge, PillButton } from "@/components/shared/settings-ui";
 import { toast } from "sonner";
 import {
   Bike,

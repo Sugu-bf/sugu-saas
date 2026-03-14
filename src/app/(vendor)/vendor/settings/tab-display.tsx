@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard, Toggle, PillSelect, PillBadge } from "./settings-ui";
+import { SectionCard, Toggle, PillSelect, PillBadge } from "@/components/shared/settings-ui";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { useVendorSettings } from "@/features/vendor/hooks";
 

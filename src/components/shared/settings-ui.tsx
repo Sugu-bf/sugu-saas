@@ -291,3 +291,24 @@ export function InfoLine({
     </div>
   );
 }
+
+/** Mini inline toggle for notification event matrix */
+export function MiniToggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+      className={cn(
+        "relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors duration-200",
+        checked ? "bg-sugu-500" : "bg-gray-200 dark:bg-gray-700",
+      )}
+    >
+      <span
+        className="inline-block rounded-full bg-white shadow-sm transition-transform duration-200"
+        style={{ width: "14px", height: "14px", transform: checked ? "translateX(18px)" : "translateX(2px)" }}
+      />
+    </button>
+  );
+}

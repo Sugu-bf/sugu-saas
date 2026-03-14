@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard, Toggle, PillInput, PillBadge, PillButton, InfoLine, Field } from "./settings-ui";
+import { SectionCard, Toggle, PillInput, PillBadge, PillButton, InfoLine, Field } from "@/components/shared/settings-ui";
 import { Download, Smartphone, Building2, Phone, CheckCircle2, Save, Loader2, FileText } from "lucide-react";
 import { useVendorSettings, useUpdateOperations, useInvoices } from "@/features/vendor/hooks";
 

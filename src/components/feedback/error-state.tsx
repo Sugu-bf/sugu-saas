@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
@@ -8,17 +9,30 @@ interface ErrorStateProps {
   description?: string;
   onRetry?: () => void;
   className?: string;
+  /** The caught error object — used for logging. */
+  error?: Error & { digest?: string };
+  /** Prefix for console.error logging, e.g. "[Driver Livraisons]". */
+  logPrefix?: string;
 }
 
 /**
  * Error state component for failed data fetching or processing.
+ * Optionally logs the error to console when `logPrefix` is provided.
  */
 export function ErrorState({
   title = "Une erreur est survenue",
   description = "Impossible de charger les données. Veuillez réessayer.",
   onRetry,
   className,
+  error,
+  logPrefix,
 }: ErrorStateProps) {
+  useEffect(() => {
+    if (logPrefix && error) {
+      console.error(`${logPrefix} page error:`, error);
+    }
+  }, [logPrefix, error]);
+
   return (
     <div
       className={cn(
