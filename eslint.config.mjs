@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Static assets & generated files:
     "public/**",
+    "report/**",
   ]),
 ]);
 
