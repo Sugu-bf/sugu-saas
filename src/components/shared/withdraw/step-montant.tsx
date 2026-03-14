@@ -10,7 +10,7 @@ interface StepMontantProps {
   data: WithdrawFormData;
   onChange: (field: keyof WithdrawFormData, value: string) => void;
   availableBalance: number;
-  config: WithdrawConfig;
+  config: WithdrawConfig<unknown>;
 }
 
 export function StepMontant(props: StepMontantProps) {

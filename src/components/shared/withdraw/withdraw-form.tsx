@@ -26,10 +26,9 @@ import { StepConfirmation } from "./step-confirmation";
 
 // ── Mutation interface (compatible with TanStack useMutation) ──
 
-interface SubmitMutation {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface SubmitMutation<P = Record<string, unknown>> {
   mutate: (
-    payload: any,
+    payload: P,
     options: {
       onSuccess: () => void;
       onError: (err: unknown) => void;
@@ -40,19 +39,19 @@ interface SubmitMutation {
 
 // ── Props ───────────────────────────────────────────────────
 
-interface WithdrawFormProps {
-  config: WithdrawConfig;
+interface WithdrawFormProps<P = Record<string, unknown>> {
+  config: WithdrawConfig<P>;
   balance: number;
   payoutSettings: SharedPayoutSetting[];
-  submitMutation: SubmitMutation;
+  submitMutation: SubmitMutation<P>;
 }
 
-export function WithdrawForm({
+export function WithdrawForm<P = Record<string, unknown>>({
   config,
   balance,
   payoutSettings,
   submitMutation,
-}: WithdrawFormProps) {
+}: WithdrawFormProps<P>) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] =
@@ -112,7 +111,7 @@ export function WithdrawForm({
     }
 
     setCurrentStep((s) => Math.min(s + 1, WITHDRAW_STEPS.length));
-  }, [currentStep, formData, balance, config.minWithdrawalAmount]);
+  }, [currentStep, formData, balance, config.minWithdrawalAmount, payoutSettings]);
 
   const goPrev = useCallback(() => {
     setCurrentStep((s) => Math.max(s - 1, 1));

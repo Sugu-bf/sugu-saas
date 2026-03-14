@@ -61,7 +61,7 @@ export interface QuickPercent {
 
 // ── Withdraw Config object (parametrises the wizard) ────────
 
-export interface WithdrawConfig {
+export interface WithdrawConfig<P = Record<string, unknown>> {
   // Routes
   backHref: string;
   backLabel: string;
@@ -79,7 +79,7 @@ export interface WithdrawConfig {
   requiresPin: boolean;
 
   // Submit payload builder
-  submitPayload: (data: WithdrawFormData) => Record<string, unknown>;
+  submitPayload: (data: WithdrawFormData) => P;
 
   // Step indicator style
   stepIndicatorVariant: "driver" | "vendor";

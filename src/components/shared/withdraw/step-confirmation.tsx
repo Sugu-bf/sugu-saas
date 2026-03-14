@@ -24,7 +24,7 @@ interface StepConfirmationProps {
   availableBalance: number;
   isSubmitting: boolean;
   onSubmit?: () => void;
-  config: WithdrawConfig;
+  config: WithdrawConfig<unknown>;
 }
 
 export function StepConfirmation(props: StepConfirmationProps) {

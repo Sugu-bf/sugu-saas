@@ -11,7 +11,7 @@ interface StepMethodeProps {
   data: WithdrawFormData;
   onChange: (field: keyof WithdrawFormData, value: string) => void;
   payoutSettings: SharedPayoutSetting[];
-  config: WithdrawConfig;
+  config: WithdrawConfig<unknown>;
 }
 
 export function StepMethode({

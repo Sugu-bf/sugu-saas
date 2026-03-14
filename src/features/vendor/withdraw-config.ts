@@ -1,6 +1,6 @@
 import type { WithdrawConfig, WithdrawFormData } from "@/components/shared/withdraw/types";
 
-export const VENDOR_WITHDRAW_CONFIG: WithdrawConfig = {
+export const VENDOR_WITHDRAW_CONFIG = {
   // Routes
   backHref: "/vendor/wallet",
   backLabel: "Retour au portefeuille",
@@ -65,4 +65,4 @@ export const VENDOR_WITHDRAW_CONFIG: WithdrawConfig = {
 
   // Title
   titleStyle: "vendor",
-};
+} satisfies WithdrawConfig;

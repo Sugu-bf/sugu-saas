@@ -1,6 +1,6 @@
 import type { WithdrawConfig, WithdrawFormData } from "@/components/shared/withdraw/types";
 
-export const DRIVER_WITHDRAW_CONFIG: WithdrawConfig = {
+export const DRIVER_WITHDRAW_CONFIG = {
   // Routes
   backHref: "/driver/earnings",
   backLabel: "Retour aux gains",
@@ -58,4 +58,4 @@ export const DRIVER_WITHDRAW_CONFIG: WithdrawConfig = {
 
   // Title
   titleStyle: "driver",
-};
+} satisfies WithdrawConfig;
