@@ -9,12 +9,14 @@ import { useUpdateLegal, useVendorSettings } from "@/features/vendor/hooks";
 // Onglet 9 — Mentions légales
 // ────────────────────────────────────────────────────────────
 
+const MARKETPLACE_URL = "https://sugu.pro";
+
 const LEGAL_DOCS = [
-  { title: "Conditions Générales de Vente (CGV)", description: "Règles applicables à toutes les transactions sur la marketplace SUGU.", url: "#" },
-  { title: "Politique de Confidentialité", description: "Comment SUGU collecte, utilise et protège vos données personnelles.", url: "#" },
-  { title: "Conditions Générales d'Utilisation (CGU)", description: "Règles d'utilisation de la plateforme SUGU Pro.", url: "#" },
-  { title: "Politique de Livraison & Retours", description: "Conditions de livraison, retours et remboursements.", url: "#" },
-  { title: "Politique Anti-Fraude", description: "Mesures de protection contre la fraude et les abus.", url: "#" },
+  { title: "Conditions Générales de Vente (CGV)", description: "Règles applicables à toutes les transactions sur la marketplace SUGU.", url: `${MARKETPLACE_URL}/conditions-generales` },
+  { title: "Politique de Confidentialité", description: "Comment SUGU collecte, utilise et protège vos données personnelles.", url: `${MARKETPLACE_URL}/politique-de-confidentialite` },
+  { title: "Conditions Générales d'Utilisation (CGU)", description: "Règles d'utilisation de la plateforme SUGU Pro.", url: `${MARKETPLACE_URL}/conditions-generales` },
+  { title: "Politique de Livraison & Retours", description: "Conditions de livraison, retours et remboursements.", url: `${MARKETPLACE_URL}/politique-livraison-retours` },
+  { title: "Politique Anti-Fraude", description: "Mesures de protection contre la fraude et les abus.", url: `${MARKETPLACE_URL}/politique-anti-fraude` },
 ];
 
 export function TabLegal() {
