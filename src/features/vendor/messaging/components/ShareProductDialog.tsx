@@ -6,6 +6,7 @@ import { Search, X, Package } from "lucide-react";
 import { useRecommendedProducts, useSendSellerProductCard } from "../hooks";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface ShareProductDialogProps {
   conversationId: string;
@@ -111,9 +112,11 @@ export function ShareProductDialog({
                 >
                   <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
                     {product.thumbnail ? (
-                      <img
+                      <Image
                         src={product.thumbnail}
                         alt={product.name}
+                        width={48}
+                        height={48}
                         className="h-full w-full object-cover"
                       />
                     ) : (

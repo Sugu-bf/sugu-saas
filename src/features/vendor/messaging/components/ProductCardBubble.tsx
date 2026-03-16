@@ -3,6 +3,7 @@
 import type { Message, ProductCardMetadata } from "@/lib/messaging/types";
 import { formatCurrency } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
+import Image from "next/image";
 
 interface ProductCardBubbleProps {
   message: Message;
@@ -16,10 +17,12 @@ export function ProductCardBubble({ message }: ProductCardBubbleProps) {
     <div className="max-w-[280px] overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:bg-gray-800/80">
       {meta.thumbnail && (
         <div className="relative h-32 w-full bg-gray-100 dark:bg-gray-700">
-          <img
+          <Image
             src={meta.thumbnail}
             alt={meta.product_name}
-            className="h-full w-full object-cover"
+            fill
+            sizes="280px"
+            className="object-cover"
           />
         </div>
       )}

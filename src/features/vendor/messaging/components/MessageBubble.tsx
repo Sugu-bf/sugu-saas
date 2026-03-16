@@ -2,6 +2,7 @@
 
 import type { Message } from "@/lib/messaging/types";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import { ReadReceipt } from "./ReadReceipt";
 import { ProductCardBubble } from "./ProductCardBubble";
 import { SystemEventBubble } from "./SystemEventBubble";
@@ -79,9 +80,11 @@ export function MessageBubble({ message, isLastRead }: MessageBubbleProps) {
               rel="noopener noreferrer"
               className="block max-w-[240px] overflow-hidden rounded-2xl border border-border"
             >
-              <img
+              <Image
                 src={att.thumb_url ?? att.url}
                 alt={att.name}
+                width={240}
+                height={180}
                 className="h-auto w-full object-cover"
               />
             </a>

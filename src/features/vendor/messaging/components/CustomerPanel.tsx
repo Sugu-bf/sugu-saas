@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ProductListItem } from "./ProductListItem";
 import { ExternalLink, ShoppingBag, User } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface CustomerPanelProps {
   conversation: Conversation;
@@ -109,12 +110,12 @@ export function CustomerPanel({ conversation }: CustomerPanelProps) {
           <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
             Produits recommandés
           </h4>
-          <a
+          <Link
             href="/vendor/products"
             className="text-xs font-medium text-sugu-500 hover:underline"
           >
             Voir
-          </a>
+          </Link>
         </div>
 
         <div className="mt-3 space-y-1">

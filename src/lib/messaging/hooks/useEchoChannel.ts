@@ -17,7 +17,9 @@ export function useEchoChannel(
 ): void {
   // Stabilize events ref to avoid re-subscribing on every render
   const eventsRef = useRef(events);
-  eventsRef.current = events;
+  useEffect(() => {
+    eventsRef.current = events;
+  });
 
   useEffect(() => {
     if (!channelName) return;

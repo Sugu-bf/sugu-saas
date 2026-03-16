@@ -2,6 +2,7 @@
 
 import type { RecommendedProduct } from "../../services/messaging.service";
 import { formatCurrency } from "@/lib/utils";
+import Image from "next/image";
 import { Share2 } from "lucide-react";
 
 interface ProductListItemProps {
@@ -15,9 +16,11 @@ export function ProductListItem({ product, onShare }: ProductListItemProps) {
       {/* Thumbnail */}
       <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
         {product.thumbnail ? (
-          <img
+          <Image
             src={product.thumbnail}
             alt={product.name}
+            width={48}
+            height={48}
             className="h-full w-full object-cover"
           />
         ) : (
