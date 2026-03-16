@@ -15,10 +15,13 @@ export function useEchoChannel(
   channelName: string | null | undefined,
   events: Record<string, (payload: unknown) => void>,
 ): void {
-  // Stabilize events ref to avoid re-subscribing on every render
-  // Fix RT1: Direct assignment (not useEffect) to avoid 1-tick stale window
+  // Stabilize events ref to avoid re-subscribing on every render.
+  // useEffect (no deps) runs after every render, keeping the ref current.
+  // Safe: WS events are macro-tasks and cannot interleave with React's commit phase.
   const eventsRef = useRef(events);
-  eventsRef.current = events;
+  useEffect(() => {
+    eventsRef.current = events;
+  });
 
   useEffect(() => {
     if (!channelName) return;
