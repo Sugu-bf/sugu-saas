@@ -195,10 +195,11 @@ export async function sendSellerTyping(convId: string): Promise<void> {
 
 export async function getSellerPresence(
   convId: string,
-): Promise<PresenceResponse> {
-  return api.get<PresenceResponse>(
+): Promise<PresenceInfo[]> {
+  const res = await api.get<PresenceResponse>(
     `seller/conversations/${_validateId(convId, "conversation_id")}/presence`,
   );
+  return res.data;
 }
 
 export async function reportSellerMessage(
@@ -224,10 +225,11 @@ export async function blockConversation(convId: string): Promise<void> {
 
 export async function getRecommendedProducts(
   convId: string,
-): Promise<RecommendedProductsResponse> {
-  return api.get<RecommendedProductsResponse>(
-    `seller/conversations/${_validateId(convId, "conversation_id")}/recommended-products`,
+): Promise<RecommendedProduct[]> {
+  const res = await api.get<RecommendedProductsResponse>(
+    `conversations/${_validateId(convId, "conversation_id")}/recommended-products`,
   );
+  return res.data;
 }
 
 // ── Internal helpers ───────────────────────────────────────

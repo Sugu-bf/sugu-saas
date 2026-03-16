@@ -20,12 +20,12 @@ export function ShareProductDialog({
   onOpenChange,
 }: ShareProductDialogProps) {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useRecommendedProducts(
+  const { data: productsData, isLoading } = useRecommendedProducts(
     open ? conversationId : null,
   );
   const sendProductCard = useSendSellerProductCard();
 
-  const products = data?.data ?? [];
+  const products = productsData ?? [];
   const filtered = search
     ? products.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()),

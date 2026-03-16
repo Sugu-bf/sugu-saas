@@ -22,13 +22,13 @@ export function CustomerPanel({ conversation }: CustomerPanelProps) {
   const { data: productsData } = useRecommendedProducts(conversation.id);
   const sendProductCard = useSendSellerProductCard();
 
-  const customerPresence = presenceData?.data?.find(
+  const customerPresence = presenceData?.find(
     (p) => p.participant_type === "customer",
   );
   const isOnline = customerPresence?.is_online ?? false;
   const lastActive = customerPresence?.last_active;
 
-  const products = productsData?.data ?? [];
+  const products = productsData ?? [];
 
   const handleShareProduct = (productId: string) => {
     sendProductCard.mutate(
