@@ -13,6 +13,12 @@ const envSchema = z.object({
     .string()
     .transform((v) => v === "true")
     .default("false"),
+
+  // ─── Reverb WebSocket ───────────────────────────────────────────
+  NEXT_PUBLIC_REVERB_APP_KEY: z.string().min(1),
+  NEXT_PUBLIC_REVERB_HOST: z.string().min(1),
+  NEXT_PUBLIC_REVERB_PORT: z.coerce.number().default(8080),
+  NEXT_PUBLIC_REVERB_SCHEME: z.enum(["http", "https"]).default("https"),
 });
 
 function getEnv() {
@@ -22,6 +28,10 @@ function getEnv() {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_MARKETPLACE_URL: process.env.NEXT_PUBLIC_MARKETPLACE_URL,
     NEXT_PUBLIC_ENABLE_MSW: process.env.NEXT_PUBLIC_ENABLE_MSW,
+    NEXT_PUBLIC_REVERB_APP_KEY: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
+    NEXT_PUBLIC_REVERB_HOST: process.env.NEXT_PUBLIC_REVERB_HOST,
+    NEXT_PUBLIC_REVERB_PORT: process.env.NEXT_PUBLIC_REVERB_PORT,
+    NEXT_PUBLIC_REVERB_SCHEME: process.env.NEXT_PUBLIC_REVERB_SCHEME,
   });
 
   if (!parsed.success) {

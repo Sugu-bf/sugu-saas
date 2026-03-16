@@ -69,6 +69,17 @@ export const queryKeys = {
       [...queryKeys.vendor.all, "wallet", "payout-settings"] as const,
     deliveryPartners: () =>
       [...queryKeys.vendor.all, "deliveryPartners"] as const,
+    // Messaging
+    conversations: (filters?: Record<string, unknown>) =>
+      [...queryKeys.vendor.all, "conversations", filters] as const,
+    conversation: (id: string) =>
+      [...queryKeys.vendor.all, "conversations", "detail", id] as const,
+    messages: (convId: string) =>
+      [...queryKeys.vendor.all, "conversations", "messages", convId] as const,
+    presence: (convId: string) =>
+      [...queryKeys.vendor.all, "conversations", "presence", convId] as const,
+    recommendedProducts: (convId: string) =>
+      [...queryKeys.vendor.all, "conversations", "recommended-products", convId] as const,
   },
   agency: {
     all: ["agency"] as const,
@@ -87,6 +98,13 @@ export const queryKeys = {
       [...queryKeys.agency.all, "statistics", period] as const,
     settings: () =>
       [...queryKeys.agency.all, "settings"] as const,
+    // Messaging (read-only oversight)
+    conversations: (filters?: Record<string, unknown>) =>
+      [...queryKeys.agency.all, "conversations", filters] as const,
+    conversation: (id: string) =>
+      [...queryKeys.agency.all, "conversations", "detail", id] as const,
+    messages: (convId: string) =>
+      [...queryKeys.agency.all, "conversations", "messages", convId] as const,
   },
   driver: {
     all: ["driver"] as const,

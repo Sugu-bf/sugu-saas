@@ -52,16 +52,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Map backend user shape → frontend User shape
+    const store = backendUser.store as Record<string, unknown> | undefined;
+
     const user = {
       id: backendUser.id,
       name: backendUser.name,
       email: backendUser.email,
       role: _mapRole(backendUser),
-      avatar_url: backendUser.avatar_url ?? backendUser.store?.logo_url ?? null,
+      avatar_url: backendUser.avatar_url ?? store?.logo_url ?? null,
       email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
       created_at: backendUser.created_at ?? new Date().toISOString(),
       delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
       business_name: _extractBusinessName(backendUser),
+      store_id: store?.id ? String(store.id) : null,
     };
 
     return NextResponse.json({ data: user });

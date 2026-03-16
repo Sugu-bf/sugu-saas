@@ -138,3 +138,20 @@ export {
   getPayoutSettings,
   submitWithdrawal,
 } from "./wallet.service";
+
+// Messaging
+export {
+  getSellerConversations,
+  getSellerConversation,
+  getSellerMessages,
+  sendSellerMessage,
+  sendSellerProductCard,
+  markSellerRead,
+  sendSellerTyping,
+  getSellerPresence,
+  reportSellerMessage,
+  closeConversation,
+  blockConversation,
+  getRecommendedProducts,
+} from "./messaging.service";
+export type { RecommendedProduct } from "./messaging.service";

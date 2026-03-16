@@ -21,6 +21,7 @@ export const userSchema = z.object({
   created_at: z.string(),
   delivery_partner_id: z.string().nullable(),
   business_name: z.string().nullable(),
+  store_id: z.string().nullable().optional().default(null),
 });
 
 export const loginResponseSchema = z.object({

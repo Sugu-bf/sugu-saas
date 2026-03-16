@@ -18,6 +18,8 @@ export interface User {
   delivery_partner_id: string | null;
   /** Store name (vendor) or agency name (agency) */
   business_name: string | null;
+  /** Store ID for vendor users (null for non-vendors) */
+  store_id: string | null;
 }
 
 /** Auth session carried client‑side */

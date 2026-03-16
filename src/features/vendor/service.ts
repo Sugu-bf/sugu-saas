@@ -115,6 +115,19 @@ export {
   requestPayout,
   getPayoutSettings,
   submitWithdrawal,
+  // Messaging
+  getSellerConversations,
+  getSellerConversation,
+  getSellerMessages,
+  sendSellerMessage,
+  sendSellerProductCard,
+  markSellerRead,
+  sendSellerTyping,
+  getSellerPresence,
+  reportSellerMessage,
+  closeConversation,
+  blockConversation,
+  getRecommendedProducts,
 } from "./services";
 
 export type {
@@ -130,4 +143,5 @@ export type {
   ActiveSession,
   LoginHistoryEntry,
   Invoice,
+  RecommendedProduct,
 } from "./services";

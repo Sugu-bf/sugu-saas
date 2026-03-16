@@ -41,10 +41,11 @@ const vendorTabs: TabItem[] = [
   { label: "Accueil", href: "/vendor/dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
   { label: "Commandes", href: "/vendor/orders", icon: <ShoppingCart className="h-6 w-6" />, badge: 2 },
   { label: "Produits", href: "/vendor/products", icon: <Package className="h-6 w-6" /> },
-  { label: "Clients", href: "/vendor/clients", icon: <Users className="h-6 w-6" /> },
+  { label: "Messages", href: "/vendor/messages", icon: <MessageSquare className="h-6 w-6" /> },
 ];
 
 const vendorDrawerItems: TabItem[] = [
+  { label: "Clients", href: "/vendor/clients", icon: <Users className="h-5 w-5" /> },
   { label: "Inventaire", href: "/vendor/inventory", icon: <Warehouse className="h-5 w-5" />, badge: 2 },
   { label: "Statistiques", href: "/vendor/statistics", icon: <BarChart3 className="h-5 w-5" /> },
   { label: "Marketing", href: "/vendor/marketing", icon: <Megaphone className="h-5 w-5" /> },
@@ -60,10 +61,11 @@ const agencyTabs: TabItem[] = [
   { label: "Accueil", href: "/agency/dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
   { label: "Livraisons", href: "/agency/deliveries", icon: <Truck className="h-6 w-6" /> },
   { label: "Livreurs", href: "/agency/drivers", icon: <Users className="h-6 w-6" /> },
-  { label: "Stats", href: "/agency/statistics", icon: <BarChart3 className="h-6 w-6" /> },
+  { label: "Messages", href: "/agency/messages", icon: <MessageSquare className="h-6 w-6" /> },
 ];
 
 const agencyDrawerItems: TabItem[] = [
+  { label: "Statistiques", href: "/agency/statistics", icon: <BarChart3 className="h-5 w-5" /> },
   { label: "Paramètres", href: "/agency/settings", icon: <Settings className="h-5 w-5" /> },
 ];
 

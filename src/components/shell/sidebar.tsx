@@ -52,13 +52,14 @@ const vendorSections: SideNavSection[] = [
       { label: "Statistiques", href: "/vendor/statistics", icon: <BarChart3 className="h-5 w-5" /> },
       { label: "Portefeuille", href: "/vendor/wallet", icon: <Wallet className="h-5 w-5" /> },
       { label: "Marketing", href: "/vendor/marketing", icon: <Megaphone className="h-5 w-5" /> },
+      { label: "Messages", href: "/vendor/messages", icon: <MessageSquare className="h-5 w-5" /> },
     ],
   },
   {
     title: "CONFIGURATION",
     items: [
       { label: "Paramètres", href: "/vendor/settings", icon: <Settings className="h-5 w-5" /> },
-      { label: "Support", href: "/vendor/tickets", icon: <MessageSquare className="h-5 w-5" /> },
+      { label: "Tickets", href: "/vendor/tickets", icon: <HelpCircle className="h-5 w-5" /> },
       { label: "Aide", href: "/vendor/help", icon: <HelpCircle className="h-5 w-5" /> },
     ],
   },
@@ -71,6 +72,7 @@ const agencySections: SideNavSection[] = [
       { label: "Dashboard", href: "/agency/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
       { label: "Livraisons", href: "/agency/deliveries", icon: <Truck className="h-5 w-5" /> },
       { label: "Livreurs", href: "/agency/drivers", icon: <Users className="h-5 w-5" /> },
+      { label: "Messages", href: "/agency/messages", icon: <MessageSquare className="h-5 w-5" /> },
       { label: "Statistiques", href: "/agency/statistics", icon: <BarChart3 className="h-5 w-5" /> },
     ],
   },
