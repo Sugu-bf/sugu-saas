@@ -24,12 +24,18 @@ function _validateId(id: string, label = "ID"): string {
 
 interface PaginatedConversationsResponse {
   success: boolean;
-  data: Conversation[];
-  meta: {
-    current_page: number;
-    last_page: number;
+  data: {
+    data: Conversation[];
+    path: string;
     per_page: number;
-    total: number;
+    next_cursor: string | null;
+    next_page_url: string | null;
+    prev_cursor: string | null;
+    prev_page_url: string | null;
+  };
+  meta: {
+    has_more: boolean;
+    next_cursor: string | null;
   };
 }
 

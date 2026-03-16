@@ -43,7 +43,7 @@ export function SellerMessagingPage() {
   const { data: conversationDetail } = useSellerConversation(selectedId);
 
   const conversations = useMemo(
-    () => conversationsData?.data ?? [],
+    () => conversationsData?.data?.data ?? [],
     [conversationsData],
   );
   const activeConversation = conversationDetail?.data ?? null;
