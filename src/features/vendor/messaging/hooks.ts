@@ -64,13 +64,11 @@ export function useSellerMessages(convId: string | null) {
     string | undefined
   >({
     queryKey: queryKeys.vendor.messages(convId ?? ""),
-    queryFn: async ({ pageParam }) => {
-      const res = await getSellerMessages(convId!, {
+    queryFn: ({ pageParam }) =>
+      getSellerMessages(convId!, {
         before_id: pageParam,
         limit: 30,
-      });
-      return res.data;
-    },
+      }),
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => {
       if (!lastPage.has_more || lastPage.messages.length === 0)

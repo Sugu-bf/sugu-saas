@@ -27,7 +27,7 @@ export function MobileChatContent({ conversationId }: MobileChatContentProps) {
   const storeId = session?.store_id;
 
   const { data, isLoading } = useSellerConversation(conversationId);
-  const conversation = data?.data ?? null;
+  const conversation = data ?? null;
 
   const { typingUsers, onTypingReceived, notifyTyping } = useTypingIndicator(
     conversationId,

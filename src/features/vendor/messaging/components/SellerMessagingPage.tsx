@@ -43,10 +43,10 @@ export function SellerMessagingPage() {
   const { data: conversationDetail } = useSellerConversation(selectedId);
 
   const conversations = useMemo(
-    () => conversationsData?.data?.data ?? [],
+    () => conversationsData?.data ?? [],
     [conversationsData],
   );
-  const activeConversation = conversationDetail?.data ?? null;
+  const activeConversation = conversationDetail ?? null;
 
   // ── Typing Indicator ──
   const { typingUsers, onTypingReceived, notifyTyping } = useTypingIndicator(

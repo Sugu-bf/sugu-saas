@@ -11,10 +11,11 @@ import type {
 
 // ── ID Validation (S2 fix: prevent path injection) ─────────
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Accepts both UUID (with dashes) and ULID (26 alphanumeric chars) formats
+const ID_RE = /^[0-9a-z]{26}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function _validateId(id: string, label = "ID"): string {
-  if (!UUID_RE.test(id)) {
+  if (!ID_RE.test(id)) {
     throw new Error(`Invalid ${label}: ${id}`);
   }
   return id;
@@ -85,16 +86,22 @@ export async function getSellerConversations(params?: {
   q?: string;
   per_page?: number;
   page?: number;
-}): Promise<PaginatedConversationsResponse> {
-  return api.get<PaginatedConversationsResponse>("seller/conversations", {
+}): Promise<{ data: Conversation[]; has_more: boolean; next_cursor: string | null }> {
+  const res = await api.get<PaginatedConversationsResponse>("seller/conversations", {
     params: params as Record<string, string | number | boolean | undefined>,
   });
+  return {
+    data: res.data.data,
+    has_more: res.meta?.has_more ?? false,
+    next_cursor: res.meta?.next_cursor ?? null,
+  };
 }
 
 export async function getSellerConversation(
   id: string,
-): Promise<SingleConversationResponse> {
-  return api.get<SingleConversationResponse>(`seller/conversations/${_validateId(id, "conversation_id")}`);
+): Promise<Conversation> {
+  const res = await api.get<SingleConversationResponse>(`seller/conversations/${_validateId(id, "conversation_id")}`);
+  return res.data;
 }
 
 // ── Messages ───────────────────────────────────────────────
@@ -102,14 +109,15 @@ export async function getSellerConversation(
 export async function getSellerMessages(
   convId: string,
   params?: { before_id?: string; limit?: number },
-): Promise<MessagesResponse> {
+): Promise<{ messages: Message[]; has_more: boolean }> {
   const id = _validateId(convId, "conversation_id");
-  return api.get<MessagesResponse>(
+  const res = await api.get<MessagesResponse>(
     `seller/conversations/${id}/messages`,
     {
       params: params as Record<string, string | number | boolean | undefined>,
     },
   );
+  return res.data;
 }
 
 /**

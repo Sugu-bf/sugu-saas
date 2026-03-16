@@ -8,10 +8,11 @@ import type { Conversation, Message } from "@/lib/messaging/types";
 
 // ── ID Validation (prevent path injection) ─────────────────
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Accepts both UUID (with dashes) and ULID (26 alphanumeric chars) formats
+const ID_RE = /^[0-9a-z]{26}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function _validateId(id: string, label = "ID"): string {
-  if (!UUID_RE.test(id)) {
+  if (!ID_RE.test(id)) {
     throw new Error(`Invalid ${label}: ${id}`);
   }
   return id;
