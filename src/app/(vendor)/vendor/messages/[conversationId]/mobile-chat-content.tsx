@@ -92,14 +92,14 @@ export function MobileChatContent({ conversationId }: MobileChatContentProps) {
 
   if (isLoading || !conversation) {
     return (
-      <div className="-m-4 -mb-24 h-[calc(100vh-64px)] overflow-hidden lg:-m-8 lg:-mb-8">
+      <div className="-m-4 -mb-[200px] h-[calc(100dvh-56px)] overflow-hidden lg:-m-8 lg:-mb-8 lg:h-[calc(100dvh-64px)]">
         <ChatSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="-m-4 -mb-24 h-[calc(100vh-64px)] overflow-hidden lg:-m-8 lg:-mb-8">
+    <div className="-m-4 -mb-[200px] h-[calc(100dvh-56px)] overflow-hidden lg:-m-8 lg:-mb-8 lg:h-[calc(100dvh-64px)]">
       <ChatRoom
         conversation={conversation}
         onBack={handleBack}

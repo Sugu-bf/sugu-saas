@@ -16,10 +16,9 @@ export function useEchoChannel(
   events: Record<string, (payload: unknown) => void>,
 ): void {
   // Stabilize events ref to avoid re-subscribing on every render
+  // Fix RT1: Direct assignment (not useEffect) to avoid 1-tick stale window
   const eventsRef = useRef(events);
-  useEffect(() => {
-    eventsRef.current = events;
-  });
+  eventsRef.current = events;
 
   useEffect(() => {
     if (!channelName) return;

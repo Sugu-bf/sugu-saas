@@ -73,6 +73,9 @@ export function SellerMessagingPage() {
 
   const onMessageRead = useCallback(
     (payload: MessageReadPayload) => {
+      // RT4: Skip own read receipts to avoid unnecessary refetch
+      if (payload.user_id === String(session?.id)) return;
+
       // Refresh conversations to update unread counts
       qc.invalidateQueries({
         queryKey: queryKeys.vendor.conversations(),
@@ -83,7 +86,7 @@ export function SellerMessagingPage() {
         });
       }
     },
-    [qc, selectedId],
+    [qc, selectedId, session?.id],
   );
 
   const onUserTyping = useCallback(

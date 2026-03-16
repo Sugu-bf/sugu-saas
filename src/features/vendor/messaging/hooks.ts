@@ -73,7 +73,8 @@ export function useSellerMessages(convId: string | null) {
     getNextPageParam: (lastPage) => {
       if (!lastPage.has_more || lastPage.messages.length === 0)
         return undefined;
-      return lastPage.messages[lastPage.messages.length - 1].id;
+      // Fix: use the oldest message (first) as cursor for loading older messages
+      return lastPage.messages[0].id;
     },
     enabled: !!convId,
     staleTime: 30_000,

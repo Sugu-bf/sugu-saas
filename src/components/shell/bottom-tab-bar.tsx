@@ -91,12 +91,21 @@ interface BottomTabBarProps {
   role: UserRole;
 }
 
+// Patterns where the bottom tab bar should be hidden (individual chat pages)
+const HIDE_BOTTOM_BAR_PATTERNS = [
+  /^\/vendor\/messages\/[^/]+$/,
+  /^\/agency\/messages\/[^/]+$/,
+];
+
 export function BottomTabBar({ role }: BottomTabBarProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const tabs = role === "vendor" ? vendorTabs : role === "agency" ? agencyTabs : driverTabs;
   const drawerItems = role === "vendor" ? vendorDrawerItems : role === "agency" ? agencyDrawerItems : driverDrawerItems;
+
+  // Hide bottom bar on individual chat pages so the composer is not covered
+  const shouldHide = HIDE_BOTTOM_BAR_PATTERNS.some((re) => re.test(pathname));
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -123,6 +132,9 @@ export function BottomTabBar({ role }: BottomTabBarProps) {
   const isDrawerItemActive = drawerItems.some(
     (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
   );
+
+  // Don't render at all on chat detail pages
+  if (shouldHide) return null;
 
   return (
     <>
