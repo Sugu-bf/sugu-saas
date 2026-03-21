@@ -14,6 +14,7 @@ import {
   getAgencyConversations,
   getAgencyConversation,
   getAgencyMessages,
+  type AgencyConversationsResult,
 } from "../services/messaging.service";
 import type { Message } from "@/lib/messaging/types";
 
@@ -23,7 +24,7 @@ export function useAgencyConversations(
   agencyId: string | undefined,
   filters?: { status?: string; courier_id?: string; q?: string },
 ) {
-  return useQuery({
+  return useQuery<AgencyConversationsResult>({
     queryKey: queryKeys.agency.conversations(filters),
     queryFn: () => getAgencyConversations(agencyId!, filters),
     enabled: !!agencyId,

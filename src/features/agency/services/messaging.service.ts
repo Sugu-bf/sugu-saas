@@ -22,7 +22,20 @@ function _validateId(id: string, label = "ID"): string {
 
 interface PaginatedConversationsResponse {
   success: boolean;
-  data: Conversation[];
+  data: {
+    current_page: number;
+    data: Conversation[];
+    first_page_url: string;
+    from: number | null;
+    last_page: number;
+    last_page_url: string;
+    next_page_url: string | null;
+    path: string;
+    per_page: number;
+    prev_page_url: string | null;
+    to: number | null;
+    total: number;
+  };
   meta: {
     current_page: number;
     last_page: number;
@@ -46,6 +59,14 @@ interface MessagesResponse {
 
 // ── Conversations ──────────────────────────────────────────
 
+export interface AgencyConversationsResult {
+  data: Conversation[];
+  total: number;
+  last_page: number;
+  current_page: number;
+  per_page: number;
+}
+
 export async function getAgencyConversations(
   agencyId: string,
   params?: {
@@ -55,14 +76,23 @@ export async function getAgencyConversations(
     per_page?: number;
     page?: number;
   },
-): Promise<PaginatedConversationsResponse> {
+): Promise<AgencyConversationsResult> {
   const id = _validateId(agencyId, "agency_id");
-  return api.get<PaginatedConversationsResponse>(
+  const res = await api.get<PaginatedConversationsResponse>(
     `agency/${id}/conversations`,
     {
       params: params as Record<string, string | number | boolean | undefined>,
     },
   );
+  // Laravel returns paginated shape: { data: { data: [...], total, ... } }
+  const page = res.data;
+  return {
+    data: Array.isArray(page.data) ? page.data : [],
+    total: page.total,
+    last_page: page.last_page,
+    current_page: page.current_page,
+    per_page: page.per_page,
+  };
 }
 
 export async function getAgencyConversation(
