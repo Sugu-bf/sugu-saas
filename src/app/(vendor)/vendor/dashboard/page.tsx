@@ -140,7 +140,7 @@ export default function VendorDashboardPage() {
                     Ravi de vous compter parmi nos vendeurs premium.
                   </p>
                   <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-sugu-500">
-                    À l'instant
+                    À l&apos;instant
                   </p>
                 </div>
               </div>
@@ -321,7 +321,7 @@ function KpiCardComponent({ kpi, delay }: { kpi: KpiCard; delay: number }) {
   );
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-xl border border-gray-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
