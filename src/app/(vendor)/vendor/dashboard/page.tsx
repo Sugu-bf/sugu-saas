@@ -345,11 +345,17 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
     );
   }
 
+  // Divise les prix en centimes par 100
+  const chartData = data.map((point) => ({
+    ...point,
+    value: point.value / 100,
+  }));
+
   return (
     <div className="h-48 w-full lg:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={data}
+          data={chartData}
           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
         >
           <defs>
