@@ -11,7 +11,17 @@ import {
   AlertTriangle,
   AlertCircle,
 } from "lucide-react";
+import React, { useState } from "react";
 import type { ReactNode } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import Image from "next/image";
 import type {
   KpiCard,
@@ -54,6 +64,7 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
 
 export default function VendorDashboardPage() {
   const { data, isLoading, isError, error, refetch } = useVendorDashboard();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   if (isLoading) return <VendorDashboardLoading />;
 
@@ -84,15 +95,63 @@ export default function VendorDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-3">
+        <div className="relative flex items-center gap-2 lg:gap-3">
           {/* Notifications */}
           <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/60 bg-white/50 text-gray-500 shadow-sm backdrop-blur-md transition-all active:scale-95 lg:h-10 lg:w-10 lg:rounded-2xl dark:border-gray-700/50 dark:bg-gray-900/50"
+            onClick={() => setIsNotifOpen((prev) => !prev)}
+            onBlur={() => setTimeout(() => setIsNotifOpen(false), 200)}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 ring-1 ring-inset ring-gray-900/5 transition-all hover:bg-gray-50 hover:text-gray-900 hover:shadow-md active:scale-95 dark:bg-gray-900/50 dark:text-gray-400 dark:ring-white/10 dark:hover:bg-gray-800 dark:hover:text-white lg:h-11 lg:w-11 lg:rounded-2xl"
             aria-label="Notifications"
           >
-            <Bell className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-sugu-500 animate-pulse-dot lg:right-2 lg:top-2" />
+            <Bell className="h-4 w-4 transition-all duration-300 group-hover:rotate-[15deg] group-hover:scale-110 lg:h-5 lg:w-5" />
+            <span className="absolute right-2 top-2 flex h-2.5 w-2.5 lg:right-2.5 lg:top-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500 dark:border-gray-900"></span>
+            </span>
           </button>
+
+          {/* Fake Dropdown */}
+          <div
+            className={`absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-gray-100 bg-white shadow-xl ring-1 ring-black/5 transition-all duration-200 dark:border-gray-800 dark:bg-gray-900 sm:w-80 lg:mt-3 ${
+              isNotifOpen
+                ? "visible scale-100 opacity-100"
+                : "invisible scale-95 opacity-0"
+            }`}
+          >
+            <div className="flex items-center justify-between border-b border-gray-50 px-4 py-3 dark:border-gray-800">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                Notifications
+              </h3>
+              <span className="rounded-full bg-sugu-50 px-2 py-0.5 text-[10px] font-bold text-sugu-600 dark:bg-sugu-500/10 dark:text-sugu-400">
+                1 Nouvelle
+              </span>
+            </div>
+            
+            <div className="p-2">
+              <div className="flex cursor-pointer gap-3 rounded-xl bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800/80">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sugu-100 text-sugu-600 dark:bg-sugu-500/20 dark:text-sugu-400">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <p className="text-sm font-bold tracking-tight text-gray-900 dark:text-white">
+                    Bienvenue sur Sugu !
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium leading-relaxed text-gray-500 dark:text-gray-400">
+                    Ravi de vous compter parmi nos vendeurs premium.
+                  </p>
+                  <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-sugu-500">
+                    À l'instant
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t border-gray-50 p-2 dark:border-gray-800">
+              <button className="w-full rounded-lg bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-300 dark:hover:bg-gray-800">
+                Tout marquer comme lu
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -262,7 +321,21 @@ function KpiCardComponent({ kpi, delay }: { kpi: KpiCard; delay: number }) {
   );
 }
 
-/** SVG Area Chart — pure CSS, no JS library */
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-gray-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
+        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="text-sm font-bold text-sugu-600 dark:text-sugu-500">
+          {formatCurrency(payload[0].value)} FCFA
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+/** Recharts Area Chart for a realistic and premium look */
 function RevenueChart({ data }: { data: RevenuePoint[] }) {
   if (data.length === 0) {
     return (
@@ -272,89 +345,48 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
     );
   }
 
-  const maxVal = Math.max(...data.map((d) => d.value), 1);
-  const chartW = 400;
-  const chartH = 160;
-  const padding = 20;
-
-  const points = data.map((d, i) => ({
-    x: padding + (i / (data.length - 1)) * (chartW - padding * 2),
-    y: chartH - padding - (d.value / maxVal) * (chartH - padding * 2),
-  }));
-
-  // Build SVG path for smooth curve (catmull-rom-like)
-  const linePath = points
-    .map((p, i) => {
-      if (i === 0) return `M ${p.x},${p.y}`;
-      const prev = points[i - 1];
-      const cpx = (prev.x + p.x) / 2;
-      return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
-    })
-    .join(" ");
-
-  // Area path (close to bottom)
-  const areaPath = `${linePath} L ${points[points.length - 1].x},${chartH - padding} L ${points[0].x},${chartH - padding} Z`;
-
   return (
-    <div className="relative">
-      <svg
-        viewBox={`0 0 ${chartW} ${chartH}`}
-        className="h-32 w-full lg:h-40"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Graphique des revenus sur 7 jours"
-      >
-        <defs>
-          <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f15412" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#f15412" stopOpacity="0.02" />
-          </linearGradient>
-          <linearGradient id="line-gradient" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#fb8a3c" />
-            <stop offset="100%" stopColor="#f15412" />
-          </linearGradient>
-        </defs>
-
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#chart-gradient)" />
-
-        {/* Line */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="url(#line-gradient)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          className="chart-path"
-        />
-
-        {/* Dots */}
-        {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r="3.5"
-            fill="white"
-            stroke="#f15412"
-            strokeWidth="2"
-            className="animate-card-enter"
-            style={{ animationDelay: `${i * 80 + 400}ms` }}
+    <div className="h-48 w-full lg:h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#f15412" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#f15412" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#9ca3af" strokeOpacity={0.2} />
+          <XAxis 
+            dataKey="day" 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            dy={10}
           />
-        ))}
-      </svg>
-
-      {/* Day labels */}
-      <div className="mt-1.5 flex justify-between px-2 lg:mt-2 lg:px-5">
-        {data.map((d) => (
-          <span
-            key={d.day}
-            className="text-[9px] font-medium text-gray-400 dark:text-gray-500 lg:text-[11px]"
-          >
-            {d.day}
-          </span>
-        ))}
-      </div>
+          <YAxis 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
+          />
+          <Tooltip 
+            content={<CustomTooltip />} 
+            cursor={{ stroke: '#f15412', strokeWidth: 1, strokeDasharray: '5 5' }} 
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="#f15412"
+            strokeWidth={3}
+            fillOpacity={1}
+            fill="url(#colorValue)"
+            activeDot={{ r: 6, fill: '#f15412', stroke: '#fff', strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -362,26 +394,29 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
 /** Recent order row */
 function OrderRow({ order }: { order: RecentOrder }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-white/30 px-3 py-3 transition-colors active:bg-white/50 dark:bg-white/5 dark:active:bg-white/10 lg:flex-row lg:items-center lg:gap-3 lg:bg-transparent lg:px-2">
-      {/* Top row: ref + status */}
-      <div className="flex items-center justify-between lg:contents">
-        <span className="text-xs font-bold text-gray-700 dark:text-gray-200 lg:w-14 lg:text-sm">
-          {order.reference}
-        </span>
+    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-2 py-3 border-b border-gray-100 last:border-0 dark:border-gray-800/60">
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-400 ring-1 ring-inset ring-gray-200/50 dark:bg-gray-800/50 dark:ring-gray-700/50">
+          <ShoppingBag className="h-4 w-4" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-gray-900 dark:text-white">
+            {order.reference}
+          </span>
+          <span className="text-xs font-medium text-gray-500 line-clamp-1">
+            {order.client}
+          </span>
+        </div>
+      </div>
+      
+      <div className="flex flex-1 sm:flex-none items-center justify-between sm:justify-end gap-4 ml-13 sm:ml-0">
         <span
-          className={`inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium lg:min-w-[90px] lg:px-3 lg:py-1 lg:text-xs ${STATUS_STYLES[order.status]}`}
+          className={`inline-flex shrink-0 items-center justify-center rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${STATUS_STYLES[order.status]}`}
         >
           {order.statusLabel}
         </span>
-      </div>
-
-      {/* Bottom row: client + total */}
-      <div className="flex items-center justify-between lg:contents">
-        <span className="text-xs text-gray-600 dark:text-gray-400 lg:flex-1 lg:text-sm">
-          {order.client}
-        </span>
-        <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 lg:text-sm">
-          {formatCurrency(order.total)} FCFA
+        <span className="whitespace-nowrap text-right text-sm font-bold tabular-nums text-gray-900 dark:text-white sm:min-w-[100px] lg:text-base">
+          {formatCurrency(order.total)} <span className="text-[10px] uppercase text-gray-400">FCFA</span>
         </span>
       </div>
     </div>
@@ -391,37 +426,32 @@ function OrderRow({ order }: { order: RecentOrder }) {
 /** Top product row */
 function TopProductRow({ product }: { product: TopProduct }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 transition-colors active:bg-white/40 dark:active:bg-white/5 lg:gap-3 lg:py-3 lg:hover:bg-white/40 lg:dark:hover:bg-white/5">
-      {/* Product image */}
-      {product.image ? (
-        <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg lg:h-10 lg:w-10 lg:rounded-xl">
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-cover"
-          />
+    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-2 py-3 border-b border-gray-100 last:border-0 dark:border-gray-800/60">
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        {product.image ? (
+          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800">
+            <Image src={product.image} alt={product.name} fill className="object-cover" />
+          </div>
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-400 ring-1 ring-inset ring-gray-200/50 dark:bg-gray-800/50 dark:ring-gray-700/50">
+            <Package className="h-4 w-4" />
+          </div>
+        )}
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-bold text-gray-900 dark:text-white">
+            {product.name}
+          </span>
+          <span className="text-xs font-medium text-gray-500">
+            <span className="font-bold text-gray-700 dark:text-gray-300">{product.salesCount.toLocaleString("fr-FR")}</span> ventes
+          </span>
         </div>
-      ) : (
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl">
-          <Package className="h-4 w-4 text-gray-500 dark:text-gray-400 lg:h-5 lg:w-5" />
-        </div>
-      )}
-
-      {/* Name + sales */}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate lg:text-sm">
-          {product.name}
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">
-          {product.salesCount.toLocaleString("fr-FR")} ventes
-        </p>
       </div>
 
-      {/* Revenue */}
-      <span className="text-xs font-bold text-gray-800 dark:text-gray-200 lg:text-sm">
-        {formatCurrency(product.revenue)} FCFA
-      </span>
+      <div className="flex flex-1 sm:flex-none items-center justify-end ml-13 sm:ml-0">
+        <span className="whitespace-nowrap text-right text-sm font-bold tabular-nums text-gray-900 dark:text-white sm:min-w-[100px] lg:text-base">
+          {formatCurrency(product.revenue)} <span className="text-[10px] uppercase text-gray-400">FCFA</span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -431,35 +461,33 @@ function StockAlertRow({ alert }: { alert: StockAlert }) {
   const isCritical = alert.level === "critical";
 
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-white/40 px-3 py-2.5 dark:bg-white/5 lg:gap-3 lg:px-4 lg:py-3">
-      {/* Icon */}
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 dark:bg-gray-800/50 lg:h-10 lg:w-10 lg:rounded-xl">
-        {alert.icon === "alert-circle" ? (
-          <AlertCircle className="h-4 w-4 text-red-500 lg:h-5 lg:w-5" />
-        ) : (
-          <AlertTriangle className="h-4 w-4 text-amber-500 lg:h-5 lg:w-5" />
-        )}
-      </div>
-
-      {/* Name + status */}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate lg:text-sm">
-          {alert.name}
-        </p>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`h-2 w-2 rounded-full ${isCritical ? "bg-red-500 animate-pulse-dot" : "bg-amber-500"}`}
-          />
-          <span className={`text-xs font-medium ${isCritical ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
-            {isCritical ? "Critical Stock" : "Low Stock"} · {alert.remaining} left
+    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-2 py-3 border-b border-gray-100 last:border-0 dark:border-gray-800/60">
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${isCritical ? "bg-red-50 text-red-500 ring-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20" : "bg-amber-50 text-amber-500 ring-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20"}`}>
+          {alert.icon === "alert-circle" ? (
+            <AlertCircle className="h-4 w-4" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-bold text-gray-900 dark:text-white">
+            {alert.name}
           </span>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${isCritical ? "animate-pulse-dot bg-red-500" : "bg-amber-500"}`} />
+            <span className={`text-xs font-medium ${isCritical ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
+               <span className="font-bold">{alert.remaining}</span> restants
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* CTA */}
-      <button className="flex-shrink-0 rounded-full border border-sugu-200 bg-sugu-50/80 px-2.5 py-1 text-[10px] font-semibold text-sugu-600 transition-all active:scale-95 lg:px-3 lg:py-1.5 lg:text-xs lg:hover:bg-sugu-100 lg:hover:border-sugu-300 dark:border-sugu-800 dark:bg-sugu-950/30 dark:text-sugu-400 dark:hover:bg-sugu-950/50">
-        Réapprovisionner
-      </button>
+      <div className="flex flex-1 sm:flex-none justify-end ml-13 sm:ml-0">
+        <button className="shrink-0 rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:bg-gray-800 active:scale-95 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">
+          Remplir
+        </button>
+      </div>
     </div>
   );
 }

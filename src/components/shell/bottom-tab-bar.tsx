@@ -18,7 +18,7 @@ import {
   MessageSquare,
   HelpCircle,
   Sparkles,
-  MapPin,
+  History,
   Banknote,
 } from "lucide-react";
 import { useState, useEffect, useCallback, type ReactNode } from "react";
@@ -75,13 +75,12 @@ const agencyDrawerItems: TabItem[] = [
 const driverTabs: TabItem[] = [
   { label: "Accueil", href: "/driver/dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
   { label: "Livraisons", href: "/driver/deliveries", icon: <Package className="h-6 w-6" />, badge: 3 },
-  { label: "Navigation", href: "/driver/navigation", icon: <MapPin className="h-6 w-6" /> },
+  { label: "Historique", href: "/driver/history", icon: <History className="h-6 w-6" /> },
   { label: "Gains", href: "/driver/earnings", icon: <Banknote className="h-6 w-6" /> },
 ];
 
 const driverDrawerItems: TabItem[] = [
   { label: "Paramètres", href: "/driver/settings", icon: <Settings className="h-5 w-5" /> },
-  { label: "Support", href: "/driver/support", icon: <MessageSquare className="h-5 w-5" /> },
 ];
 
 // ────────────────────────────────────────────────────────────

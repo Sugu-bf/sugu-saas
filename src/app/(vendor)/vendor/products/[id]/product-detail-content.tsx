@@ -135,11 +135,12 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          TOP ROW: Photos | Main Info | KPIs + Variants + Reviews
+          MAIN GRID (3 Layout Columns mirroring Image 1)
          ═══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5">
-        {/* ─── Photos ─── */}
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5 items-start">
+        {/* ─── COLUMN 1: Photos & Ventes Récentes ─── */}
+        <div className="lg:col-span-3 space-y-3 lg:space-y-5">
+          {/* Photos */}
           <div className="glass-card rounded-2xl p-4 space-y-3">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-sugu-500" />
@@ -208,7 +209,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
         </div>
 
         {/* ─── Main Info ─── */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 h-full">
           <div className="glass-card rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-full">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Informations principales
@@ -319,8 +320,8 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
 
         {/* ─── Right Column: KPIs + Variants Summary + Reviews Summary ─── */}
         <div className="lg:col-span-4 space-y-3 lg:space-y-4">
-          {/* KPI stat cards (2×2 grid) */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* KPI stat cards (4x1 grid on wide screens, 2x2 on small desktops) */}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {/* Stock */}
             <KpiStatCard
               icon={<Package className="h-4 w-4" />}
@@ -361,8 +362,9 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             />
           </div>
 
-          {/* Variantes & Tarifs summary */}
-          <div className="glass-card rounded-2xl p-4 space-y-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {/* Variantes & Tarifs summary */}
+            <div className="glass-card rounded-2xl p-4 space-y-3 h-full">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Tag className="h-4 w-4 text-sugu-500" />
               Variantes & Tarifs
@@ -435,47 +437,56 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                 </div>
               ))}
             </div>
-            <Link
-              href="#"
-              className="inline-flex items-center gap-1 text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
-            >
-              Toutes les avis →
-            </Link>
+              <Link
+                href="#"
+                className="inline-flex items-center gap-1 text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
+              >
+                Toutes les avis →
+              </Link>
+            </div>
+            )}
           </div>
-          )}
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          BOTTOM ROW: Recent Sales | Variants Detail | Reviews Detail
-          Only shown if there is actual data to display (avoids
-          duplicating the summary sections in the right column).
+          BOTTOM ROW: Recent Sales | Variants Detail | Reviews Detail | History
+          Uses lg:col-start-X to lock alignments perfectly below top row!
          ═══════════════════════════════════════════════════════════ */}
       {(data.recentSales.orders.length > 0 ||
         data.variantsDetail.pricingTiers.length > 0 ||
-        data.reviewsDetail.reviews.length > 0) && (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-5">
+        data.reviewsDetail.reviews.length > 0 ||
+        data.history.length > 0) && (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5">
           {/* ─── Recent Sales ─── */}
           {data.recentSales.orders.length > 0 && (
-            <RecentSalesCard data={data} />
+            <div className="lg:col-span-3 lg:col-start-1 h-full">
+              <RecentSalesCard data={data} />
+            </div>
           )}
 
           {/* ─── Variants & Tarifs Detail ─── */}
           {data.variantsDetail.pricingTiers.length > 0 && (
-            <VariantsDetailCard data={data} />
+            <div className="lg:col-span-5 lg:col-start-4 h-full">
+              <VariantsDetailCard data={data} />
+            </div>
           )}
 
           {/* ─── Reviews Detail ─── */}
           {data.reviewsDetail.reviews.length > 0 && (
-            <ReviewsDetailCard data={data} />
+            <div className="lg:col-span-2 lg:col-start-9 h-full">
+              <ReviewsDetailCard data={data} />
+            </div>
+          )}
+
+          {/* ─── History ─── */}
+          {data.history.length > 0 && (
+            <div className="lg:col-span-2 lg:col-start-11 h-full">
+              <HistoryCard data={data} />
+            </div>
           )}
         </div>
       )}
-
-      {/* ═══════════════════════════════════════════════════════════
-          HISTORY — only shown if there are history entries
-         ═══════════════════════════════════════════════════════════ */}
-      {data.history.length > 0 && <HistoryCard data={data} />}
 
       {/* ═══════════════════════════════════════════════════════════
           BOTTOM ACTION BAR

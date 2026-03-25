@@ -79,7 +79,7 @@ function ProductDetailInner({ id }: { id: string }) {
 
           {/* Right column skeleton */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
@@ -91,7 +91,19 @@ function ProductDetailInner({ id }: { id: string }) {
                 </div>
               ))}
             </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              <div className="glass-card rounded-2xl p-5 h-40 bg-gray-100/30 dark:bg-gray-800/20" />
+              <div className="glass-card rounded-2xl p-5 h-40 bg-gray-100/30 dark:bg-gray-800/20" />
+            </div>
           </div>
+        </div>
+
+        {/* Bottom row skeleton */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 mt-5">
+          <div className="lg:col-span-3 glass-card rounded-2xl p-4 h-64 bg-gray-100/30 dark:bg-gray-800/20" />
+          <div className="lg:col-span-5 glass-card rounded-2xl p-6 h-64 bg-gray-100/30 dark:bg-gray-800/20" />
+          <div className="lg:col-span-2 glass-card rounded-2xl p-5 h-64 bg-gray-100/30 dark:bg-gray-800/20" />
+          <div className="lg:col-span-2 glass-card rounded-2xl p-5 h-64 bg-gray-100/30 dark:bg-gray-800/20" />
         </div>
 
         <span className="sr-only">
