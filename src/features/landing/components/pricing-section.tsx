@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PricingSection } from "../schema";
+import { Gem } from "lucide-react";
 
 // ============================================================
 // Pricing Preview Section — Server Component
@@ -37,6 +38,7 @@ export function PricingPreview({ data }: PricingSectionProps) {
         <div className="text-center">
           {/* Badge pill */}
           <span className="inline-flex items-center gap-2 rounded-full border border-orange-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-sugu-700 shadow-sm backdrop-blur-md animate-slide-up">
+            <Gem className="h-4 w-4 text-orange-500" />
             {data.badge}
           </span>
 

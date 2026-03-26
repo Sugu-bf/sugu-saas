@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { HowItWorksSection, HowItWorksStep } from "../schema";
+import { Settings } from "lucide-react";
 
 // ============================================================
 // How It Works Section — Server Component
@@ -86,6 +87,7 @@ export function HowItWorksBlock({ data }: HowItWorksSectionProps) {
         {/* ── Section Header ── */}
         <div className="text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-orange-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-sugu-700 shadow-sm backdrop-blur-md animate-slide-up">
+            <Settings className="h-4 w-4 text-orange-500" />
             {data.badge}
           </span>
 

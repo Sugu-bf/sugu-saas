@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FaqSection } from "../schema";
+import { HelpCircle } from "lucide-react";
 
 // ============================================================
 // FAQ Section — Client Component (accordion toggle)
@@ -45,6 +46,7 @@ export function FaqBlock({ data }: FaqSectionProps) {
         {/* ── Section Header ── */}
         <div className="text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-orange-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-sugu-700 shadow-sm backdrop-blur-md">
+            <HelpCircle className="h-4 w-4 text-orange-500" />
             {data.badge}
           </span>
 

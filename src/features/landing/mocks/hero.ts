@@ -13,7 +13,7 @@ export const landingPageMock: LandingPageData = {
     { label: "Blog", href: "/blog" },
   ],
   hero: {
-    badge: "🚀 +2,500 vendeurs nous font confiance",
+    badge: "+2,500 vendeurs nous font confiance",
     headlineBefore: "Vendez et livrez sur ",
     headlineHighlight: "SUGU",
     headlineAfter: ", la marketplace #1 d'Afrique",
@@ -43,7 +43,7 @@ export const landingPageMock: LandingPageData = {
   // Testimonials Section
   // ──────────────────────────────────────────
   testimonials: {
-    badge: "💬 Témoignages",
+    badge: "Témoignages",
     heading: "Ils nous font confiance",
     subtext:
       "Découvrez ce que nos vendeurs et agences de livraison disent de SUGU Pro",
@@ -107,7 +107,7 @@ export const landingPageMock: LandingPageData = {
   // Pricing Preview Section
   // ──────────────────────────────────────────
   pricing: {
-    badge: "💎 Tarifs",
+    badge: "Tarifs",
     heading: "Des tarifs simples et transparents",
     plans: [
       {
@@ -154,7 +154,7 @@ export const landingPageMock: LandingPageData = {
   // How It Works Section
   // ──────────────────────────────────────────
   howItWorks: {
-    badge: "⚙️ Comment ça marche",
+    badge: "Comment ça marche",
     heading: "Lancez-vous en 3 étapes simples",
     subtext:
       "Rejoignez SUGU Pro en quelques minutes et commencez à vendre dès aujourd'hui",
@@ -232,7 +232,7 @@ export const landingPageMock: LandingPageData = {
   // FAQ Section
   // ──────────────────────────────────────────
   faq: {
-    badge: "❓ FAQ",
+    badge: "FAQ",
     heading: "Questions fréquentes",
     subtext: "Tout ce que vous devez savoir pour commencer",
     items: [

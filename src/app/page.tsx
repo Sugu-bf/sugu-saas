@@ -11,6 +11,7 @@ import { PricingPreview } from "@/features/landing/components/pricing-section";
 import { FaqBlock } from "@/features/landing/components/faq-section";
 import { CtaBanner } from "@/features/landing/components/cta-banner";
 import { LandingFooter } from "@/features/landing/components/landing-footer";
+import { Rocket } from "lucide-react";
 
 // ============================================================
 // SEO Metadata
@@ -69,6 +70,7 @@ export default async function LandingPage() {
                 {/* Social Proof Badge */}
                 <div className="animate-slide-up">
                   <span className="inline-flex items-center gap-2 rounded-full border border-orange-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-sugu-700 shadow-sm backdrop-blur-md">
+                    <Rocket className="h-4 w-4 text-orange-500" />
                     {hero.badge}
                   </span>
                 </div>
