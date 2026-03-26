@@ -52,6 +52,35 @@ interface RawProductItem {
   description?: string;
   shortDescription?: string;
   createdAt?: string;
+  moderation?: {
+    status: number | null;
+    statusLabel: string;
+    statusColor: string;
+    rejectionReason?: string | null;
+    notePublic?: string | null;
+    reviewedAt?: string | null;
+    submittedAt?: string | null;
+    reviewer?: { id: string; name: string } | null;
+    submitter?: { id: string; name: string } | null;
+    logs: Array<{
+      id: string;
+      action: string;
+      fromStatus: number | null;
+      toStatus: number | null;
+      actor: string;
+      context?: Record<string, unknown> | null;
+      date?: string | null;
+    }>;
+  };
+  auditLogs?: Array<{
+    id: string;
+    event: string;
+    description?: string | null;
+    actor: string;
+    changes?: Record<string, unknown> | null;
+    old?: Record<string, unknown> | null;
+    date?: string | null;
+  }>;
 }
 
 interface RawProductStats {
@@ -324,6 +353,99 @@ export async function createVendorProduct(
   });
 }
 
+/** Update an existing product via the vendor dashboard */
+export async function updateVendorProduct(
+  id: string,
+  formData: {
+    name: string;
+    description: string;
+    price: string;
+    originalPrice: string;
+    stock: string;
+    weightValue: string;
+    weightUnit: string;
+    publishMode: "publish" | "draft";
+    hasBulkPricing: boolean;
+    bulkTiers: Array<{ minQty: string; price: string }>;
+  },
+  categoryId?: string,
+  newImages?: File[],
+  removeMediaIds?: (string | number)[],
+): Promise<CreateProductResponse> {
+  const price = parseFloat(formData.price) || 0;
+  const stock = parseInt(formData.stock) || 0;
+  const weightValue = parseFloat(formData.weightValue) || 0;
+  const weightUnit = WEIGHT_UNIT_MAP[formData.weightUnit] ?? "g";
+  const status = formData.publishMode === "publish" ? "published" : "draft";
+
+  const bulkPrices = formData.hasBulkPricing
+    ? formData.bulkTiers
+        .filter((t) => parseInt(t.minQty) > 0 && parseFloat(t.price) > 0)
+        .map((t) => ({ minQty: parseInt(t.minQty), price: parseFloat(t.price) }))
+    : [];
+
+  const fd = new FormData();
+  fd.append("_method", "PUT"); // Laravel method spoofing for multipart
+  fd.append("name", formData.name);
+  if (formData.description) fd.append("description", formData.description);
+  fd.append("price", String(Math.round(price))); // match create
+  fd.append("stock", String(stock));
+  fd.append("status", status);
+  fd.append("currency", "XOF");
+  if (weightValue > 0) fd.append("weight", String(weightValue));
+  if (weightUnit) fd.append("weightUnit", weightUnit);
+  if (categoryId) fd.append("primary_category_id", categoryId);
+
+  bulkPrices.forEach((bp, idx) => {
+    fd.append(`bulkPrices[${idx}][minQty]`, String(bp.minQty));
+    fd.append(`bulkPrices[${idx}][price]`, String(bp.price));
+  });
+
+  if (newImages && newImages.length > 0) {
+    newImages.forEach((file) => { fd.append("gallery[]", file); });
+  }
+  if (removeMediaIds && removeMediaIds.length > 0) {
+    removeMediaIds.forEach((mid) => { fd.append("remove_media_ids[]", String(mid)); });
+  }
+
+  const { env } = await import("@/lib/env");
+  const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
+    ? env.NEXT_PUBLIC_API_BASE_URL
+    : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
+  const url = new URL(`sellers/products/${id}`, baseUrl).toString();
+
+  const tokenMatch = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
+  const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(url, { method: "POST", headers, body: fd });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+    const { ApiError } = await import("@/lib/http/api-error");
+    throw new ApiError({
+      message: errorJson.message ?? `HTTP ${response.status}`,
+      status: response.status,
+      code: errorJson.code ?? `HTTP_${response.status}`,
+      errors: errorJson.errors,
+    });
+  }
+
+  const res = await response.json() as {
+    success: boolean;
+    message: string;
+    data: { id: string; name: string };
+  };
+
+  return createProductResponseSchema.parse({
+    id: res.data.id ?? id,
+    name: res.data.name ?? formData.name,
+    success: res.success ?? true,
+    message: res.message,
+  });
+}
+
 // ── Transformers ───────────────────────────────────────────
 
 function _transformProductListItem(raw: RawProductItem): Record<string, unknown> {
@@ -488,8 +610,82 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
       ],
       reviews: [],
     },
-    history: [],
+    history: _buildHistoryFromAuditLogs(raw.auditLogs),
+    moderation: raw.moderation ? {
+      status: raw.moderation.status ?? null,
+      statusLabel: raw.moderation.statusLabel ?? 'Non soumis',
+      statusColor: raw.moderation.statusColor ?? 'gray',
+      rejectionReason: raw.moderation.rejectionReason ?? null,
+      notePublic: raw.moderation.notePublic ?? null,
+      reviewedAt: raw.moderation.reviewedAt ?? null,
+      submittedAt: raw.moderation.submittedAt ?? null,
+      reviewer: raw.moderation.reviewer ?? null,
+      submitter: raw.moderation.submitter ?? null,
+      logs: (raw.moderation.logs ?? []).map((log) => ({
+        id: log.id,
+        action: log.action,
+        fromStatus: log.fromStatus ?? null,
+        toStatus: log.toStatus ?? null,
+        actor: log.actor,
+        context: log.context ?? null,
+        date: log.date ?? null,
+      })),
+    } : undefined,
+    auditLogs: raw.auditLogs?.map((a) => ({
+      id: a.id,
+      event: a.event,
+      description: a.description ?? null,
+      actor: a.actor,
+      changes: a.changes ?? null,
+      old: a.old ?? null,
+      date: a.date ?? null,
+    })),
   };
+}
+
+/** Build history entries from Spatie audit logs for the History card */
+function _buildHistoryFromAuditLogs(
+  auditLogs?: RawProductItem['auditLogs'],
+): Array<{ id: string; date: string; action: string; author: string }> {
+  if (!auditLogs || auditLogs.length === 0) return [];
+
+  const EVENT_LABELS: Record<string, string> = {
+    created: 'Création du produit',
+    updated: 'Mise à jour du produit',
+    deleted: 'Suppression du produit',
+  };
+
+  return auditLogs.map((a) => {
+    const changedKeys = a.changes ? Object.keys(a.changes) : [];
+    let action = a.description ?? EVENT_LABELS[a.event] ?? a.event;
+
+    // Enrich description with changed field names
+    if (a.event === 'updated' && changedKeys.length > 0) {
+      const FIELD_LABELS: Record<string, string> = {
+        name: 'nom',
+        price_amount: 'prix',
+        stock: 'stock',
+        status: 'statut',
+        description: 'description',
+        weight_g: 'poids',
+        primary_category_id: 'catégorie',
+      };
+      const labels = changedKeys
+        .map((k) => FIELD_LABELS[k] || k)
+        .slice(0, 3)
+        .join(', ');
+      action = `Mise à jour : ${labels}${changedKeys.length > 3 ? '…' : ''}`;
+    }
+
+    return {
+      id: a.id,
+      date: a.date
+        ? new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—',
+      action,
+      author: a.actor,
+    };
+  });
 }
 
 function _transformCreateProductRequest(

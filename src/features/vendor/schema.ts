@@ -427,6 +427,48 @@ export const productHistoryEntrySchema = z.object({
 
 export type ProductHistoryEntry = z.infer<typeof productHistoryEntrySchema>;
 
+/** Moderation log entry (from product_moderation_logs table) */
+export const moderationLogEntrySchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  fromStatus: z.number().nullable().optional(),
+  toStatus: z.number().nullable().optional(),
+  actor: z.string(),
+  context: z.record(z.unknown()).nullable().optional(),
+  date: z.string().nullable().optional(),
+});
+
+export type ModerationLogEntry = z.infer<typeof moderationLogEntrySchema>;
+
+/** Moderation info (current state + timeline) */
+export const moderationInfoSchema = z.object({
+  status: z.number().nullable().optional(),
+  statusLabel: z.string(),
+  statusColor: z.string(),
+  rejectionReason: z.string().nullable().optional(),
+  notePublic: z.string().nullable().optional(),
+  reviewedAt: z.string().nullable().optional(),
+  submittedAt: z.string().nullable().optional(),
+  reviewer: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  submitter: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  logs: z.array(moderationLogEntrySchema),
+});
+
+export type ModerationInfo = z.infer<typeof moderationInfoSchema>;
+
+/** Audit log entry (from Spatie activity_log) */
+export const auditLogEntrySchema = z.object({
+  id: z.string(),
+  event: z.string(),
+  description: z.string().nullable().optional(),
+  actor: z.string(),
+  changes: z.record(z.unknown()).nullable().optional(),
+  old: z.record(z.unknown()).nullable().optional(),
+  date: z.string().nullable().optional(),
+});
+
+export type AuditLogEntry = z.infer<typeof auditLogEntrySchema>;
+
 /** Full product detail response */
 export const vendorProductDetailSchema = z.object({
   id: z.string(),
@@ -491,6 +533,12 @@ export const vendorProductDetailSchema = z.object({
   }),
 
   history: z.array(productHistoryEntrySchema),
+
+  /** Moderation status + timeline (from API when available) */
+  moderation: moderationInfoSchema.optional(),
+
+  /** Audit trail entries from Spatie activity log */
+  auditLogs: z.array(auditLogEntrySchema).optional(),
 });
 
 export type VendorProductDetail = z.infer<typeof vendorProductDetailSchema>;

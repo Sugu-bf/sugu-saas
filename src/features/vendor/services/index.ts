@@ -29,6 +29,7 @@ export {
   getVariantOptions,
   previewProductImage,
   createVendorProduct,
+  updateVendorProduct,
 } from "./products.service";
 
 // Clients

@@ -24,6 +24,8 @@ import {
   ExternalLink,
   MoreHorizontal,
   Image as ImageIcon,
+  Shield,
+  AlertTriangle,
 } from "lucide-react";
 
 // ────────────────────────────────────────────────────────────
@@ -118,13 +120,14 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             <ExternalLink className="h-4 w-4" />
             Aperçu boutique
           </button>
-          <button
+          <Link
+            href={`/vendor/products/${data.id}/edit`}
             className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:gap-2 lg:px-4 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600"
             aria-label="Modifier le produit"
           >
             <Pencil className="h-4 w-4" />
             Modifier
-          </button>
+          </Link>
           <button
             className="glass-card inline-flex items-center justify-center rounded-xl p-2 text-muted-foreground transition-all active:shadow-md lg:p-2.5 lg:hover:text-foreground lg:hover:shadow-md"
             aria-label="Plus d'options"
@@ -489,6 +492,21 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
       )}
 
       {/* ═══════════════════════════════════════════════════════════
+          MODERATION + HISTORY ROW (always visible when data exists)
+         ═══════════════════════════════════════════════════════════ */}
+      {(data.moderation || data.history.length > 0) && (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
+          {/* ─── Moderation History ─── */}
+          <ModerationHistoryCard data={data} />
+
+          {/* ─── History (Audit Log) ─── */}
+          {data.history.length > 0 && (
+            <HistoryCard data={data} />
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
           BOTTOM ACTION BAR
          ═══════════════════════════════════════════════════════════ */}
       <div className="glass-card sticky bottom-4 z-30 flex flex-col gap-2 rounded-2xl p-3 shadow-lg lg:flex-row lg:items-center lg:justify-between lg:gap-0">
@@ -514,10 +532,13 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             <Ban className="h-4 w-4" />
             Désactiver
           </button>
-          <button className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:hover:bg-sugu-600 lg:px-5 lg:text-sm">
+          <Link
+            href={`/vendor/products/${data.id}/edit`}
+            className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-3 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] lg:hover:bg-sugu-600 lg:px-5 lg:text-sm"
+          >
             <Pencil className="h-4 w-4" />
             Modifier le produit
-          </button>
+          </Link>
         </div>
       </div>
     </div>
@@ -856,6 +877,211 @@ function HistoryCard({ data }: { data: VendorProductDetail }) {
       >
         Historique des histories →
       </Link>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// Moderation History Card
+// ════════════════════════════════════════════════════════════
+
+const MODERATION_STATUS_STYLES: Record<string, { dot: string; badge: string; label: string }> = {
+  green: {
+    dot: "bg-green-500",
+    badge: "text-green-700 bg-green-100 border-green-200 dark:text-green-400 dark:bg-green-950/40 dark:border-green-800",
+    label: "Approuvé",
+  },
+  orange: {
+    dot: "bg-amber-500",
+    badge: "text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-800",
+    label: "En attente",
+  },
+  red: {
+    dot: "bg-red-500",
+    badge: "text-red-700 bg-red-100 border-red-200 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800",
+    label: "Rejeté",
+  },
+  yellow: {
+    dot: "bg-yellow-500",
+    badge: "text-yellow-700 bg-yellow-100 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-950/40 dark:border-yellow-800",
+    label: "Signalé",
+  },
+  blue: {
+    dot: "bg-blue-500",
+    badge: "text-blue-700 bg-blue-100 border-blue-200 dark:text-blue-400 dark:bg-blue-950/40 dark:border-blue-800",
+    label: "En révision",
+  },
+  gray: {
+    dot: "bg-gray-400",
+    badge: "text-gray-500 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-gray-800/50 dark:border-gray-700",
+    label: "Non soumis",
+  },
+};
+
+const MODERATION_ACTION_COLORS: Record<string, string> = {
+  approve: "bg-green-500",
+  approved: "bg-green-500",
+  reject: "bg-red-500",
+  rejected: "bg-red-500",
+  flag: "bg-yellow-500",
+  flagged: "bg-yellow-500",
+  submit: "bg-amber-500",
+  submitted: "bg-amber-500",
+  suspend: "bg-red-500",
+  unsuspend: "bg-green-500",
+  edit: "bg-blue-500",
+  updated: "bg-blue-500",
+};
+
+const MODERATION_ACTION_LABELS: Record<string, string> = {
+  approve: "Approuvé",
+  approved: "Approuvé",
+  reject: "Rejeté",
+  rejected: "Rejeté",
+  flag: "Signalé",
+  flagged: "Signalé",
+  submit: "Soumis",
+  submitted: "Soumis",
+  suspend: "Suspendu",
+  unsuspend: "Réactivé",
+  edit: "Modifié",
+  updated: "Mis à jour",
+};
+
+function _getStatusDotFromToStatus(toStatus: number | null | undefined): string {
+  switch (toStatus) {
+    case 1: return "bg-green-500"; // approved
+    case 2: return "bg-red-500";   // rejected
+    case 3: return "bg-yellow-500"; // flagged
+    case 4: return "bg-blue-500";   // under_review
+    case 0: // pending
+    default: return "bg-amber-500";
+  }
+}
+
+function ModerationHistoryCard({ data }: { data: VendorProductDetail }) {
+  const moderation = data.moderation;
+  const statusStyle = MODERATION_STATUS_STYLES[moderation?.statusColor ?? "gray"] ?? MODERATION_STATUS_STYLES.gray;
+  const logs = moderation?.logs ?? [];
+
+  return (
+    <div className="glass-card rounded-2xl p-4 space-y-4 lg:p-5 animate-card-enter" style={{ animationDelay: "0.15s" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Shield className="h-4 w-4 text-sugu-500" />
+          Modération
+        </h3>
+        {/* Current status badge */}
+        <span className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+          statusStyle.badge,
+        )}>
+          <span className={cn("h-1.5 w-1.5 rounded-full", statusStyle.dot)} />
+          {moderation?.statusLabel ?? statusStyle.label}
+        </span>
+      </div>
+
+      {/* Rejection reason callout */}
+      {moderation?.rejectionReason && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 dark:bg-amber-950/20 dark:border-amber-800">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Motif de rejet</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+              {moderation.rejectionReason}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Public note */}
+      {moderation?.notePublic && !moderation.rejectionReason && (
+        <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 leading-relaxed">
+          {moderation.notePublic}
+        </p>
+      )}
+
+      {/* Meta info */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+        {moderation?.reviewer && (
+          <span>Révisé par <span className="font-semibold text-foreground">{moderation.reviewer.name}</span></span>
+        )}
+        {moderation?.reviewedAt && (
+          <span>
+            le {new Date(moderation.reviewedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        )}
+        {moderation?.submittedAt && (
+          <span>
+            Soumis le {new Date(moderation.submittedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        )}
+      </div>
+
+      {/* Timeline */}
+      {logs.length > 0 ? (
+        <div className="relative space-y-0 pt-1">
+          {/* Timeline line */}
+          <div className="absolute left-[7px] top-4 bottom-4 w-px bg-gradient-to-b from-sugu-300 via-border to-border dark:from-sugu-700" />
+
+          {logs.slice(0, 6).map((log, i) => {
+            const dotColor = MODERATION_ACTION_COLORS[log.action] ?? _getStatusDotFromToStatus(log.toStatus);
+            const actionLabel = MODERATION_ACTION_LABELS[log.action] ?? log.action;
+
+            return (
+              <div key={log.id} className="relative flex gap-3 py-2.5">
+                {/* Dot */}
+                <div className={cn(
+                  "relative z-10 mt-1 h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-white dark:border-gray-900",
+                  dotColor,
+                  i === 0 && "ring-2 ring-current/20",
+                )} />
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 -mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{actionLabel}</span>
+                    <span className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold",
+                      dotColor === "bg-green-500" ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-800" :
+                      dotColor === "bg-red-500" ? "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800" :
+                      dotColor === "bg-amber-500" ? "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800" :
+                      dotColor === "bg-blue-500" ? "text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950/30 dark:border-blue-800" :
+                      dotColor === "bg-yellow-500" ? "text-yellow-700 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-950/30 dark:border-yellow-800" :
+                      "text-gray-500 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700",
+                    )}>
+                      {actionLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                    {log.date && (
+                      <span className="font-mono">
+                        {new Date(log.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                    <span>·</span>
+                    <span>{log.actor}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
+          <span>Aucun historique de modération disponible</span>
+        </div>
+      )}
+
+      {logs.length > 6 && (
+        <Link
+          href="#"
+          className="inline-flex items-center gap-1 text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
+        >
+          Voir tout l&apos;historique ({logs.length} entrées) →
+        </Link>
+      )}
     </div>
   );
 }

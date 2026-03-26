@@ -125,5 +125,16 @@ export const queryKeys = {
       [...queryKeys.driver.all, "settings"] as const,
     payoutSettings: () =>
       [...queryKeys.driver.all, "payoutSettings"] as const,
+    // Messaging
+    conversations: (filters?: Record<string, unknown>) =>
+      [...queryKeys.driver.all, "conversations", filters] as const,
+    conversation: (id: string) =>
+      [...queryKeys.driver.all, "conversations", "detail", id] as const,
+    messages: (convId: string) =>
+      [...queryKeys.driver.all, "conversations", "messages", convId] as const,
+    presence: (convId: string) =>
+      [...queryKeys.driver.all, "conversations", "presence", convId] as const,
+    recommendedProducts: (convId: string) =>
+      [...queryKeys.driver.all, "conversations", "recommended-products", convId] as const,
   },
 } as const;

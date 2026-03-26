@@ -678,6 +678,53 @@ export function useCreateProduct() {
   });
 }
 
+/**
+ * Hook: Update an existing product.
+ * On success, invalidates the detail + list caches and redirects to the detail page.
+ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (params: {
+      id: string;
+      formData: {
+        name: string;
+        description: string;
+        price: string;
+        originalPrice: string;
+        stock: string;
+        weightValue: string;
+        weightUnit: string;
+        publishMode: "publish" | "draft";
+        hasBulkPricing: boolean;
+        bulkTiers: Array<{ minQty: string; price: string }>;
+      };
+      categoryId?: string;
+      newImages?: File[];
+      removeMediaIds?: (string | number)[];
+    }) =>
+      vendorService.updateVendorProduct(
+        params.id,
+        params.formData,
+        params.categoryId,
+        params.newImages,
+        params.removeMediaIds,
+      ),
+    onSuccess: (_data, variables) => {
+      const productId = variables.id;
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.productDetail(productId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.products() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.productStats() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.dashboard() });
+      router.push(`/vendor/products/${productId}`);
+    },
+  });
+}
+
 // ────────────────────────────────────────────────────────────
 // Clients Page
 // ────────────────────────────────────────────────────────────

@@ -43,6 +43,7 @@ export {
   getVariantOptions,
   previewProductImage,
   createVendorProduct,
+  updateVendorProduct,
   // Clients
   getVendorClients,
   getVendorClientDetail,
