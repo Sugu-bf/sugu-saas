@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s | SUGU",
   },
   description: "Plateforme SaaS multi-vendeur et logistique SUGU.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
 };
 
 export default function RootLayout({
