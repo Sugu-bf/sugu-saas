@@ -1098,6 +1098,7 @@ function _transformCourierToProfile(
         : isRejected
           ? "expired" as const
           : "pending" as const,
+      fileUrl: (doc as Record<string, unknown>).file_url as string | undefined ?? null,
     };
   });
 
@@ -1450,6 +1451,23 @@ export async function registerCourier(
     courierId: response.data.courier_id,
     password: response.data.password,
   };
+}
+
+/**
+ * Verify driver KYC (approve or reject)
+ *
+ * POST /agencies/{agencyId}/couriers/{courierId}/verify-kyc
+ */
+export async function verifyCourierKyc(
+  agencyId: string,
+  courierId: string,
+  approved: boolean,
+  notes?: string
+): Promise<void> {
+  await api.post(
+    `agencies/${agencyId}/couriers/${courierId}/verify-kyc`,
+    { approved, notes }
+  );
 }
 
 // --- MOCK FALLBACK (kept for dev/offline testing) ---

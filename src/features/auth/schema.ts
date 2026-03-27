@@ -25,13 +25,31 @@ export const userSchema = z.object({
 });
 
 export const loginResponseSchema = z.object({
-  data: z.object({
-    user: userSchema,
-    token: z.string(),
-  }),
+  data: z.union([
+    z.object({
+      user: userSchema,
+      token: z.string(),
+    }),
+    z.object({
+      verification_required: z.literal(true),
+      identifier: z.string(),
+      expires_in: z.number().optional(),
+      reason: z.string().optional(),
+    }),
+  ]),
   message: z.string().optional(),
 });
+
+export type LoginResultData = z.infer<typeof loginResponseSchema>["data"];
 
 export const meResponseSchema = z.object({
   data: userSchema,
 });
+
+export const verifyOtpSchema = z.object({
+  identifier: z.string(),
+  code: z.string().length(6, "Le code doit contenir 6 chiffres"),
+  type: z.number(),
+});
+
+export type VerifyOtpPayload = z.infer<typeof verifyOtpSchema>;

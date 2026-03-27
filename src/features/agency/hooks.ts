@@ -325,6 +325,33 @@ export function useActivateCourier() {
 }
 
 /**
+ * Hook: Verify Courier KYC.
+ *
+ * Invalidates driver detail and drivers list on success.
+ */
+export function useVerifyCourierKyc() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: ({
+      courierId,
+      approved,
+      notes,
+    }: {
+      courierId: string;
+      approved: boolean;
+      notes?: string;
+    }) => agencyService.verifyCourierKyc(agencyId, courierId, approved, notes),
+    onSuccess: (_, { courierId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.drivers() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.driverDetail(courierId) });
+    },
+  });
+}
+
+/**
  * Hook: Add a new courier.
  *
  * Invalidates all agency queries on success.

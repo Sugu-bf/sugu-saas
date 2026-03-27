@@ -283,11 +283,11 @@ export const landingPageMock: LandingPageData = {
     subtext:
       "Rejoignez des milliers de vendeurs et agences de livraison qui font confiance à SUGU Pro.",
     ctaPrimary: {
-      label: "Créer mon compte gratuitement →",
+      label: "Créer mon compte",
       href: "/login",
     },
     ctaSecondary: {
-      label: "Contacter notre équipe",
+      label: "Nous contacter",
       href: "#contact",
     },
   },

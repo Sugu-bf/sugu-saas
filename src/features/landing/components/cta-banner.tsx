@@ -17,32 +17,7 @@ export function CtaBanner({ data }: CtaBannerSectionProps) {
     >
       <div className="mx-auto max-w-5xl">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sugu-50 via-orange-50 to-sugu-100/60 px-6 py-12 shadow-xl shadow-sugu-100/40 sm:px-12 sm:py-16 lg:px-16 lg:py-20">
-          {/* ── Decorative elements ── */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-sugu-400/20 blur-xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-4 -left-4 h-24 w-24 rounded-full bg-sugu-300/25 blur-lg"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-12 bottom-8 h-16 w-16 rounded-full bg-sugu-400/15 blur-md"
-          />
-          {/* Small decorative dots */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-1/4 top-6 h-3 w-3 rounded-full bg-sugu-400/40"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-1/3 top-10 h-2 w-2 rounded-full bg-sugu-300/50"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-10 bottom-12 h-2.5 w-2.5 rounded-full bg-sugu-400/30"
-          />
+          {/* ── Decorative elements removed to keep a clean, professional look ── */}
 
           {/* ── Content ── */}
           <div className="relative grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
@@ -60,13 +35,13 @@ export function CtaBanner({ data }: CtaBannerSectionProps) {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
               <Link
                 href={data.ctaPrimary.href}
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-sugu-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sugu-500/30 transition-all duration-300 hover:bg-sugu-600 hover:shadow-xl hover:shadow-sugu-500/40 hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-sugu-500 focus-visible:ring-offset-2 sm:text-base"
+                className="group inline-flex whitespace-nowrap items-center justify-center gap-2 rounded-full bg-sugu-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sugu-500/30 transition-all duration-300 hover:bg-sugu-600 hover:shadow-xl hover:shadow-sugu-500/40 hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-sugu-500 focus-visible:ring-offset-2 sm:text-base"
               >
                 {data.ctaPrimary.label}
               </Link>
               <Link
                 href={data.ctaSecondary.href}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white/90 px-7 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-300 hover:bg-white hover:border-gray-400 hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 sm:text-base"
+                className="inline-flex whitespace-nowrap items-center justify-center gap-2 rounded-full border border-gray-300 bg-white/90 px-7 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-300 hover:bg-white hover:border-gray-400 hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 sm:text-base"
               >
                 {/* Chat icon */}
                 <svg

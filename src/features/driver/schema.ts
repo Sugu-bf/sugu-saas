@@ -389,7 +389,7 @@ export const driverProfileSchema = z.object({
 export type DriverProfile = z.infer<typeof driverProfileSchema>;
 
 /** Vehicle type enum */
-export const vehicleTypeSchema = z.enum(["moto", "velo", "voiture", "tricycle", "car"]);
+export const vehicleTypeSchema = z.enum(["moto", "motorcycle", "velo", "bicycle", "voiture", "tricycle", "car", "truck", "van"]);
 export type VehicleType = z.infer<typeof vehicleTypeSchema>;
 
 /** Driver vehicle data */

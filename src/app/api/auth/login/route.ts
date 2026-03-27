@@ -43,10 +43,36 @@ export async function POST(request: NextRequest) {
     const backendUser = json.data?.user;
     const token = json.data?.token;
 
+    if (json.data?.verification_required) {
+      return NextResponse.json({
+        data: {
+          verification_required: true,
+          identifier: json.data.identifier,
+          expires_in: json.data.expires_in,
+          reason: json.data.reason,
+        },
+        message: json.message ?? "Code de vérification envoyé.",
+      });
+    }
+
     if (!token || !backendUser) {
       return NextResponse.json(
         { message: "Réponse serveur invalide." },
         { status: 502 },
+      );
+    }
+
+    const mappedRole = _mapRole(backendUser);
+    
+    // Strict rule: Deny access silently to any user not having SaaS roles
+    // We send a generic validation error identical to bad password
+    if (!mappedRole) {
+      return NextResponse.json(
+        {
+          message: "Email ou mot de passe incorrect.",
+          errors: { email: ["Les identifiants fournis sont incorrects."] },
+        },
+        { status: 422 },
       );
     }
 
@@ -55,7 +81,7 @@ export async function POST(request: NextRequest) {
       id: backendUser.id,
       name: backendUser.name,
       email: backendUser.email,
-      role: _mapRole(backendUser),
+      role: mappedRole,
       avatar_url: backendUser.avatar_url ?? backendUser.store?.logo_url ?? null,
       email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
       created_at: backendUser.created_at ?? new Date().toISOString(),
@@ -92,21 +118,32 @@ export async function POST(request: NextRequest) {
  * Backend: `can_sell`, `store`, `agency`, roles[]
  * Frontend: "vendor" | "agency"
  */
-function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" {
-  // Check roles array first (most explicit)
+export function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" | null {
+  // Use the explicit user_type if it exists from the backend UserType enum
+  const type = backendUser.user_type as string | undefined;
+  
+  if (type === 'seller') return "vendor";
+  if (type === 'delivery_partner' || type === 'partner') return "agency";
+  if (type === 'courier') return "courier";
+
+  // Fallback to checking the roles array
   const roles = backendUser.roles as string[] | undefined;
   if (roles?.includes("courier")) return "courier";
-  if (roles?.includes("delivery_partner")) return "agency";
+  if (roles?.includes("delivery_partner") || roles?.includes("partner") || roles?.includes("agency")) return "agency";
+  if (roles?.includes("seller") || roles?.includes("vendor")) return "vendor";
+
   // Then check entity presence
   if (backendUser.agency || backendUser.delivery_partner) return "agency";
-  if (backendUser.can_sell || backendUser.store) return "vendor";
-  return "vendor";
+  if (backendUser.can_sell === true || backendUser.store) return "vendor";
+
+  // Unauthorized profile
+  return null;
 }
 
 /**
  * Extract the business name (store or agency) from the backend user.
  */
-function _extractBusinessName(backendUser: Record<string, unknown>): string | null {
+export function _extractBusinessName(backendUser: Record<string, unknown>): string | null {
   const store = backendUser.store as Record<string, unknown> | undefined;
   if (store?.name) return String(store.name);
   const agency = backendUser.agency as Record<string, unknown> | undefined;

@@ -24,6 +24,7 @@ import {
   Calendar,
   MoreHorizontal,
   Loader2,
+  Eye,
   PlayCircle,
   User,
   BarChart3,
@@ -35,6 +36,7 @@ import {
   useSuspendCourier,
   useActivateCourier,
   useRemoveCourier,
+  useVerifyCourierKyc,
 } from "@/features/agency/hooks";
 
 // ────────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
   const suspendMutation = useSuspendCourier();
   const activateMutation = useActivateCourier();
   const removeMutation = useRemoveCourier();
+  const verifyMutation = useVerifyCourierKyc();
 
   if (isLoading || !data) {
     return (
@@ -495,12 +498,23 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
           <p className="text-[11px] font-bold text-gray-900 dark:text-white mb-2">Documents</p>
           <div className="space-y-2">
             {data.documents.map((doc) => (
-              <div key={doc.id} className="flex items-center gap-2">
+              <div key={doc.id} className="flex items-center gap-2 group">
                 {DOC_STATUS_ICON[doc.status]}
-                <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{doc.label}</span>
+                <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 flex-1">{doc.label}</span>
+                {doc.fileUrl && (
+                  <a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500"
+                    title="Voir le document"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </a>
+                )}
                 <span
                   className={cn(
-                    "ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold",
+                    "rounded-full px-2 py-0.5 text-[9px] font-bold",
                     DOC_STATUS_LABEL_CLR[doc.status],
                   )}
                 >
@@ -509,7 +523,28 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[10px] text-gray-400 italic">{data.documentsStatus}</p>
+          <p className="mt-3 text-[10px] text-gray-400 italic mb-4">{data.documentsStatus}</p>
+
+          {(data.status === "suspended" || data.documents.some(d => d.status === "pending")) && (
+            <div className="flex items-center gap-2 mt-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <button
+                onClick={() => { if (confirm("Voulez-vous approuver le KYC de ce livreur ?")) { verifyMutation.mutate({ courierId: data.id, approved: true }); } }}
+                disabled={verifyMutation.isPending}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-green-600 disabled:opacity-50"
+              >
+                {verifyMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                Approuver
+              </button>
+              <button
+                onClick={() => { const reason = prompt("Raison du rejet :"); if (reason !== null) { verifyMutation.mutate({ courierId: data.id, approved: false, notes: reason }); } }}
+                disabled={verifyMutation.isPending}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition-all hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 disabled:opacity-50"
+              >
+                {verifyMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Ban className="h-3 w-3" />}
+                Rejeter
+              </button>
+            </div>
+          )}
         </section>
 
         {/* ── Dernières livraisons ── */}

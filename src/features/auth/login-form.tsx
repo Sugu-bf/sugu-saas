@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useLogin } from "@/features/auth";
+import { useLogin, useVerifyOtp } from "@/features/auth";
 import { loginSchema, type LoginPayload } from "@/features/auth/schema";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import Link from "next/link";
@@ -12,9 +12,15 @@ import Link from "next/link";
  */
 export function LoginForm() {
   const loginMutation = useLogin();
+  const verifyOtpMutation = useVerifyOtp(); // new
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof LoginPayload, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // 2FA state
+  const [is2FA, setIs2FA] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,7 +46,12 @@ export function LoginForm() {
     }
 
     try {
-      await loginMutation.mutateAsync(result.data);
+      const resp = await loginMutation.mutateAsync(result.data);
+      if ("verification_required" in resp && resp.verification_required) {
+        setIs2FA(true);
+        setIdentifier(resp.identifier);
+        setServerError(null);
+      }
     } catch (err: unknown) {
       const error = err as Error & { status?: number; errors?: Record<string, string[]> };
       const status = error.status ?? 0;
@@ -59,6 +70,77 @@ export function LoginForm() {
         setServerError(error.message || "Une erreur inattendue est survenue.");
       }
     }
+  }
+
+  async function handleVerifyOtp(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setServerError(null);
+
+    if (otpCode.length !== 6) {
+      setServerError("Le code doit contenir 6 chiffres.");
+      return;
+    }
+
+    try {
+      await verifyOtpMutation.mutateAsync({
+        identifier,
+        code: otpCode,
+        type: 3, // LoginVerification
+      });
+    } catch (err: unknown) {
+      const error = err as Error & { status?: number; errors?: Record<string, string[]> };
+      setServerError(error.message || "Code incorrect.");
+    }
+  }
+
+  if (is2FA) {
+    return (
+      <form onSubmit={handleVerifyOtp} className="space-y-5" noValidate>
+        {serverError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400">
+            {serverError}
+          </div>
+        )}
+        <div className="text-center mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Un code de vérification a été envoyé à <strong>{identifier}</strong>.
+          </p>
+        </div>
+        <div>
+          <label htmlFor="otp" className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-200">
+            Code de vérification (6 chiffres)
+          </label>
+          <input
+            id="otp"
+            type="text"
+            required
+            maxLength={6}
+            placeholder="123456"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+            className="w-full text-center tracking-widest text-lg rounded-full border border-sugu-200 bg-white/50 py-3.5 px-4 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-sugu-500 focus:bg-white focus:ring-4 focus:ring-sugu-500/10 dark:border-gray-700 dark:bg-gray-800/50 dark:text-white dark:focus:bg-gray-800"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={verifyOtpMutation.isPending || otpCode.length !== 6}
+          className="mt-2 flex w-full items-center justify-center rounded-full bg-[#ea580c] px-6 py-4 text-base font-bold text-white shadow-xl shadow-orange-500/25 transition-all hover:bg-[#dea83f] hover:shadow-orange-500/40 disabled:opacity-70 dark:bg-[#ea580c] dark:shadow-orange-500/20"
+        >
+          {verifyOtpMutation.isPending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            "Vérifier et se connecter"
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIs2FA(false)}
+          className="mt-2 w-full text-center text-sm font-medium text-gray-500 hover:text-gray-700 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          Retour à la connexion
+        </button>
+      </form>
+    );
   }
 
   return (

@@ -1,20 +1,15 @@
-import { loginResponseSchema, meResponseSchema, type LoginPayload } from "./schema";
+import { loginResponseSchema, meResponseSchema, type LoginPayload, type LoginResultData, type VerifyOtpPayload } from "./schema";
 import type { User } from "@/types";
 
 // ============================================================
 // Auth API module — calls Next.js BFF Route Handlers
 // ============================================================
 
-export interface LoginResult {
-  user: User;
-  token: string;
-}
-
 /**
  * Login via BFF route handler (/api/auth/login).
  * The route handler sets the auth cookie and returns user + token.
  */
-export async function login(payload: LoginPayload): Promise<LoginResult> {
+export async function login(payload: LoginPayload): Promise<LoginResultData> {
   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -31,6 +26,29 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
     };
     err.status = res.status;
     err.errors = json.errors;
+    throw err;
+  }
+
+  const validated = loginResponseSchema.parse(json);
+  return validated.data;
+}
+
+/**
+ * Verify OTP via BFF route handler (/api/auth/verify-otp).
+ * The route handler sets the auth cookie and returns user + token.
+ */
+export async function verifyOtp(payload: VerifyOtpPayload): Promise<LoginResultData> {
+  const res = await fetch("/api/auth/verify-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const err = new Error(json.message ?? "Erreur de vérification") as Error & { status: number };
+    err.status = res.status;
     throw err;
   }
 

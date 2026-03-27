@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import * as authService from "./service";
-import type { LoginPayload } from "./schema";
+import type { LoginPayload, VerifyOtpPayload } from "./schema";
 import { useRouter } from "next/navigation";
 import type { User } from "@/types";
 
@@ -36,15 +36,49 @@ export function useLogin() {
   return useMutation({
     mutationFn: (payload: LoginPayload) => authService.login(payload),
     onSuccess: (result) => {
+      if ('verification_required' in result && result.verification_required) {
+        return; // UI will handle showing the OTP form
+      }
+
       // Cache the user in query client
-      qc.setQueryData(queryKeys.auth.me(), result.user);
+      const authenticatedResult = result as { user: User };
+      qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
 
       // Redirect based on role
-      if (result.user.role === "vendor") {
+      if (authenticatedResult.user.role === "vendor") {
         router.push("/vendor/dashboard");
-      } else if (result.user.role === "agency") {
+      } else if (authenticatedResult.user.role === "agency") {
         router.push("/agency/dashboard");
-      } else if (result.user.role === "courier") {
+      } else if (authenticatedResult.user.role === "courier") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/vendor/dashboard"); // fallback
+      }
+    },
+  });
+}
+
+/**
+ * Hook: verify OTP mutation.
+ */
+export function useVerifyOtp() {
+  const qc = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (payload: VerifyOtpPayload) => authService.verifyOtp(payload),
+    onSuccess: (result) => {
+      if ('verification_required' in result && result.verification_required) {
+        return;
+      }
+      const authenticatedResult = result as { user: User };
+      qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
+
+      if (authenticatedResult.user.role === "vendor") {
+        router.push("/vendor/dashboard");
+      } else if (authenticatedResult.user.role === "agency") {
+        router.push("/agency/dashboard");
+      } else if (authenticatedResult.user.role === "courier") {
         router.push("/driver/dashboard");
       } else {
         router.push("/vendor/dashboard"); // fallback

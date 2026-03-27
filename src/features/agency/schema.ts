@@ -388,6 +388,7 @@ export const driverDocumentSchema = z.object({
   label: z.string(),
   value: z.string(),
   status: docStatusSchema,
+  fileUrl: z.string().nullable().optional(),
 });
 export type DriverDocument = z.infer<typeof driverDocumentSchema>;
 
