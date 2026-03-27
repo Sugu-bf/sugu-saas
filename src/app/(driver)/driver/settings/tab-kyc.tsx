@@ -187,10 +187,16 @@ export function TabKyc({ data }: TabKycProps) {
               )}
 
               {/* View button (for uploaded docs) */}
-              {doc.status !== "not_uploaded" && (
-                <button className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300" aria-label={`Voir ${doc.label}`}>
+              {doc.status !== "not_uploaded" && doc.fileUrl && (
+                <a 
+                  href={doc.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-400 p-1 transition-colors hover:text-blue-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800" 
+                  title={`Voir ${doc.label}`}
+                >
                   <Eye className="h-4 w-4" />
-                </button>
+                </a>
               )}
             </div>
           ))}

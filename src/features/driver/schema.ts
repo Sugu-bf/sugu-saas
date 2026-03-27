@@ -422,6 +422,7 @@ export const kycDocumentSchema = z.object({
   label: z.string(),                  // "Pièce d'identité (CNI / Passeport)"
   status: kycDocStatusSchema,
   fileName: z.string().nullable(),    // "cni_amadou_diallo.pdf"
+  fileUrl: z.string().nullable().optional(),
   uploadedAt: z.string().nullable(),  // ISO date
   rejectionReason: z.string().nullable(),
 });

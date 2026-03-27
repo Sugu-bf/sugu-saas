@@ -1244,6 +1244,7 @@ interface RawCourierSettingsResponse {
       label: string;
       status: string;
       file_name: string | null;
+      file_url: string | null;
       uploaded_at: string | null;
       rejection_reason: string | null;
     }>;
@@ -1320,6 +1321,7 @@ function _transformSettingsResponse(raw: RawCourierSettingsResponse): unknown {
         label: doc.label,
         status: doc.status,
         fileName: doc.file_name,
+        fileUrl: doc.file_url,
         uploadedAt: doc.uploaded_at,
         rejectionReason: doc.rejection_reason,
       })),
