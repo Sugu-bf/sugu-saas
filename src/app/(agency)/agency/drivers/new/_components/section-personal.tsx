@@ -74,9 +74,28 @@ export function SectionPersonal({ data, onChange }: SectionPersonalProps) {
             Téléphone <span className="text-red-500">*</span>
           </label>
           <div className="flex gap-2">
-            <div className="flex items-center rounded-xl border border-gray-200/80 bg-gray-100/50 px-3">
-              <span className="text-sm font-medium text-gray-500">{data.phonePrefix}</span>
-            </div>
+            <select
+              value={data.phonePrefix}
+              onChange={(e) => onChange("phonePrefix", e.target.value)}
+              className="flex items-center rounded-xl border border-gray-200/80 bg-gray-50/50 px-3 text-sm font-medium text-gray-700 outline-none transition-all focus:border-sugu-400 focus:bg-white focus:ring-2 focus:ring-sugu-500/20"
+            >
+              <option value="+226">🇧🇫 +226</option>
+              <option value="+223">🇲🇱 +223</option>
+              <option value="+221">🇸🇳 +221</option>
+              <option value="+225">🇨🇮 +225</option>
+              <option value="+228">🇹🇬 +228</option>
+              <option value="+229">🇧🇯 +229</option>
+              <option value="+227">🇳🇪 +227</option>
+              <option value="+224">🇬🇳 +224</option>
+              <option value="+233">🇬🇭 +233</option>
+              <option value="+234">🇳🇬 +234</option>
+              <option value="+231">🇱🇷 +231</option>
+              <option value="+232">🇸🇱 +232</option>
+              <option value="+220">🇬🇲 +220</option>
+              <option value="+245">🇬🇼 +245</option>
+              <option value="+222">🇲🇷 +222</option>
+              <option value="+238">🇨🇻 +238</option>
+            </select>
             <input
               type="tel"
               value={data.phone}
@@ -95,11 +114,10 @@ export function SectionPersonal({ data, onChange }: SectionPersonalProps) {
           <label className={LABEL_CLASS}>Date de naissance</label>
           <div className="relative">
             <input
-              type="text"
+              type="date"
               value={data.dateOfBirth ?? ""}
               onChange={(e) => onChange("dateOfBirth", e.target.value)}
-              placeholder="15/03/1995"
-              className={INPUT_CLASS + " pr-10"}
+              className={INPUT_CLASS + " pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0"}
             />
             <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>

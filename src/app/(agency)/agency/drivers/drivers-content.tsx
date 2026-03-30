@@ -39,6 +39,7 @@ import {
   useRemoveCourier,
 } from "@/features/agency/hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import { InvitationCodeCard } from "./_components/invitation-code-card";
 import { queryKeys } from "@/lib/query";
 
 // ────────────────────────────────────────────────────────────
@@ -662,6 +663,9 @@ export function DriversContent() {
             Ajouter un livreur
           </Link>
         </div>
+
+        {/* ── Invitation Code Card ── */}
+        <InvitationCodeCard />
 
         {/* ── KPI Cards ── */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

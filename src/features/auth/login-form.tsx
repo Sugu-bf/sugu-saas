@@ -305,11 +305,13 @@ export function LoginForm() {
       </div>
 
       {/* Footer Text */}
-      <div className="pt-2 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
-        Pas encore de compte ?{" "}
-        <Link href="/register" className="text-sugu-500 hover:text-sugu-600 hover:underline">
-          Créer un compte
-        </Link>
+      <div className="pt-2 flex flex-col items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400">
+        <p>
+          Vous êtes livreur ?{" "}
+          <Link href="/signup/driver" className="text-sugu-500 hover:text-sugu-600 hover:underline font-bold">
+            Rejoindre avec un code
+          </Link>
+        </p>
       </div>
     </form>
   );

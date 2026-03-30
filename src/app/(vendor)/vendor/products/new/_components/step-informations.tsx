@@ -209,7 +209,7 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
       {/* ── Poids / Volume ── */}
       <div className="mt-5">
         <label className={LABEL_CLASS}>
-          Poids / Volume <span className="text-red-400">*</span>
+          Poids / Volume
         </label>
         <div className="grid grid-cols-2 gap-3">
           <input
@@ -217,7 +217,7 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
             value={data.weightValue}
             onChange={(e) => onChange("weightValue", e.target.value)}
             className={INPUT_CLASS}
-            placeholder="1"
+            placeholder="Optionnel"
           />
           <div className="relative">
             <select

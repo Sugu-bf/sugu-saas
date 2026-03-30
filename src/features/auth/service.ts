@@ -92,3 +92,93 @@ export async function getMe(): Promise<User> {
   const validated = meResponseSchema.parse(json);
   return validated.data;
 }
+
+/**
+ * Validate Courier Code
+ */
+export async function validateCourierCode(code: string): Promise<{ agency_name: string; partner_id: number }> {
+  const res = await fetch("/api/auth/courier-validate-code", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  
+  const json = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(json.message ?? "Code invalide");
+  }
+  return json.data;
+}
+
+/**
+ * Register Courier via BFF route handler
+ */
+export async function registerCourier(payload: Record<string, unknown>): Promise<LoginResultData> {
+  const res = await fetch("/api/auth/courier-register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const err = new Error(json.message ?? "Erreur d'inscription") as Error & {
+      status: number;
+      errors?: Record<string, string[]>;
+    };
+    err.status = res.status;
+    err.errors = json.errors;
+    throw err;
+  }
+
+  const validated = loginResponseSchema.parse(json);
+  return validated.data;
+}
+
+/**
+ * Update Vehicle Courier via BFF route handler
+ */
+export async function updateVehicleCourier(payload: Record<string, unknown>): Promise<unknown> {
+  const res = await fetch("/api/auth/courier-update-vehicle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const err = new Error(json.message ?? "Erreur lors de la mise à jour") as Error & {
+      status: number;
+      errors?: Record<string, string[]>;
+    };
+    err.status = res.status;
+    err.errors = json.errors;
+    throw err;
+  }
+
+  return json.data;
+}
+
+/**
+ * Verify Email OTP via BFF
+ */
+export async function verifyEmailOtp(payload: { identifier: string; code: string; type: number }): Promise<unknown> {
+  const res = await fetch("/api/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const err = new Error(json.message ?? "Erreur de vérification") as Error & { status: number };
+    err.status = res.status;
+    throw err;
+  }
+
+  return json.data;
+}

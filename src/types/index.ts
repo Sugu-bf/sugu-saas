@@ -20,6 +20,8 @@ export interface User {
   business_name: string | null;
   /** Store ID for vendor users (null for non-vendors) */
   store_id: string | null;
+  /** Courier status if role is courier */
+  courier_status?: number | null;
 }
 
 /** Auth session carried client‑side */

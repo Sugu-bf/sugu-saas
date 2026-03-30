@@ -29,6 +29,8 @@ export const loginResponseSchema = z.object({
     z.object({
       user: userSchema,
       token: z.string(),
+      courier_id: z.string().optional(),
+      email_verification_required: z.boolean().optional(),
     }),
     z.object({
       verification_required: z.literal(true),

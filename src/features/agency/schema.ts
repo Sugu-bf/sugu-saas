@@ -788,7 +788,7 @@ export const createCourierFormDataSchema = z.object({
   lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide").or(z.literal("")),
   phone: z.string().min(8, "Le numéro de téléphone est requis"),
-  phonePrefix: z.string().default("+223"),
+  phonePrefix: z.string().default("+226"),
   dateOfBirth: z.string().optional(),
   gender: genderEnum.optional(),
   quartier: z.string().min(2, "Le quartier est requis"),

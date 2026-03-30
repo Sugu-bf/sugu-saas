@@ -578,3 +578,36 @@ export function useDeleteAgency() {
   });
 }
 
+// ============================================================
+// Invitation Code Hooks
+// ============================================================
+
+/**
+ * Hook: Fetch the agency's driver invitation / referral code.
+ *
+ * 5-minute staleTime — the code almost never changes.
+ */
+export function useAgencyInvitationCode() {
+  return useQuery({
+    queryKey: queryKeys.agency.invitationCode(),
+    queryFn: () => agencyService.getInvitationCode(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook: Regenerate the agency invitation code.
+ *
+ * Directly updates the cache on success so the UI reflects the new code instantly.
+ */
+export function useRegenerateInvitationCode() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => agencyService.getInvitationCode(true),
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.agency.invitationCode(), data);
+    },
+  });
+}
+

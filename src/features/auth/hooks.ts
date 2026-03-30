@@ -44,13 +44,20 @@ export function useLogin() {
       const authenticatedResult = result as { user: User };
       qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
 
+      const user = authenticatedResult.user;
+
       // Redirect based on role
-      if (authenticatedResult.user.role === "vendor") {
+      if (user.role === "vendor") {
         router.push("/vendor/dashboard");
-      } else if (authenticatedResult.user.role === "agency") {
+      } else if (user.role === "agency") {
         router.push("/agency/dashboard");
-      } else if (authenticatedResult.user.role === "courier") {
-        router.push("/driver/dashboard");
+      } else if (user.role === "courier") {
+        // Enforce PENDING KYC barrier
+        if (user.courier_status === 4) {
+          router.push("/signup/driver?step=pending");
+        } else {
+          router.push("/driver/dashboard");
+        }
       } else {
         router.push("/vendor/dashboard"); // fallback
       }
@@ -74,12 +81,18 @@ export function useVerifyOtp() {
       const authenticatedResult = result as { user: User };
       qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
 
-      if (authenticatedResult.user.role === "vendor") {
+      const user = authenticatedResult.user;
+
+      if (user.role === "vendor") {
         router.push("/vendor/dashboard");
-      } else if (authenticatedResult.user.role === "agency") {
+      } else if (user.role === "agency") {
         router.push("/agency/dashboard");
-      } else if (authenticatedResult.user.role === "courier") {
-        router.push("/driver/dashboard");
+      } else if (user.role === "courier") {
+        if (user.courier_status === 4) {
+          router.push("/signup/driver?step=pending");
+        } else {
+          router.push("/driver/dashboard");
+        }
       } else {
         router.push("/vendor/dashboard"); // fallback
       }

@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       created_at: backendUser.created_at ?? new Date().toISOString(),
       delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
       business_name: _extractBusinessName(backendUser),
+      courier_status: backendUser.courier?.status ?? null,
     };
 
     const responseData = {

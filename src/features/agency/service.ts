@@ -2031,3 +2031,31 @@ export async function createDelivery(
   const shipment = backendShipmentSchema.parse(raw.data);
   return _transformShipment(shipment);
 }
+
+// ============================================================
+// Invitation / Referral Code
+// ============================================================
+
+export interface InvitationCodeResponse {
+  code: string;
+  link: string;
+}
+
+/**
+ * Get or regenerate the agency invitation code for drivers.
+ *
+ * GET /partners/drivers/referral-code[?refresh=true]
+ */
+export async function getInvitationCode(
+  refresh = false,
+): Promise<InvitationCodeResponse> {
+  const params: Record<string, string | undefined> = {};
+  if (refresh) params.refresh = "true";
+
+  const raw = await api.get<InvitationCodeResponse>(
+    "partners/drivers/referral-code",
+    { params },
+  );
+
+  return raw;
+}
