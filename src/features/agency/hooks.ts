@@ -630,3 +630,34 @@ export function useAgencyEarnings() {
   });
 }
 
+/**
+ * Hook: Fetch agency payout settings (payment methods).
+ */
+export function useAgencyPayoutSettings() {
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useQuery({
+    queryKey: queryKeys.agency.payoutSettings(),
+    queryFn: () => agencyService.getAgencyPayoutSettings(agencyId!),
+    staleTime: 60 * 1000,
+    enabled: !!agencyId,
+  });
+}
+
+/**
+ * Mutation: Submit agency withdrawal request.
+ */
+export function useSubmitAgencyWithdrawal() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useMutation({
+    mutationFn: (data: { amount: number; payoutSettingId: string; note?: string }) =>
+      agencyService.submitAgencyWithdrawal(agencyId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.earnings() });
+    },
+  });
+}
