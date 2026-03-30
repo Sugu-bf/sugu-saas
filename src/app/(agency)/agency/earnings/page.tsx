@@ -15,7 +15,7 @@ export default function AgencyEarningsPage() {
     <WalletPageLayout
       config={AGENCY_EARNINGS_CONFIG}
       query={query}
-      mapData={mapAgencyEarningsToWalletData as any}
+      mapData={mapAgencyEarningsToWalletData}
       LoadingComponent={AgencyEarningsLoading}
     />
   );

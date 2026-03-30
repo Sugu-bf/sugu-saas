@@ -97,7 +97,7 @@ function AgencyCodMixtePaymentCard({ codMixte }: { codMixte: CodMixteData }) {
   );
 }
 
-function AgencyCodFeeRow({ label, amount, paid, paidAt: _paidAt, icon }: { label: string; amount: number; paid: boolean; paidAt: string | null; icon: React.ReactNode }) {
+function AgencyCodFeeRow({ label, amount, paid, icon }: { label: string; amount: number; paid: boolean; paidAt: string | null; icon: React.ReactNode }) {
   return (
     <div className={cn("flex items-center gap-2 rounded-lg px-2.5 py-1.5 border text-[11px]", paid ? "bg-green-50/50 border-green-200/60" : "bg-white/50 border-gray-200/60")}>
       <span className={cn("flex-shrink-0", paid ? "text-green-600" : "text-gray-400")}>{icon}</span>
