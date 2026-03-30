@@ -24,6 +24,10 @@ import {
   Package,
   User,
   Bike,
+  CreditCard,
+  Truck,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import type {
   DeliveryDetailRow,
@@ -35,6 +39,74 @@ import {
   useUpdateDeliveryStatus,
 } from "@/features/agency/hooks";
 import { useAddShipmentNote } from "@/features/agency/hooks";
+
+
+// ────────────────────────────────────────────────────────────
+// COD Mixte Sub-components
+// ────────────────────────────────────────────────────────────
+
+const COD_STEP_LABELS: Record<string, string> = {
+  awaiting_vendor: "Attente vendeur",
+  awaiting_negotiation: "Négociation livraison",
+  awaiting_delivery_payment: "Paiement livraison en attente",
+  awaiting_pickup: "Coursier en route",
+  awaiting_inspection: "Inspection par le client",
+  awaiting_product_payment: "Paiement produit en attente",
+  awaiting_code: "Code de livraison",
+  completed: "Terminée",
+};
+
+type CodMixteData = NonNullable<DeliveryDetailRow["codMixte"]>;
+
+function AgencyCodMixteBadge({ codMixte }: { codMixte: CodMixteData }) {
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const onePaid = codMixte.deliveryFeePaid || codMixte.productFeePaid;
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold", bothPaid ? "border-green-200 bg-green-50 text-green-700" : onePaid ? "border-amber-200 bg-amber-50 text-amber-700" : "border-purple-200 bg-purple-50 text-purple-700")}>
+      <CreditCard className="h-3 w-3" />
+      COD Mixte
+      <span className="flex gap-0.5 ml-0.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-300")} />
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.productFeePaid ? "bg-green-500" : "bg-gray-300")} />
+      </span>
+    </span>
+  );
+}
+
+function AgencyCodMixtePaymentCard({ codMixte }: { codMixte: CodMixteData }) {
+  const stepLabel = COD_STEP_LABELS[codMixte.currentStep] ?? codMixte.currentStep;
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const isActionPending = codMixte.currentStep === "awaiting_delivery_payment" || codMixte.currentStep === "awaiting_product_payment";
+  return (
+    <div className="mt-3 space-y-2.5">
+      <div className={cn("rounded-xl border p-3", isActionPending ? "bg-amber-50/60 border-amber-200" : bothPaid ? "bg-green-50/60 border-green-200" : "bg-blue-50/60 border-blue-200")}>
+        <div className="flex items-center gap-2">
+          {isActionPending ? (<AlertCircle className="h-3.5 w-3.5 text-amber-600" />) : bothPaid ? (<CheckCircle2 className="h-3.5 w-3.5 text-green-600" />) : (<Clock className="h-3.5 w-3.5 text-blue-600" />)}
+          <span className={cn("text-[11px] font-bold", isActionPending ? "text-amber-700" : bothPaid ? "text-green-700" : "text-blue-700")}>COD Mixte : {stepLabel}</span>
+        </div>
+        <div className="mt-2 flex gap-1">
+          <div className="flex-1"><div className={cn("h-1.5 rounded-full", codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-200")} /><p className="text-[9px] text-gray-500 mt-0.5 text-center">Livraison</p></div>
+          <div className="flex-1"><div className={cn("h-1.5 rounded-full", codMixte.productFeePaid ? "bg-green-500" : "bg-gray-200")} /><p className="text-[9px] text-gray-500 mt-0.5 text-center">Produit</p></div>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <AgencyCodFeeRow label="Frais de livraison" amount={codMixte.deliveryFeeAmount} paid={codMixte.deliveryFeePaid} paidAt={codMixte.deliveryFeePaidAt} icon={<Truck className="h-3 w-3" />} />
+        <AgencyCodFeeRow label="Frais produit" amount={codMixte.productFeeAmount} paid={codMixte.productFeePaid} paidAt={codMixte.productFeePaidAt} icon={<Package className="h-3 w-3" />} />
+      </div>
+    </div>
+  );
+}
+
+function AgencyCodFeeRow({ label, amount, paid, paidAt: _paidAt, icon }: { label: string; amount: number; paid: boolean; paidAt: string | null; icon: React.ReactNode }) {
+  return (
+    <div className={cn("flex items-center gap-2 rounded-lg px-2.5 py-1.5 border text-[11px]", paid ? "bg-green-50/50 border-green-200/60" : "bg-white/50 border-gray-200/60")}>
+      <span className={cn("flex-shrink-0", paid ? "text-green-600" : "text-gray-400")}>{icon}</span>
+      <span className={cn("flex-1 font-medium", paid ? "text-green-700" : "text-gray-700")}>{label}</span>
+      <span className={cn("font-bold", paid ? "text-green-600" : "text-gray-700")}>{formatCurrency(amount)} FCFA</span>
+      <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-bold", paid ? "border-green-200 bg-green-50 text-green-600" : "border-amber-200 bg-amber-50 text-amber-600")}>{paid ? "Pay\u00e9" : "Attente"}</span>
+    </div>
+  );
+}
 
 // ────────────────────────────────────────────────────────────
 // Status & Priority config (same pattern as deliveries-content.tsx)
@@ -520,6 +592,9 @@ export function DeliveryDetailContent({
           </span>
           <StatusBadge status={row.status} label={row.statusLabel} />
           <PriorityBadge priority={row.priority} />
+          {detailRow.codMixte?.isCodMixte && (
+            <AgencyCodMixteBadge codMixte={detailRow.codMixte} />
+          )}
           <button
             className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 transition-colors"
             aria-label="Plus d'options"
@@ -773,6 +848,11 @@ export function DeliveryDetailContent({
                 />
                 {row.orderPayment === "paid" ? "Payé" : "En attente"}
               </span>
+
+              {/* COD Mixte payment card */}
+              {detailRow.codMixte?.isCodMixte && (
+                <AgencyCodMixtePaymentCard codMixte={detailRow.codMixte} />
+              )}
 
               {/* Divider */}
               <div className="border-t border-gray-100 my-3" />

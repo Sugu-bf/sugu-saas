@@ -9,7 +9,9 @@ import {
   Banknote,
   Bell,
   MapPin,
+  TrendingUp,
 } from "lucide-react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type {
   AgencyKpi,
@@ -17,6 +19,7 @@ import type {
   DriverPerformance,
   Complaint,
   DeliveryStatus,
+  AgencyEarningsPoint,
 } from "@/features/agency/schema";
 
 // --- Icon mapping ---
@@ -199,8 +202,15 @@ export default function AgencyDashboardClient() {
         </section>
       </div>
 
-      {/* ════════════ Bottom Row: Performance + Complaints ════════════ */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
+      {/* ════════════ Bottom Row: Performance + Complaints + Earnings ════════════ */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4">
+        {/* Earnings Chart */}
+        <EarningsChart
+          data={data.earningsChart ?? []}
+          total={data.earningsTotal ?? 0}
+          previous={data.earningsPrevious ?? 0}
+        />
+
         {/* Driver Performance */}
         <section
           className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6"
@@ -411,5 +421,184 @@ function ComplaintRow({ complaint }: { complaint: Complaint }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/** Earnings SVG area chart */
+function EarningsChart({
+  data,
+  total,
+  previous,
+}: {
+  data: AgencyEarningsPoint[];
+  total: number;
+  previous: number;
+}) {
+  const [period, setPeriod] = useState<"7j" | "30j">("7j");
+
+  if (data.length === 0) {
+    return (
+      <div className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
+        <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          Aucune donnée de gains
+        </p>
+      </div>
+    );
+  }
+
+  const maxVal = Math.max(...data.map((d) => d.value), 1);
+  const chartW = 340;
+  const chartH = 160;
+  const padding = 20;
+
+  const points = data.map((d, i) => ({
+    x: padding + (i / (data.length - 1)) * (chartW - padding * 2),
+    y: chartH - padding - (d.value / maxVal) * (chartH - padding * 2),
+  }));
+
+  // Build SVG path for smooth curve
+  const linePath = points
+    .map((p, i) => {
+      if (i === 0) return `M ${p.x},${p.y}`;
+      const prev = points[i - 1];
+      const cpx = (prev.x + p.x) / 2;
+      return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
+    })
+    .join(" ");
+
+  // Area path (close to bottom)
+  const areaPath = `${linePath} L ${points[points.length - 1].x},${chartH - padding} L ${points[0].x},${chartH - padding} Z`;
+
+  const growthPercent =
+    previous > 0 ? Math.round(((total - previous) / previous) * 100) : 0;
+
+  return (
+    <section
+      className="glass-card rounded-2xl p-4 transition-all duration-300 lg:rounded-3xl lg:p-6 flex flex-col h-full"
+      aria-labelledby="earnings-chart-title"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between shadow-sm">
+        <h2
+          id="earnings-chart-title"
+          className="text-base font-semibold text-gray-900 dark:text-white"
+        >
+          <Banknote className="h-4 w-4 mr-1.5 inline" /> Gains
+        </h2>
+        <div className="flex gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-0.5 rounded-lg">
+          {(["7j", "30j"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                period === p
+                  ? "bg-white text-sugu-600 shadow-sm dark:bg-gray-700 dark:text-white"
+                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="mt-3 flex-1 flex flex-col justify-center">
+        <div className="relative">
+          <svg
+            viewBox={`0 0 ${chartW} ${chartH}`}
+            className="h-32 w-full lg:h-36"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Graphique des gains sur 7 jours"
+          >
+            <defs>
+              <linearGradient
+                id="agency-chart-gradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#f15412" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#f15412" stopOpacity="0.02" />
+              </linearGradient>
+              <linearGradient
+                id="agency-line-gradient"
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="0%" stopColor="#fb8a3c" />
+                <stop offset="100%" stopColor="#f15412" />
+              </linearGradient>
+            </defs>
+
+            {/* Area fill */}
+            <path d={areaPath} fill="url(#agency-chart-gradient)" />
+
+            {/* Line */}
+            <path
+              d={linePath}
+              fill="none"
+              stroke="url(#agency-line-gradient)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="chart-path"
+            />
+
+            {/* Dots */}
+            {points.map((p, i) => (
+              <circle
+                key={i}
+                cx={p.x}
+                cy={p.y}
+                r="3.5"
+                fill="white"
+                stroke="#f15412"
+                strokeWidth="2"
+                className="animate-card-enter"
+                style={{ animationDelay: `${i * 80 + 400}ms` }}
+              />
+            ))}
+          </svg>
+
+          {/* Day labels */}
+          <div className="mt-1.5 flex justify-between px-2 lg:mt-2 lg:px-5">
+            {data.map((d) => (
+              <span
+                key={d.day}
+                className="text-[9px] font-medium text-gray-400 dark:text-gray-500 lg:text-[11px]"
+              >
+                {d.day}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats below chart */}
+      <div className="mt-auto pt-3 flex items-center justify-between rounded-xl bg-white/40 px-4 py-3 dark:bg-white/5">
+        <div>
+          <p className="text-[10px] uppercase font-bold text-gray-400">Total Période</p>
+          <p className="text-[15px] font-extrabold text-gray-900 dark:text-white">
+            {total.toLocaleString("fr-FR")} <span className="text-[10px] text-gray-500 font-medium">FCFA</span>
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-medium text-gray-400">
+            vs précédente
+          </p>
+          <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-green-50/80 px-2 py-0.5 dark:bg-green-900/20">
+            <TrendingUp className="h-3 w-3 text-green-600" />
+            <p className="text-xs font-bold text-green-600 dark:text-green-400">
+              {growthPercent >= 0 ? "+" : ""}
+              {growthPercent}%
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

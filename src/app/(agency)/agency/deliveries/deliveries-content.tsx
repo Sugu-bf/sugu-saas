@@ -46,6 +46,7 @@ import {
   useBulkStatus,
 } from "@/features/agency/hooks";
 import type { DeliveryFilters } from "@/features/agency/service";
+import { AssignCourierModal } from "./assign-courier-modal";
 
 // ────────────────────────────────────────────────────────────
 // Status config
@@ -130,6 +131,7 @@ function DeliveryDetailPanel({
   onSignalDelay,
   onMarkFailed,
   onRelaunch,
+  onOpenAssign,
   isMutating,
 }: {
   row: DeliveryRow;
@@ -138,6 +140,7 @@ function DeliveryDetailPanel({
   onSignalDelay: (id: string) => void;
   onMarkFailed: (id: string) => void;
   onRelaunch: (id: string) => void;
+  onOpenAssign: (id: string) => void;
   isMutating: boolean;
 }) {
   return (
@@ -326,7 +329,10 @@ function DeliveryDetailPanel({
             <div className="flex flex-col items-center gap-2 rounded-xl bg-gray-50/80 p-4 text-center dark:bg-gray-900/60">
               <UserCheck className="h-8 w-8 text-gray-300 dark:text-gray-600" />
               <p className="text-xs text-gray-400">Aucun livreur assigné</p>
-              <button className="mt-1 rounded-lg bg-sugu-500 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-sugu-600">
+              <button 
+                onClick={() => onOpenAssign(row.id)}
+                className="mt-1 rounded-lg bg-sugu-500 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-sugu-600"
+              >
                 + Assigner
               </button>
             </div>
@@ -527,6 +533,10 @@ export function DeliveriesContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openDetailId, setOpenDetailId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [assignModalState, setAssignModalState] = useState<{ isOpen: boolean; shipmentIds: string[] }>({
+    isOpen: false,
+    shipmentIds: [],
+  });
 
   // ── Build filters from UI state ──
   const filters: DeliveryFilters = {
@@ -959,6 +969,7 @@ export function DeliveriesContent() {
                           {row.status === "pending" && (
                             <button
                               aria-label={`Assigner ${row.orderId}`}
+                              onClick={() => setAssignModalState({ isOpen: true, shipmentIds: [row.id] })}
                               className="rounded-lg bg-sugu-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sugu-600"
                             >
                               + Assigner
@@ -1003,8 +1014,7 @@ export function DeliveriesContent() {
                 {selectedIds.size} sélectionnées
               </span>
               <button
-                onClick={() => handleBulkStatusChange("assigned")}
-                disabled={isMutating}
+                onClick={() => setAssignModalState({ isOpen: true, shipmentIds: Array.from(selectedIds) })}
                 className="rounded-xl bg-sugu-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-sugu-600 disabled:opacity-60"
               >
                 Assigner →
@@ -1085,6 +1095,7 @@ export function DeliveriesContent() {
             onSignalDelay={handleSignalDelay}
             onMarkFailed={handleMarkFailed}
             onRelaunch={handleRelaunch}
+            onOpenAssign={(id) => setAssignModalState({ isOpen: true, shipmentIds: [id] })}
             isMutating={isMutating}
           />
         </div>
@@ -1105,10 +1116,17 @@ export function DeliveriesContent() {
             onSignalDelay={handleSignalDelay}
             onMarkFailed={handleMarkFailed}
             onRelaunch={handleRelaunch}
+            onOpenAssign={(id) => setAssignModalState({ isOpen: true, shipmentIds: [id] })}
             isMutating={isMutating}
           />
         </div>
       )}
+
+      <AssignCourierModal
+        isOpen={assignModalState.isOpen}
+        onClose={() => setAssignModalState({ isOpen: false, shipmentIds: [] })}
+        shipmentIds={assignModalState.shipmentIds}
+      />
     </div>
   );
 }

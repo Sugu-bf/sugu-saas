@@ -21,6 +21,9 @@ import {
   FileText,
   Send,
   Download,
+  CreditCard,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import type { OrderDetail, OrderDetailProduct } from "@/features/vendor/schema";
 import {
@@ -196,6 +199,9 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
             >
               {data.statusLabel}
             </span>
+            {data.codMixte?.isCodMixte && (
+              <CodMixteBadgeHeader codMixte={data.codMixte} />
+            )}
           </div>
         </div>
 
@@ -439,15 +445,19 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
               </div>
             </div>
 
-            {/* Payment */}
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-green-50/60 px-3 py-2 dark:bg-green-950/20 lg:mt-4 lg:px-4 lg:py-2.5">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {data.financial.paymentMethod}
-              </span>
-              <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600">
-                {data.financial.paymentStatus}
-              </span>
-            </div>
+            {/* Payment Status */}
+            {data.codMixte?.isCodMixte ? (
+              <CodMixtePaymentCard codMixte={data.codMixte} />
+            ) : (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-green-50/60 px-3 py-2 dark:bg-green-950/20 lg:mt-4 lg:px-4 lg:py-2.5">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {data.financial.paymentMethod}
+                </span>
+                <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-600">
+                  {data.financial.paymentStatus}
+                </span>
+              </div>
+            )}
           </section>
         </div>
 
@@ -695,6 +705,203 @@ function ProductPrepRow({
         )}
       >
         {product.ready ? "Prêt" : "En attente"}
+      </span>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// COD Mixte Components
+// ────────────────────────────────────────────────────────────
+
+const COD_STEP_LABELS: Record<string, string> = {
+  awaiting_vendor: "Attente confirmation vendeur",
+  awaiting_negotiation: "Négociation livraison",
+  awaiting_delivery_payment: "Paiement livraison en attente",
+  awaiting_pickup: "Coursier en route",
+  awaiting_inspection: "Inspection par le client",
+  awaiting_product_payment: "Paiement produit en attente",
+  awaiting_code: "Code de livraison en cours",
+  completed: "Livraison terminée",
+};
+
+type CodMixteData = NonNullable<OrderDetail["codMixte"]>;
+
+/** Compact COD badge for the header */
+function CodMixteBadgeHeader({ codMixte }: { codMixte: CodMixteData }) {
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const onePaid = codMixte.deliveryFeePaid || codMixte.productFeePaid;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-semibold",
+        bothPaid
+          ? "border-green-200 bg-green-50 text-green-700"
+          : onePaid
+            ? "border-amber-200 bg-amber-50 text-amber-700"
+            : "border-blue-200 bg-blue-50 text-blue-700",
+      )}
+    >
+      <CreditCard className="h-3 w-3" />
+      COD Mixte
+      <span className="flex gap-0.5 ml-0.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-300")} />
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.productFeePaid ? "bg-green-500" : "bg-gray-300")} />
+      </span>
+    </span>
+  );
+}
+
+/** Detailed COD Mixte payment card for the financial section */
+function CodMixtePaymentCard({ codMixte }: { codMixte: CodMixteData }) {
+  const stepLabel = COD_STEP_LABELS[codMixte.currentStep] ?? codMixte.currentStep;
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const isActionPending =
+    codMixte.currentStep === "awaiting_delivery_payment" ||
+    codMixte.currentStep === "awaiting_product_payment";
+
+  return (
+    <div className="mt-3 space-y-3 lg:mt-4">
+      {/* Step status */}
+      <div
+        className={cn(
+          "rounded-xl border p-3 lg:p-4",
+          isActionPending
+            ? "bg-amber-50/60 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800"
+            : bothPaid
+              ? "bg-green-50/60 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+              : "bg-blue-50/60 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800",
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {isActionPending ? (
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          ) : bothPaid ? (
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          ) : (
+            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          )}
+          <span
+            className={cn(
+              "text-xs font-semibold lg:text-sm",
+              isActionPending
+                ? "text-amber-700 dark:text-amber-300"
+                : bothPaid
+                  ? "text-green-700 dark:text-green-300"
+                  : "text-blue-700 dark:text-blue-300",
+            )}
+          >
+            {stepLabel}
+          </span>
+        </div>
+
+        {/* Split progress bar */}
+        <div className="mt-2.5 flex gap-1">
+          <div className="flex-1">
+            <div
+              className={cn(
+                "h-1.5 rounded-full transition-colors duration-500",
+                codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700",
+              )}
+            />
+            <p className="text-[10px] text-gray-500 mt-1 text-center dark:text-gray-400">
+              Livraison {codMixte.deliveryFeePaid ? "✓" : ""}
+            </p>
+          </div>
+          <div className="flex-1">
+            <div
+              className={cn(
+                "h-1.5 rounded-full transition-colors duration-500",
+                codMixte.productFeePaid ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700",
+              )}
+            />
+            <p className="text-[10px] text-gray-500 mt-1 text-center dark:text-gray-400">
+              Produit {codMixte.productFeePaid ? "✓" : ""}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Individual fee rows */}
+      <div className="space-y-2">
+        <CodFeeRow
+          label="Frais de livraison"
+          amount={codMixte.deliveryFeeAmount}
+          paid={codMixte.deliveryFeePaid}
+          paidAt={codMixte.deliveryFeePaidAt}
+          icon={<Truck className="h-3.5 w-3.5" />}
+        />
+        <CodFeeRow
+          label="Frais produit"
+          amount={codMixte.productFeeAmount}
+          paid={codMixte.productFeePaid}
+          paidAt={codMixte.productFeePaidAt}
+          icon={<Package className="h-3.5 w-3.5" />}
+        />
+      </div>
+
+      {/* Vendor confirmation */}
+      {codMixte.vendorConfirmedAt && (
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-50/60 px-3 py-1.5 dark:bg-emerald-950/20">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-[11px] text-emerald-700 dark:text-emerald-300">
+            Stock confirmé le {new Date(codMixte.vendorConfirmedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Individual COD fee row */
+function CodFeeRow({
+  label,
+  amount,
+  paid,
+  paidAt,
+  icon,
+}: {
+  label: string;
+  amount: number;
+  paid: boolean;
+  paidAt: string | null;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2.5 rounded-xl px-3 py-2 border transition-colors",
+        paid
+          ? "bg-green-50/40 border-green-200/60 dark:bg-green-950/10 dark:border-green-800/40"
+          : "bg-white/40 border-gray-200/60 dark:bg-white/5 dark:border-gray-700/40",
+      )}
+    >
+      <div className={cn("flex-shrink-0", paid ? "text-green-600 dark:text-green-400" : "text-gray-400")}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-xs font-medium", paid ? "text-green-700 dark:text-green-300" : "text-gray-700 dark:text-gray-300")}>
+          {label}
+        </p>
+        {paidAt && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500">
+            {new Date(paidAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
+      </div>
+      <span className={cn("text-xs font-bold", paid ? "text-green-600 dark:text-green-400" : "text-gray-700 dark:text-gray-300")}>
+        {formatCurrency(amount)} FCFA
+      </span>
+      <span
+        className={cn(
+          "rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
+          paid
+            ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400"
+            : "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400",
+        )}
+      >
+        {paid ? "Payé" : "En attente"}
       </span>
     </div>
   );

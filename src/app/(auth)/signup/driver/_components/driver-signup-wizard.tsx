@@ -36,6 +36,7 @@ export function DriverSignupWizard() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [codeError, setCodeError] = useState("");
   const [agencyName, setAgencyName] = useState("");
+  const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>(null);
   const [partnerId, setPartnerId] = useState<number | string>("");
 
   const handleNextToPersonal = async () => {
@@ -47,6 +48,7 @@ export function DriverSignupWizard() {
       const res = await validateCourierCode(code);
       setAgencyName(res.agency_name);
       setPartnerId(res.partner_id);
+      if (res.logo_url) setAgencyLogoUrl(res.logo_url);
       setStep("PERSONAL");
     } catch (error: Error | unknown) {
       setCodeError((error as Error).message || "Code invalide");
@@ -362,13 +364,23 @@ export function DriverSignupWizard() {
 
             {/* Icon & Welcome */}
             <div className="flex flex-col items-center text-center mb-8">
-              <div className="h-16 w-16 bg-orange-50 dark:bg-orange-500/10 rounded-full flex items-center justify-center mb-4">
-                {/* Simple moto icon placeholder using tailwind */}
-                <div className="text-[#f15412]">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4Z"/><path d="M19 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4Z"/><path d="m14 8 2.5 2.5"/><path d="M7 6h6l4 4"/><path d="M16 10l-1-2-1-2"/><path d="M7 16V6"/><path d="M2.5 16H5"/><path d="M18 16h3"/></svg>
-                </div>
+              <div className="h-16 w-16 bg-orange-50 dark:bg-orange-500/10 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                {agencyLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={agencyLogoUrl} alt={agencyName} className="h-full w-full object-contain" />
+                ) : (
+                  <div className="text-[#f15412]">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4Z"/><path d="M19 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4Z"/><path d="m14 8 2.5 2.5"/><path d="M7 6h6l4 4"/><path d="M16 10l-1-2-1-2"/><path d="M7 16V6"/><path d="M2.5 16H5"/><path d="M18 16h3"/></svg>
+                  </div>
+                )}
               </div>
               <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">SUGU Livreur</h2>
+              {agencyName && (
+                <div className="bg-orange-50 dark:bg-orange-500/10 text-[#f15412] font-semibold px-3 py-1 rounded-full text-xs mb-3 inline-flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" />
+                  Partenaire : {agencyName}
+                </div>
+              )}
               <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[280px]">
                 Rejoignez notre réseau de coursiers professionnels et commencez à livrer dès aujourd'hui.
               </p>

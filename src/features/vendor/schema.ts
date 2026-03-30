@@ -238,6 +238,19 @@ export const orderDetailSchema = z.object({
     clientNote: z.string().optional(),
   }),
   timeline: z.array(orderDetailTimelineSchema),
+
+  // COD Mixte split-payment data (optional — only for COD orders)
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    currentStep: z.string(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+    vendorConfirmedAt: z.string().nullable(),
+  }).optional(),
 });
 
 export type OrderDetail = z.infer<typeof orderDetailSchema>;

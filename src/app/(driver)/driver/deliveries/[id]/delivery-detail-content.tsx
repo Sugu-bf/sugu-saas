@@ -22,6 +22,7 @@ import {
   Clock,
   Ruler,
   Map,
+  CreditCard,
 } from "lucide-react";
 import {
   useDriverDeliveryDetail,
@@ -135,6 +136,154 @@ function PriorityBadge({ priority }: { priority: DeliveryPriority }) {
       <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
       {cfg.label}
     </span>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// Sub-components: COD Mixte
+// ────────────────────────────────────────────────────────────
+
+const COD_STEP_LABELS: Record<string, string> = {
+  awaiting_vendor: "Attente vendeur",
+  awaiting_negotiation: "Négociation",
+  awaiting_delivery_payment: "Paiement livraison",
+  awaiting_pickup: "Ramassage",
+  awaiting_inspection: "Inspection",
+  awaiting_product_payment: "Paiement produit",
+  awaiting_code: "Code secret",
+  completed: "Terminée",
+};
+
+type CodMixteData = NonNullable<DriverDeliveryDetail["codMixte"]>;
+
+function DriverCodMixteBadge({ codMixte }: { codMixte: CodMixteData }) {
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const onePaid = codMixte.deliveryFeePaid || codMixte.productFeePaid;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold",
+        bothPaid
+          ? "border-green-200 bg-green-50 text-green-700"
+          : onePaid
+            ? "border-amber-200 bg-amber-50 text-amber-700"
+            : "border-purple-200 bg-purple-50 text-purple-700",
+      )}
+    >
+      <CreditCard className="h-3 w-3" />
+      COD Mixte
+      <span className="flex gap-0.5 ml-0.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-300")} />
+        <span className={cn("h-1.5 w-1.5 rounded-full", codMixte.productFeePaid ? "bg-green-500" : "bg-gray-300")} />
+      </span>
+    </span>
+  );
+}
+
+function DriverCodMixtePaymentCard({ codMixte }: { codMixte: CodMixteData }) {
+  const stepLabel = COD_STEP_LABELS[codMixte.currentStep] ?? codMixte.currentStep;
+  const bothPaid = codMixte.deliveryFeePaid && codMixte.productFeePaid;
+  const isActionPending =
+    codMixte.currentStep === "awaiting_delivery_payment" ||
+    codMixte.currentStep === "awaiting_product_payment";
+
+  return (
+    <div className="mt-3 w-full space-y-2.5 text-left">
+      <div
+        className={cn(
+          "rounded-xl border p-3",
+          isActionPending
+            ? "bg-amber-50/60 border-amber-200"
+            : bothPaid
+              ? "bg-green-50/60 border-green-200"
+              : "bg-blue-50/60 border-blue-200",
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {isActionPending ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+          ) : bothPaid ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+          ) : (
+            <Clock className="h-3.5 w-3.5 text-blue-600" />
+          )}
+          <span
+            className={cn(
+              "text-[11px] font-bold",
+              isActionPending ? "text-amber-700" : bothPaid ? "text-green-700" : "text-blue-700",
+            )}
+          >
+            COD Mixte : {stepLabel}
+          </span>
+        </div>
+
+        <div className="mt-2 flex gap-1">
+          <div className="flex-1">
+            <div className={cn("h-1.5 rounded-full", codMixte.deliveryFeePaid ? "bg-green-500" : "bg-gray-200")} />
+            <p className="text-[9px] text-gray-500 mt-0.5 text-center">Livraison</p>
+          </div>
+          <div className="flex-1">
+            <div className={cn("h-1.5 rounded-full", codMixte.productFeePaid ? "bg-green-500" : "bg-gray-200")} />
+            <p className="text-[9px] text-gray-500 mt-0.5 text-center">Produit</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <DriverCodFeeRow
+          label="Récolte Livraison"
+          amount={codMixte.deliveryFeeAmount}
+          paid={codMixte.deliveryFeePaid}
+          icon={<MapPin className="h-3 w-3" />}
+        />
+        <DriverCodFeeRow
+          label="Récolte Produit"
+          amount={codMixte.productFeeAmount}
+          paid={codMixte.productFeePaid}
+          icon={<Package className="h-3 w-3" />}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DriverCodFeeRow({
+  label,
+  amount,
+  paid,
+  icon,
+}: {
+  label: string;
+  amount: number;
+  paid: boolean;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg px-2.5 py-1.5 border text-[11px]",
+        paid
+          ? "bg-green-50/50 border-green-200/60"
+          : "bg-white/50 border-gray-200/60",
+      )}
+    >
+      <span className={cn("flex-shrink-0", paid ? "text-green-600" : "text-gray-400")}>{icon}</span>
+      <span className={cn("flex-1 font-medium", paid ? "text-green-700" : "text-gray-700")}>{label}</span>
+      <span className={cn("font-bold", paid ? "text-green-600" : "text-gray-700")}>
+        {formatCurrency(amount)} FCFA
+      </span>
+      <span
+        className={cn(
+          "rounded-full border px-1.5 py-0.5 text-[9px] font-bold",
+          paid
+            ? "border-green-200 bg-green-50 text-green-600"
+            : "border-amber-200 bg-amber-50 text-amber-600",
+        )}
+      >
+        {paid ? "Payé" : "À collecter"}
+      </span>
+    </div>
   );
 }
 
@@ -309,23 +458,27 @@ function EarningsCard({ detail }: { detail: DriverDeliveryDetail }) {
         <span className="ml-1 text-lg font-bold text-gray-500">FCFA</span>
       </p>
 
-      {/* Payment badge */}
-      <span
-        className={cn(
-          "mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-          detail.orderPayment === "paid"
-            ? "bg-green-100 text-green-700"
-            : "bg-amber-100 text-amber-700",
-        )}
-      >
+      {/* Payment badge or COD Mixte Card */}
+      {detail.codMixte?.isCodMixte ? (
+        <DriverCodMixtePaymentCard codMixte={detail.codMixte} />
+      ) : (
         <span
           className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            detail.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500",
+            "mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+            detail.orderPayment === "paid"
+              ? "bg-green-100 text-green-700"
+              : "bg-amber-100 text-amber-700",
           )}
-        />
-        {detail.orderPayment === "paid" ? "Payé" : "COD"}
-      </span>
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              detail.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500",
+            )}
+          />
+          {detail.orderPayment === "paid" ? "Payé" : "COD"}
+        </span>
+      )}
 
       {/* Distance/Duration/Parcels pills */}
       <div className="mt-3 flex items-center gap-3">
@@ -1003,6 +1156,9 @@ export function DriverDeliveryDetailContent({
           </span>
           <StatusBadge status={detail.status} label={detail.statusLabel} />
           <PriorityBadge priority={detail.priority} />
+          {detail.codMixte?.isCodMixte && (
+            <DriverCodMixteBadge codMixte={detail.codMixte} />
+          )}
         </div>
       </div>
 

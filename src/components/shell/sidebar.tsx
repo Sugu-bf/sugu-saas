@@ -73,6 +73,7 @@ const agencySections: SideNavSection[] = [
       { label: "Livraisons", href: "/agency/deliveries", icon: <Truck className="h-5 w-5" /> },
       { label: "Livreurs", href: "/agency/drivers", icon: <Users className="h-5 w-5" /> },
       { label: "Messages", href: "/agency/messages", icon: <MessageSquare className="h-5 w-5" /> },
+      { label: "Gains", href: "/agency/earnings", icon: <Banknote className="h-5 w-5" /> },
       { label: "Statistiques", href: "/agency/statistics", icon: <BarChart3 className="h-5 w-5" /> },
     ],
   },

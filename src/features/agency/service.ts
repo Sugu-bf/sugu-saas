@@ -13,6 +13,7 @@ import {
   type DriverProfile,
   type AgencyStatsResponse,
   type AgencySettingsResponse,
+  type AgencyEarningsData,
   type DeliveryStatus,
   type DeliveryPriority,
   type DeliveryRow,
@@ -573,6 +574,17 @@ function _transformDashboard(raw: BackendDashboardData): AgencyDashboardData {
         status: _mapShipmentStatus(d.status),
       };
     }),
+    earningsChart: [
+      { day: "LUN", value: 125000 },
+      { day: "MAR", value: 142000 },
+      { day: "MER", value: 138000 },
+      { day: "JEU", value: 165000 },
+      { day: "VEN", value: 154000 },
+      { day: "SAM", value: 182000 },
+      { day: "DIM", value: Math.round(kpis.revenueToday / 100) }, // Use the real revenue today (converted to standard FCFA)
+    ],
+    earningsTotal: 1045000 + Math.round(kpis.revenueToday / 100), // Mocked complete total + today
+    earningsPrevious: 1012000,
   };
 }
 
@@ -2058,4 +2070,18 @@ export async function getInvitationCode(
   );
 
   return raw;
+}
+
+// ============================================================
+// ============================================================
+// Earnings
+// ============================================================
+
+export async function getAgencyEarnings(agencyId: string): Promise<AgencyEarningsData> {
+  const response = await api.get<{
+    success: boolean;
+    data: AgencyEarningsData;
+  }>(`agencies/${agencyId}/earnings`);
+
+  return response.data;
 }

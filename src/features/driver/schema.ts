@@ -169,6 +169,18 @@ export const driverDeliveryRowSchema = z.object({
 
   // Timeline steps
   timeline: z.array(driverTimelineStepSchema),
+
+  // COD Mixte support
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    currentStep: z.string(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+  }).optional(),
 });
 
 export type DriverDeliveryRow = z.infer<typeof driverDeliveryRowSchema>;
@@ -287,6 +299,18 @@ export const driverDeliveryDetailSchema = z.object({
   // Timestamps
   acceptedAt: z.string().nullable(),
   completedAt: z.string().nullable(),
+
+  // COD Mixte context
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    currentStep: z.string(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+  }).optional(),
 });
 
 export type DriverDeliveryDetail = z.infer<typeof driverDeliveryDetailSchema>;

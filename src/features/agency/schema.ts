@@ -86,6 +86,62 @@ export const mapPinSchema = z.object({
 
 export type MapPin = z.infer<typeof mapPinSchema>;
 
+/** Earnings point for chart */
+export const agencyEarningsPointSchema = z.object({
+  day: z.string(),
+  value: z.number(),
+});
+
+export type AgencyEarningsPoint = z.infer<typeof agencyEarningsPointSchema>;
+
+/** KPI card for agency earnings page */
+export const agencyEarningsKpiSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),
+  subValue: z.string().optional(),
+  badge: z.string().optional(),
+  badgeColor: z.string().optional(),
+  icon: z.string(),
+  gradient: z.string(),
+  iconBg: z.string(),
+});
+export type AgencyEarningsKpi = z.infer<typeof agencyEarningsKpiSchema>;
+
+/** Agency transaction entry */
+export const agencyTransactionSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  description: z.string(),
+  type: z.enum(["credit", "debit"]),
+  referenceType: z.string().nullable(),
+  amount: z.number(),
+  status: z.enum(["confirmed", "completed", "pending"]),
+});
+export type AgencyTransaction = z.infer<typeof agencyTransactionSchema>;
+
+/** Agency next payout */
+export const agencyNextPayoutSchema = z.object({
+  amount: z.number(),
+  scheduledDate: z.string(),
+  method: z.object({
+    provider: z.string(),
+    providerLabel: z.string(),
+    accountMasked: z.string(),
+  }).nullable(),
+  minThreshold: z.number(),
+});
+export type AgencyNextPayout = z.infer<typeof agencyNextPayoutSchema>;
+
+/** Full agency earnings page data */
+export const agencyEarningsDataSchema = z.object({
+  kpis: z.array(agencyEarningsKpiSchema),
+  revenueChart: z.array(agencyEarningsPointSchema),
+  nextPayout: agencyNextPayoutSchema,
+  transactions: z.array(agencyTransactionSchema),
+});
+export type AgencyEarningsData = z.infer<typeof agencyEarningsDataSchema>;
+
 /** Full agency dashboard */
 export const agencyDashboardSchema = z.object({
   agencyName: z.string(),
@@ -95,6 +151,9 @@ export const agencyDashboardSchema = z.object({
   driverPerformance: z.array(driverPerformanceSchema),
   complaints: z.array(complaintSchema),
   mapPins: z.array(mapPinSchema),
+  earningsChart: z.array(agencyEarningsPointSchema).optional().default([]),
+  earningsTotal: z.number().optional().default(0),
+  earningsPrevious: z.number().optional().default(0),
 });
 
 export type AgencyDashboardData = z.infer<typeof agencyDashboardSchema>;
@@ -222,6 +281,18 @@ export const deliveryDetailRowSchema = deliveryRowSchema.extend({
   orderItemsList: z.array(orderItemSchema),
   trackingEvents: z.array(trackingEventSchema),
   notes: z.array(shipmentNoteSchema),
+
+  // COD Mixte split-payment data (optional — only for COD orders)
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    currentStep: z.string(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+  }).optional(),
 });
 export type DeliveryDetailRow = z.infer<typeof deliveryDetailRowSchema>;
 

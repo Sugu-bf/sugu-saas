@@ -96,7 +96,7 @@ export async function getMe(): Promise<User> {
 /**
  * Validate Courier Code
  */
-export async function validateCourierCode(code: string): Promise<{ agency_name: string; partner_id: number }> {
+export async function validateCourierCode(code: string): Promise<{ agency_name: string; partner_id: number; logo_url?: string }> {
   const res = await fetch("/api/auth/courier-validate-code", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

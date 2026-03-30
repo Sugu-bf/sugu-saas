@@ -611,3 +611,22 @@ export function useRegenerateInvitationCode() {
   });
 }
 
+// ============================================================
+// Earnings Hook
+// ============================================================
+
+/**
+ * Hook: Fetch agency earnings/wallet data.
+ */
+export function useAgencyEarnings() {
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useQuery({
+    queryKey: queryKeys.agency.earnings(),
+    queryFn: () => agencyService.getAgencyEarnings(agencyId!),
+    staleTime: 60 * 1000,
+    enabled: !!agencyId,
+  });
+}
+

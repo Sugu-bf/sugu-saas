@@ -100,6 +100,8 @@ export const queryKeys = {
       [...queryKeys.agency.all, "settings"] as const,
     invitationCode: () =>
       [...queryKeys.agency.all, "invitation-code"] as const,
+    earnings: () =>
+      [...queryKeys.agency.all, "earnings"] as const,
     // Messaging (read-only oversight)
     conversations: (filters?: Record<string, unknown>) =>
       [...queryKeys.agency.all, "conversations", filters] as const,
