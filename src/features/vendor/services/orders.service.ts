@@ -114,6 +114,17 @@ interface RawOrderDetail {
         timestamp?: string;
         status?: string;
       }>;
+      cod_mixte?: {
+        isCodMixte?: boolean;
+        currentStep?: string;
+        deliveryFeePaid?: boolean;
+        productFeePaid?: boolean;
+        deliveryFeeAmount?: number;
+        productFeeAmount?: number;
+        deliveryFeePaidAt?: string | null;
+        productFeePaidAt?: string | null;
+        vendorConfirmedAt?: string | null;
+      } | null;
     };
   };
 }
@@ -336,14 +347,18 @@ function _transformOrderDetailResponse(
   const clientLocation = raw.parties?.client?.location ?? "";
   const locationParts = clientLocation.split(",").map((s) => s.trim());
 
-  const timeline = (raw.timeline ?? []).map((event, idx, arr) => {
-    const isLast = idx === arr.length - 1;
-    const timelineStatus: "completed" | "current" | "pending" =
-      event.status === "completed" && !isLast
-        ? "completed"
-        : event.status === "completed" && isLast
-          ? "current"
-          : "pending";
+  const rawTimeline = raw.timeline ?? [];
+  const lastCompletedIdx = rawTimeline.reduce(
+    (lastIdx, ev, idx) => (ev.status === "completed" ? idx : lastIdx),
+    -1
+  );
+
+  const timeline = rawTimeline.map((event, idx) => {
+    let timelineStatus: "completed" | "current" | "pending" = "pending";
+    if (event.status === "completed") {
+      timelineStatus = idx === lastCompletedIdx ? "current" : "completed";
+    }
+    
     return {
       id: event.id ?? `tl-${idx}`,
       label: event.title ?? "",
@@ -429,5 +444,16 @@ function _transformOrderDetailResponse(
       },
     },
     timeline: finalTimeline,
+    codMixte: raw.cod_mixte ? {
+      isCodMixte: Boolean(raw.cod_mixte.isCodMixte),
+      currentStep: raw.cod_mixte.currentStep ?? "awaiting_delivery_payment",
+      deliveryFeePaid: Boolean(raw.cod_mixte.deliveryFeePaid),
+      productFeePaid: Boolean(raw.cod_mixte.productFeePaid),
+      deliveryFeeAmount: raw.cod_mixte.deliveryFeeAmount ?? 0,
+      productFeeAmount: raw.cod_mixte.productFeeAmount ?? 0,
+      deliveryFeePaidAt: raw.cod_mixte.deliveryFeePaidAt ?? null,
+      productFeePaidAt: raw.cod_mixte.productFeePaidAt ?? null,
+      vendorConfirmedAt: raw.cod_mixte.vendorConfirmedAt ?? null,
+    } : undefined,
   };
 }
