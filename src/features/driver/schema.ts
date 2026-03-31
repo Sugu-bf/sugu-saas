@@ -101,6 +101,7 @@ export const driverDeliveryStatusSchema = z.enum([
   "to_accept",
   "pickup",
   "en_route",
+  "arrived",
   "delivered",
   "failed",
 ]);

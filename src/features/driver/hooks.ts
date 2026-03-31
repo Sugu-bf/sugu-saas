@@ -62,11 +62,34 @@ export function useRefuseDelivery() {
   });
 }
 
+/** Mutation: Start transit */
+export function useStartTransit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deliveryId: string) => driverService.startTransit(deliveryId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.driver.deliveries() });
+    },
+  });
+}
+
+/** Mutation: Mark a delivery as arrived */
+export function useMarkArrived() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deliveryId: string) => driverService.markArrived(deliveryId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.driver.deliveries() });
+    },
+  });
+}
+
 /** Mutation: Mark a delivery as delivered */
 export function useMarkDelivered() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (deliveryId: string) => driverService.markDelivered(deliveryId),
+    mutationFn: ({ deliveryId, code }: { deliveryId: string; code: string }) =>
+      driverService.markDelivered(deliveryId, code),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.driver.deliveries() });
     },

@@ -497,8 +497,21 @@ export async function refuseDelivery(deliveryId: string): Promise<void> {
   await api.post(`courier/deliveries/${deliveryId}/refuse`);
 }
 
-export async function markDelivered(deliveryId: string): Promise<void> {
-  await api.post(`courier/deliveries/${deliveryId}/mark-delivered`);
+export async function markDelivered(
+  deliveryId: string,
+  code: string,
+): Promise<void> {
+  await api.post(`courier/deliveries/${deliveryId}/mark-delivered`, {
+    json: { code },
+  });
+}
+
+export async function startTransit(deliveryId: string): Promise<void> {
+  await api.post(`courier/deliveries/${deliveryId}/start-transit`);
+}
+
+export async function markArrived(deliveryId: string): Promise<void> {
+  await api.post(`courier/deliveries/${deliveryId}/mark-arrived`);
 }
 
 export async function signalDelay(deliveryId: string): Promise<void> {

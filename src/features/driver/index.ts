@@ -1,4 +1,4 @@
-export { getDriverDashboard, getDriverDeliveries, acceptDelivery, refuseDelivery, markDelivered, signalDelay, markFailed, getDriverDeliveryDetail, confirmCollection, getDriverHistory, getDriverSettings, updateDriverProfile, updateDriverVehicle, uploadKycDocument, updateDriverNotifications, updateDriverPassword, toggleDriver2FA, revokeDriverSession, revokeOtherDriverSessions, deleteDriverAccount, getDriverEarnings, getDriverPayoutSettings, submitDriverWithdrawal } from "./service";
+export { getDriverDashboard, getDriverDeliveries, acceptDelivery, refuseDelivery, startTransit, markArrived, markDelivered, signalDelay, markFailed, getDriverDeliveryDetail, confirmCollection, getDriverHistory, getDriverSettings, updateDriverProfile, updateDriverVehicle, uploadKycDocument, updateDriverNotifications, updateDriverPassword, toggleDriver2FA, revokeDriverSession, revokeOtherDriverSessions, deleteDriverAccount, getDriverEarnings, getDriverPayoutSettings, submitDriverWithdrawal } from "./service";
 
 export type {
   DriverDashboardData,

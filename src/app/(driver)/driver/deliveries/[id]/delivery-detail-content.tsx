@@ -27,6 +27,8 @@ import {
 import {
   useDriverDeliveryDetail,
   useConfirmCollection,
+  useStartTransit,
+  useMarkArrived,
   useMarkDelivered,
   useSignalDelay,
   useMarkFailed,
@@ -67,6 +69,12 @@ const STATUS_CONFIG: Record<
     bg: "bg-sugu-50",
     text: "text-sugu-700",
     dot: "bg-sugu-500",
+  },
+  arrived: {
+    label: "Arrivé",
+    bg: "bg-orange-50",
+    text: "text-orange-700",
+    dot: "bg-orange-500",
   },
   delivered: {
     label: "Livré",
@@ -831,6 +839,8 @@ function ClientCard({
 
 function ActionsCard({
   detail,
+  onStartTransit,
+  onMarkArrived,
   onMarkDelivered,
   onSignalDelay,
   onMarkFailed,
@@ -839,7 +849,9 @@ function ActionsCard({
   isMutating,
 }: {
   detail: DriverDeliveryDetail;
-  onMarkDelivered: () => void;
+  onStartTransit: () => void;
+  onMarkArrived: () => void;
+  onMarkDelivered: (code: string) => void;
   onSignalDelay: () => void;
   onMarkFailed: () => void;
   onAccept: () => void;
@@ -848,6 +860,7 @@ function ActionsCard({
 }) {
   const { status, client } = detail;
   const isActive = !["delivered", "failed"].includes(status);
+  const [code, setCode] = useState("");
 
   if (!isActive) return null;
 
@@ -892,26 +905,77 @@ function ActionsCard({
         </div>
       )}
 
-      {/* FOR "pickup", "en_route" → Mark delivered + secondary */}
-      {["pickup", "en_route"].includes(status) && (
-        <div className="space-y-2">
-          {/* PRIMARY: Mark delivered — GREEN (NOT sugu) */}
-          <button
-            onClick={onMarkDelivered}
-            disabled={isMutating}
-            className="flex w-full items-center justify-center gap-2 rounded-xl
-                       bg-green-500 py-3
-                       text-sm font-semibold text-white
-                       transition-all hover:-translate-y-0.5 active:scale-[0.98]
-                       disabled:opacity-60"
-          >
-            {isMutating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            Marquer comme livré
-          </button>
+      {/* FOR "pickup", "en_route", "arrived" → Progressive Actions + secondary */}
+      {["pickup", "en_route", "arrived"].includes(status) && (
+        <div className="space-y-4">
+          
+          {/* PRIMARY FLOW BUTTONS */}
+          {status === "pickup" && (
+            <button
+              onClick={onStartTransit}
+              disabled={isMutating}
+              className="flex w-full items-center justify-center gap-2 rounded-xl
+                         bg-blue-600 py-3 text-sm font-semibold text-white
+                         transition-all hover:bg-blue-700 active:scale-[0.98]
+                         disabled:opacity-60"
+            >
+              {isMutating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+              Commencer l'itinéraire 
+            </button>
+          )}
+
+          {status === "en_route" && (
+            <button
+              onClick={onMarkArrived}
+              disabled={isMutating}
+              className="flex w-full items-center justify-center gap-2 rounded-xl
+                         bg-orange-500 py-3 text-sm font-semibold text-white
+                         transition-all hover:bg-orange-600 active:scale-[0.98]
+                         disabled:opacity-60"
+            >
+              {isMutating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+              Je suis arrivé au client
+            </button>
+          )}
+
+          {status === "arrived" && (
+             <div className="rounded-xl border border-sugu-200 bg-sugu-50/50 p-4 space-y-3">
+               <label className="block text-sm font-semibold text-sugu-900">
+                 Code de sécurité du client
+               </label>
+               <input 
+                 type="text" 
+                 value={code} 
+                 onChange={(e) => setCode(e.target.value)} 
+                 placeholder="ex: ABC12"
+                 className="w-full rounded-lg border border-sugu-200 p-2.5 text-sm font-medium focus:border-sugu-500 focus:ring-2 focus:ring-sugu-500/20"
+                 disabled={isMutating}
+               />
+               <button
+                  onClick={() => onMarkDelivered(code)}
+                  disabled={isMutating || code.length < 4}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg
+                             bg-green-500 py-2.5 text-sm font-semibold text-white
+                             transition-all hover:bg-green-600 active:scale-[0.98]
+                             disabled:opacity-60"
+                >
+                  {isMutating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Valider le code et Livrer
+                </button>
+             </div>
+          )}
 
           {/* Secondary row */}
           <div className="flex gap-2">
@@ -1022,6 +1086,12 @@ export function DriverDeliveryDetailContent({
     isError,
   } = useDriverDeliveryDetail(deliveryId);
 
+  // ── Modals / State ──
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // ── Mutations ──
+  const startTransit = useStartTransit();
+  const markArrived = useMarkArrived();
   const markDelivered = useMarkDelivered();
   const signalDelay = useSignalDelay();
   const markFailed = useMarkFailed();
@@ -1029,13 +1099,13 @@ export function DriverDeliveryDetailContent({
   const refuseDelivery = useRefuseDelivery();
 
   const isMutating =
+    startTransit.isPending ||
+    markArrived.isPending ||
     markDelivered.isPending ||
     signalDelay.isPending ||
     markFailed.isPending ||
     acceptDelivery.isPending ||
     refuseDelivery.isPending;
-
-  const [copiedCode, setCopiedCode] = useState(false);
 
   const handleCopyCode = () => {
     if (!detail) return;
@@ -1045,11 +1115,32 @@ export function DriverDeliveryDetailContent({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const handleMarkDelivered = () => {
-    markDelivered.mutate(deliveryId, {
-      onSuccess: () => toast.success("Livraison marquée comme livrée !"),
-      onError: () => toast.error("Erreur lors de la mise à jour"),
+  const handleStartTransit = () => {
+    startTransit.mutate(deliveryId, {
+      onSuccess: () => toast.success("Itinéraire commencé !"),
+      onError: (err: any) =>
+        toast.error(err?.message || "Erreur lors du démarrage"),
     });
+  };
+
+  const handleMarkArrived = () => {
+    markArrived.mutate(deliveryId, {
+      onSuccess: () => toast.success("Vous êtes arrivé à destination !"),
+      onError: (err: any) =>
+        toast.error(err?.message || "Erreur lors du signalement"),
+    });
+  };
+
+  const handleMarkDelivered = (code: string) => {
+    if (!code) return toast.error("Le code est requis");
+    markDelivered.mutate(
+      { deliveryId, code },
+      {
+        onSuccess: () => toast.success("Livraison marquée comme livrée !"),
+        onError: (err: any) => 
+          toast.error(err?.message || "Erreur lors de la mise à jour : Code incorrect"),
+      }
+    );
   };
 
   const handleSignalDelay = () => {
@@ -1200,6 +1291,8 @@ export function DriverDeliveryDetailContent({
           <ClientCard client={detail.client} status={detail.status} />
           <ActionsCard
             detail={detail}
+            onStartTransit={handleStartTransit}
+            onMarkArrived={handleMarkArrived}
             onMarkDelivered={handleMarkDelivered}
             onSignalDelay={handleSignalDelay}
             onMarkFailed={handleMarkFailed}
