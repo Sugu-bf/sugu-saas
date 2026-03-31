@@ -140,6 +140,7 @@ const backendOrderItemSchema = z.object({
   qty: z.number(),
   unit_price: z.number(),
   image: z.string().nullable().optional(),
+  collected: z.boolean().optional(),
 });
 
 const backendTrackingEventSchema = z.object({
@@ -459,6 +460,7 @@ function _transformShipmentDetail(
       qty: item.qty,
       unit_price: item.unit_price,
       image: item.image ?? null,
+      collected: item.collected ?? false,
     })),
     trackingEvents: (raw.tracking_events ?? []).map((e) => ({
       seq: e.seq,

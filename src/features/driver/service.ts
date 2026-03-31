@@ -386,15 +386,15 @@ interface RawDeliveryRow {
   client: { name: string; phone: string; address: string; note: string | null };
   distance_km: number;
   duration_min: number;
-  from_time?: string;
+  from_time?: string | null;
   order_items: number;
   order_total: number;
   order_payment: string;
   amount: number;
   parcel_count: number;
-  progress_percent?: number;
-  eta_minutes?: number;
-  fail_reason?: string;
+  progress_percent?: number | null;
+  eta_minutes?: number | null;
+  fail_reason?: string | null;
   time_label: string;
   timeline: Array<{ id: string; label: string; time: string | null; done: boolean; current: boolean }>;
 }

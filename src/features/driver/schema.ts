@@ -133,7 +133,7 @@ export const driverDeliveryRowSchema = z.object({
     deliveryAddress: z.string(),
     distanceKm: z.number(),
     durationMin: z.number(),
-    fromTime: z.string().optional(),
+    fromTime: z.string().nullable().optional(),
   }),
 
   // Client
@@ -158,11 +158,11 @@ export const driverDeliveryRowSchema = z.object({
   parcelCount: z.number(),
 
   // Progress (for en_route)
-  progressPercent: z.number().optional(),
-  etaMinutes: z.number().optional(),
+  progressPercent: z.number().nullable().optional(),
+  etaMinutes: z.number().nullable().optional(),
 
   // Fail reason (for failed)
-  failReason: z.string().optional(),
+  failReason: z.string().nullable().optional(),
 
   // Created / time label
   timeLabel: z.string(),

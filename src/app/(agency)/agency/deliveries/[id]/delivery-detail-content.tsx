@@ -862,8 +862,13 @@ export function DeliveryDetailContent({
               <ul className="space-y-1 text-xs text-gray-600">
                 {detailRow.orderItemsList.length > 0 ? (
                   detailRow.orderItemsList.map((item, i) => (
-                    <li key={i}>
-                      {item.qty}× {item.name} — {formatCurrency(item.unit_price / 100)} FCFA
+                    <li key={i} className="flex items-center justify-between">
+                      <span>{item.qty}× {item.name} — {formatCurrency(item.unit_price / 100)} FCFA</span>
+                      {item.collected && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-1.5 py-0.5 text-[9px] font-bold text-green-700">
+                          <CheckCircle2 className="h-3 w-3 text-green-600" /> Collecté
+                        </span>
+                      )}
                     </li>
                   ))
                 ) : (

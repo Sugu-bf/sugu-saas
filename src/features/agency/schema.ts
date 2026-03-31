@@ -249,6 +249,7 @@ export const orderItemSchema = z.object({
   qty: z.number(),
   unit_price: z.number(), // centimes
   image: z.string().nullable().optional(),
+  collected: z.boolean().optional(),
 });
 export type OrderItem = z.infer<typeof orderItemSchema>;
 
