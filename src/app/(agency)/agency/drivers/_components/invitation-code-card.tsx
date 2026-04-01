@@ -78,14 +78,53 @@ export function InvitationCodeCard() {
     );
   }
 
-  // ── Error / no data ──
-  if (isError || !data) {
+  // ── Error / no data → offer to generate a code ──
+  if (isError || !data || !data.code) {
     return (
-      <div className="glass-card rounded-2xl p-4">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <KeyRound className="h-4 w-4" />
-          <span>Impossible de charger le code d&apos;invitation.</span>
+      <div
+        className="glass-card animate-card-enter rounded-2xl p-4"
+        style={{ animationDelay: "240ms" }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-white">
+              <KeyRound className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-gray-900 dark:text-white">
+                Code d&apos;invitation livreur
+              </h3>
+              <p className="text-[10px] text-gray-400">
+                Aucun code de parrainage n&apos;est configuré
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="btn-generate-code"
+            onClick={() => regenerateMutation.mutate()}
+            disabled={regenerateMutation.isPending}
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all hover:from-sugu-600 hover:to-sugu-700 hover:shadow-md active:scale-95 disabled:opacity-50"
+          >
+            {regenerateMutation.isPending ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Génération…
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3.5 w-3.5" />
+                Générer un code
+              </>
+            )}
+          </button>
         </div>
+
+        {regenerateMutation.isError && (
+          <p className="mt-2 text-[10px] font-medium text-red-500 dark:text-red-400">
+            Erreur lors de la génération. Veuillez réessayer.
+          </p>
+        )}
       </div>
     );
   }
