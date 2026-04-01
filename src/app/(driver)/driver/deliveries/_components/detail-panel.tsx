@@ -31,7 +31,9 @@ import { StatusBadge } from "./status-badge";
 
 export interface DetailPanelActions {
   onClose: () => void;
-  onMarkDelivered: (id: string) => void;
+  onStartTransit: (id: string) => void;
+  onMarkArrived: (id: string) => void;
+  onMarkDelivered: (id: string, code: string) => void;
   onSignalDelay: (id: string) => void;
   onMarkFailed: (id: string) => void;
   onAccept: (id: string) => void;
@@ -310,18 +312,31 @@ function PanelActions({
   row: DriverDeliveryRow;
   actions: DetailPanelActions;
 }) {
-  const { onMarkDelivered, onSignalDelay, onMarkFailed, onAccept, onRefuse, isMutating } =
+  const { onSignalDelay, onMarkFailed, onAccept, onRefuse, isMutating } =
     actions;
 
   return (
     <div className="border-t border-gray-100/60 dark:border-gray-800/60 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl p-4 space-y-2">
-      {/* en_route */}
-      {row.status === "en_route" && (
-        <>
+      {/* arrived */}
+      {row.status === "arrived" && (
+        <div className="rounded-xl border border-sugu-200 bg-sugu-50/50 p-4 space-y-3">
+          <label className="block text-sm font-semibold text-sugu-900">
+            Code de sécurité du client
+          </label>
+          <input 
+            type="text" 
+            id={`input-code-${row.id}`}
+            placeholder="ex: ABC12"
+            className="w-full rounded-lg border border-sugu-200 p-2 text-sm font-medium focus:border-sugu-500 focus:ring-2 focus:ring-sugu-500/20"
+            disabled={isMutating}
+          />
           <button
             id={`btn-mark-delivered-${row.id}`}
             disabled={isMutating}
-            onClick={() => onMarkDelivered(row.id)}
+            onClick={() => {
+              const el = document.getElementById(`input-code-${row.id}`) as HTMLInputElement;
+              actions.onMarkDelivered(row.id, el?.value || "");
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 text-sm font-bold text-white hover:bg-green-600 transition-all active:scale-[0.98] disabled:opacity-60"
           >
             {isMutating ? (
@@ -329,9 +344,29 @@ function PanelActions({
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            Marquer comme livré
+            Valider le code et Livrer
           </button>
-          <div className="grid grid-cols-2 gap-2">
+        </div>
+      )}
+
+      {/* en_route */}
+      {row.status === "en_route" && (
+        <>
+          <button
+            id={`btn-mark-arrived-${row.id}`}
+            disabled={isMutating}
+            onClick={() => actions.onMarkArrived(row.id)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            {isMutating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Je suis arrivé
+          </button>
+          
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <button
               id={`btn-signal-delay-${row.id}`}
               disabled={isMutating}
@@ -358,23 +393,23 @@ function PanelActions({
       {row.status === "pickup" && (
         <>
           <button
-            id={`btn-pickup-done-${row.id}`}
+            id={`btn-start-transit-${row.id}`}
             disabled={isMutating}
-            onClick={() => onMarkDelivered(row.id)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 py-3 text-sm font-bold text-white hover:bg-sugu-600 transition-all active:scale-[0.98] disabled:opacity-60"
+            onClick={() => actions.onStartTransit(row.id)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-60"
           >
             {isMutating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            Collecte effectuée
+            Commencer l&apos;itinéraire
           </button>
           <button
             id={`btn-fail-pickup-${row.id}`}
             disabled={isMutating}
             onClick={() => onMarkFailed(row.id)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-red-200/80 bg-red-50/80 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100 transition-all dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 disabled:opacity-60"
+            className="flex w-full mt-2 items-center justify-center gap-1.5 rounded-2xl border border-red-200/80 bg-red-50/80 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100 transition-all dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 disabled:opacity-60"
           >
             <XCircle className="h-3.5 w-3.5" />
             Signaler un échec

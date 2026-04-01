@@ -45,6 +45,15 @@ export const STATUS_CONFIG: Record<DriverDeliveryStatus, StatusStyle> = {
     gradient: "from-sugu-500 to-sugu-600",
     iconBg: "bg-gradient-to-br from-sugu-400 to-sugu-600",
   },
+  arrived: {
+    label: "Arrivé",
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    text: "text-orange-700 dark:text-orange-400",
+    dot: "bg-orange-500",
+    borderL: "border-l-[3px] border-orange-500",
+    gradient: "from-orange-500 to-amber-600",
+    iconBg: "bg-gradient-to-br from-orange-400 to-amber-600",
+  },
   delivered: {
     label: "Livré",
     bg: "bg-green-50 dark:bg-green-950/40",

@@ -10,6 +10,8 @@ import { useCallback } from "react";
 import {
   useAcceptDelivery,
   useRefuseDelivery,
+  useStartTransit,
+  useMarkArrived,
   useMarkDelivered,
   useSignalDelay,
   useMarkFailed,
@@ -19,6 +21,8 @@ import { toast } from "sonner";
 export function useDeliveryActions() {
   const acceptMutation = useAcceptDelivery();
   const refuseMutation = useRefuseDelivery();
+  const startTransitMutation = useStartTransit();
+  const markArrivedMutation = useMarkArrived();
   const markDeliveredMutation = useMarkDelivered();
   const signalDelayMutation = useSignalDelay();
   const markFailedMutation = useMarkFailed();
@@ -26,6 +30,8 @@ export function useDeliveryActions() {
   const isMutating =
     acceptMutation.isPending ||
     refuseMutation.isPending ||
+    startTransitMutation.isPending ||
+    markArrivedMutation.isPending ||
     markDeliveredMutation.isPending ||
     signalDelayMutation.isPending ||
     markFailedMutation.isPending;
@@ -48,10 +54,33 @@ export function useDeliveryActions() {
     [refuseMutation],
   );
 
-  const handleMarkDelivered = useCallback(
+  const handleStartTransit = useCallback(
     (id: string) => {
-      markDeliveredMutation.mutate(id, {
+      startTransitMutation.mutate(id, {
+        onSuccess: () => toast.success("Itinéraire commencé !"),
+      });
+    },
+    [startTransitMutation],
+  );
+
+  const handleMarkArrived = useCallback(
+    (id: string) => {
+      markArrivedMutation.mutate(id, {
+        onSuccess: () => toast.success("Arrivé à destination !"),
+      });
+    },
+    [markArrivedMutation],
+  );
+
+  const handleMarkDelivered = useCallback(
+    (id: string, code: string) => {
+      if (!code) {
+        toast.error("Code de sécurité requis");
+        return;
+      }
+      markDeliveredMutation.mutate({ deliveryId: id, code }, {
         onSuccess: () => toast.success("Livraison marquée comme livrée"),
+        onError: () => toast.error("Code de livraison invalide"),
       });
     },
     [markDeliveredMutation],
@@ -79,6 +108,8 @@ export function useDeliveryActions() {
     isMutating,
     handleAccept,
     handleRefuse,
+    handleStartTransit,
+    handleMarkArrived,
     handleMarkDelivered,
     handleSignalDelay,
     handleMarkFailed,

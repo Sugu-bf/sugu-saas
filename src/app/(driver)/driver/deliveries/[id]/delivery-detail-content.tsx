@@ -924,7 +924,7 @@ function ActionsCard({
               ) : (
                 <MapPin className="h-4 w-4" />
               )}
-              Commencer l'itinéraire 
+              Commencer l&apos;itinéraire 
             </button>
           )}
 
@@ -1118,16 +1118,16 @@ export function DriverDeliveryDetailContent({
   const handleStartTransit = () => {
     startTransit.mutate(deliveryId, {
       onSuccess: () => toast.success("Itinéraire commencé !"),
-      onError: (err: any) =>
-        toast.error(err?.message || "Erreur lors du démarrage"),
+      onError: (err: Error) =>
+        toast.error(err.message || "Erreur lors du démarrage"),
     });
   };
 
   const handleMarkArrived = () => {
     markArrived.mutate(deliveryId, {
       onSuccess: () => toast.success("Vous êtes arrivé à destination !"),
-      onError: (err: any) =>
-        toast.error(err?.message || "Erreur lors du signalement"),
+      onError: (err: Error) =>
+        toast.error(err.message || "Erreur lors du signalement"),
     });
   };
 
@@ -1137,8 +1137,8 @@ export function DriverDeliveryDetailContent({
       { deliveryId, code },
       {
         onSuccess: () => toast.success("Livraison marquée comme livrée !"),
-        onError: (err: any) => 
-          toast.error(err?.message || "Erreur lors de la mise à jour : Code incorrect"),
+        onError: (err: Error) => 
+          toast.error(err.message || "Erreur lors de la mise à jour : Code incorrect"),
       }
     );
   };

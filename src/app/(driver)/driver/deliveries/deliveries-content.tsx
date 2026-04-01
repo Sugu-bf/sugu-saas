@@ -46,6 +46,8 @@ export function DriverDeliveriesContent() {
     isMutating,
     handleAccept,
     handleRefuse,
+    handleStartTransit,
+    handleMarkArrived,
     handleMarkDelivered,
     handleSignalDelay,
     handleMarkFailed,
@@ -116,6 +118,8 @@ export function DriverDeliveriesContent() {
     ? {
         row: openDetail,
         onClose: () => setOpenDetailId(null),
+        onStartTransit: handleStartTransit,
+        onMarkArrived: handleMarkArrived,
         onMarkDelivered: handleMarkDelivered,
         onSignalDelay: handleSignalDelay,
         onMarkFailed: handleMarkFailed,
