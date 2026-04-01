@@ -9,17 +9,16 @@ import { NextResponse, type NextRequest } from "next/server";
  *  - Check for sugu_token cookie presence
  *  - The actual token validation happens server-side in the API
  */
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
+const PUBLIC_PREFIXES = ["/api/", "/_next/", "/favicon", "/signup/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths and API routes
+  // Allow public paths, public prefixes, and API routes
   if (
     PUBLIC_PATHS.includes(pathname) ||
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/_next/") ||
-    pathname.startsWith("/favicon")
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   ) {
     return NextResponse.next();
   }
