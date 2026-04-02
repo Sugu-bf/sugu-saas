@@ -458,8 +458,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
          ═══════════════════════════════════════════════════════════ */}
       {(data.recentSales.orders.length > 0 ||
         data.variantsDetail.pricingTiers.length > 0 ||
-        data.reviewsDetail.reviews.length > 0 ||
-        data.history.length > 0) && (
+        data.reviewsDetail.reviews.length > 0) && (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5">
           {/* ─── Recent Sales ─── */}
           {data.recentSales.orders.length > 0 && (
@@ -479,13 +478,6 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
           {data.reviewsDetail.reviews.length > 0 && (
             <div className="lg:col-span-2 lg:col-start-9 h-full">
               <ReviewsDetailCard data={data} />
-            </div>
-          )}
-
-          {/* ─── History ─── */}
-          {data.history.length > 0 && (
-            <div className="lg:col-span-2 lg:col-start-11 h-full">
-              <HistoryCard data={data} />
             </div>
           )}
         </div>
