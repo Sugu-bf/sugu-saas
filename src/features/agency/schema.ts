@@ -713,7 +713,7 @@ export const agencyZoneRulesSchema = z.object({
   acceptOutside: z.boolean().default(false),
   outsideSurcharge: z.string().default("2,000 FCFA"),
   freeAbove: z.boolean().default(false),
-  freeAboveAmount: z.string().default("25,000 FCFA"),
+  freeAboveAmount: z.string().nullable().default(null),
 });
 export type AgencyZoneRules = z.infer<typeof agencyZoneRulesSchema>;
 
