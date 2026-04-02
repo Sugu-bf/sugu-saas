@@ -31,7 +31,7 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
   const [acceptOutside, setAcceptOutside] = useState(initialRules.acceptOutside);
   const [outsideSurcharge, setOutsideSurcharge] = useState(initialRules.outsideSurcharge);
   const [freeAbove, setFreeAbove] = useState(initialRules.freeAbove);
-  const [freeAboveAmount, setFreeAboveAmount] = useState(initialRules.freeAboveAmount);
+  const [freeAboveAmount, setFreeAboveAmount] = useState(initialRules.freeAboveAmount ?? "");
 
   const toggleZone = (id: string) => {
     setZones((prev) => prev.map((z) => (z.id === id ? { ...z, enabled: !z.enabled } : z)));
@@ -46,7 +46,20 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
     setZones((prev) => [...prev, { id: newId, name: "", tarif: "", delay: "", enabled: true }]);
   };
 
+  // Validation errors
+  const [zoneErrors, setZoneErrors] = useState<Record<string, string>>({});
+
   const handleSave = () => {
+    // Validate zones before save
+    const errors: Record<string, string> = {};
+    zones.forEach((zone) => {
+      if (!zone.name.trim()) errors[`${zone.id}-name`] = "Nom requis";
+      if (!zone.tarif.trim()) errors[`${zone.id}-tarif`] = "Tarif requis";
+      if (!zone.delay.trim()) errors[`${zone.id}-delay`] = "Délai requis";
+    });
+    setZoneErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     onSave({
       zones,
       zoneRules: {
@@ -54,7 +67,7 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
         acceptOutside,
         outsideSurcharge,
         freeAbove,
-        freeAboveAmount,
+        freeAboveAmount: freeAboveAmount ?? "",
       },
     });
   };
@@ -89,28 +102,40 @@ export function ZonesTab({ data, onSave, isSaving }: ZonesTabProps) {
               >
                 <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} label={`Zone ${zone.name}`} />
                 <span className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white min-w-[140px]">
-                  <MapPin className="h-3.5 w-3.5 text-sugu-500 flex-shrink-0" />
+                  <MapPin className={cn("h-3.5 w-3.5 flex-shrink-0", zoneErrors[`${zone.id}-name`] ? "text-red-500" : "text-sugu-500")} />
                   <input
                     type="text"
                     value={zone.name}
-                    onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, name: e.target.value } : z))}
-                    className="bg-transparent border-none p-0 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 min-w-[100px]"
-                    placeholder="Nom de la zone"
+                    onChange={(e) => {
+                      setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, name: e.target.value } : z));
+                      setZoneErrors((prev) => { const n = { ...prev }; delete n[`${zone.id}-name`]; return n; });
+                    }}
+                    className={cn(
+                      "bg-transparent border-none p-0 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 min-w-[100px]",
+                      zoneErrors[`${zone.id}-name`] && "placeholder-red-400",
+                    )}
+                    placeholder={zoneErrors[`${zone.id}-name`] || "Nom de la zone"}
                   />
                 </span>
                 <input
                   type="text"
                   value={zone.tarif}
-                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, tarif: e.target.value } : z))}
-                  className="form-input py-1.5 text-xs w-28"
-                  placeholder="Tarif (FCFA)"
+                  onChange={(e) => {
+                    setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, tarif: e.target.value } : z));
+                    setZoneErrors((prev) => { const n = { ...prev }; delete n[`${zone.id}-tarif`]; return n; });
+                  }}
+                  className={cn("form-input py-1.5 text-xs w-28", zoneErrors[`${zone.id}-tarif`] && "border-red-400 ring-1 ring-red-400")}
+                  placeholder={zoneErrors[`${zone.id}-tarif`] || "Tarif (FCFA)"}
                 />
                 <input
                   type="text"
                   value={zone.delay}
-                  onChange={(e) => setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, delay: e.target.value } : z))}
-                  className="form-input py-1.5 text-xs w-20"
-                  placeholder="Délai"
+                  onChange={(e) => {
+                    setZones((prev) => prev.map((z) => z.id === zone.id ? { ...z, delay: e.target.value } : z));
+                    setZoneErrors((prev) => { const n = { ...prev }; delete n[`${zone.id}-delay`]; return n; });
+                  }}
+                  className={cn("form-input py-1.5 text-xs w-20", zoneErrors[`${zone.id}-delay`] && "border-red-400 ring-1 ring-red-400")}
+                  placeholder={zoneErrors[`${zone.id}-delay`] || "Délai"}
                 />
                 <button
                   onClick={() => removeZone(zone.id)}
