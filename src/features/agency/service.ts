@@ -4,6 +4,7 @@ export * from "./services/drivers.service";
 export * from "./services/stats.service";
 export * from "./services/settings.service";
 export * from "./services/finance.service";
+export * from "./services/zones.service";
 
 // Re-export specific types if they were requested by index.ts
 export type { CreateDeliveryPayload, DeliveryFilters } from "./services/deliveries.service";

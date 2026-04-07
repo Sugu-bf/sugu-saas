@@ -661,3 +661,86 @@ export function useSubmitAgencyWithdrawal() {
     },
   });
 }
+
+// ============================================================
+// Zone Management Hooks
+// ============================================================
+
+/**
+ * Hook: Fetch agency zones (from real delivery_zones table).
+ *
+ * Uses the session's delivery_partner_id automatically.
+ * 2-minute staleTime — zones change infrequently.
+ */
+export function useAgencyZones() {
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? undefined;
+
+  return useQuery({
+    queryKey: [...queryKeys.agency.all, "zones"],
+    queryFn: () => agencyService.getAgencyZones(agencyId!),
+    staleTime: 2 * 60 * 1000,
+    enabled: !!agencyId,
+  });
+}
+
+/**
+ * Hook: Create a new zone for the agency.
+ *
+ * Invalidates zones cache on success.
+ */
+export function useCreateAgencyZone() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (data: { name: string; tarif: number; delay: string; countryCode?: string; enabled?: boolean }) =>
+      agencyService.createAgencyZone(agencyId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.agency.all, "zones"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
+  });
+}
+
+/**
+ * Hook: Update a zone's rate/delay/enabled status.
+ *
+ * Invalidates zones cache on success.
+ */
+export function useUpdateAgencyZone() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: ({ zoneId, ...data }: { zoneId: string; tarif?: number; delay?: string; enabled?: boolean }) =>
+      agencyService.updateAgencyZone(agencyId, zoneId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.agency.all, "zones"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
+  });
+}
+
+/**
+ * Hook: Delete a zone from the agency.
+ *
+ * Invalidates zones cache on success.
+ */
+export function useDeleteAgencyZone() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (zoneId: string) =>
+      agencyService.deleteAgencyZone(agencyId, zoneId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.agency.all, "zones"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
+    },
+  });
+}
+

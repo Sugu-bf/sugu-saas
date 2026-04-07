@@ -812,7 +812,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
           )}
           {activeTab === "account" && <AccountTab data={data} />}
           {activeTab === "vehicles" && <VehiclesTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
-          {activeTab === "zones" && <ZonesTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
+          {activeTab === "zones" && <ZonesTab />}
           {activeTab === "payments" && <PaymentsTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
           {activeTab === "notifications" && <NotificationsTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
           {activeTab === "security" && <SecurityTab />}
