@@ -207,16 +207,23 @@ export function StepRecapitulatif({ data, onChange, onGoToStep }: StepRecapitula
                 </span>
               </span>
             </div>
-            {data.hasVariants && (
-              <p className="text-[11px] text-gray-400">
-                Variantes:{" "}
-                {data.variantOptions
-                  .map(
-                    (v) =>
-                      `${v.label} (${formatCurrency(parseInt(v.price) || 0)})`,
-                  )
-                  .join(", ")}
-              </p>
+            {data.hasVariants && (data.generatedVariants ?? []).length > 0 && (
+              <div className="text-[11px] text-gray-400">
+                <span className="font-medium">
+                  {data.generatedVariants.length} variante{data.generatedVariants.length !== 1 ? "s" : ""}
+                </span>
+                <p className="mt-0.5">
+                  {data.generatedVariants
+                    .slice(0, 4)
+                    .map(
+                      (v) =>
+                        `${Object.values(v.combination).join(" / ")} (${formatCurrency(parseInt(v.price) || 0)})`,
+                    )
+                    .join(", ")}
+                  {data.generatedVariants.length > 4 &&
+                    ` +${data.generatedVariants.length - 4}`}
+                </p>
+              </div>
             )}
             {data.hasBulkPricing && bulkSummary && (
               <p className="text-[11px] text-gray-400">

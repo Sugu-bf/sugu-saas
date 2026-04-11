@@ -262,6 +262,14 @@ export async function createVendorProduct(
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
+    hasVariants?: boolean;
+    generatedVariants?: Array<{
+      id: string;
+      combination: Record<string, string>;
+      price: string;
+      stock: string;
+      sku: string;
+    }>;
   },
   categoryId?: string,
   images?: File[],
@@ -297,6 +305,19 @@ export async function createVendorProduct(
     }
     if (hasPreviewIds) {
       previewIds!.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+    }
+
+    // Append variant data
+    if (requestBody.hasVariants && requestBody.variants) {
+      fd.append("hasVariants", "1");
+      requestBody.variants.forEach((v, idx) => {
+        Object.entries(v.options).forEach(([key, val]) => {
+          fd.append(`variants[${idx}][options][${key}]`, val);
+        });
+        fd.append(`variants[${idx}][price]`, String(v.price));
+        fd.append(`variants[${idx}][stock]`, String(v.stock));
+        if (v.sku) fd.append(`variants[${idx}][sku]`, v.sku);
+      });
     }
 
     const { env } = await import("@/lib/env");
@@ -367,6 +388,14 @@ export async function updateVendorProduct(
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
+    hasVariants?: boolean;
+    generatedVariants?: Array<{
+      id: string;
+      combination: Record<string, string>;
+      price: string;
+      stock: string;
+      sku: string;
+    }>;
   },
   categoryId?: string,
   newImages?: File[],
@@ -406,6 +435,25 @@ export async function updateVendorProduct(
   }
   if (removeMediaIds && removeMediaIds.length > 0) {
     removeMediaIds.forEach((mid) => { fd.append("remove_media_ids[]", String(mid)); });
+  }
+
+  // Append variant data
+  if (formData.hasVariants && formData.generatedVariants && formData.generatedVariants.length > 0) {
+    fd.append("hasVariants", "1");
+    const variants = formData.generatedVariants.map((v) => ({
+      options: v.combination,
+      price: parseFloat(v.price) || parseFloat(formData.price) || 0,
+      stock: parseInt(v.stock) || 0,
+      sku: v.sku || undefined,
+    }));
+    variants.forEach((v, idx) => {
+      Object.entries(v.options).forEach(([key, val]) => {
+        fd.append(`variants[${idx}][options][${key}]`, val);
+      });
+      fd.append(`variants[${idx}][price]`, String(v.price));
+      fd.append(`variants[${idx}][stock]`, String(v.stock));
+      if (v.sku) fd.append(`variants[${idx}][sku]`, v.sku);
+    });
   }
 
   const { env } = await import("@/lib/env");
@@ -700,6 +748,14 @@ function _transformCreateProductRequest(
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
+    hasVariants?: boolean;
+    generatedVariants?: Array<{
+      id: string;
+      combination: Record<string, string>;
+      price: string;
+      stock: string;
+      sku: string;
+    }>;
   },
   categoryId?: string,
 ): CreateProductRequest {
@@ -719,6 +775,17 @@ function _transformCreateProductRequest(
         .map((t) => ({ minQty: parseInt(t.minQty), price: parseFloat(t.price) }))
     : undefined;
 
+  // Transform variant data for the API
+  const hasVariants = !!(formData.hasVariants && formData.generatedVariants?.length);
+  const variants = hasVariants
+    ? formData.generatedVariants!.map((v) => ({
+        options: v.combination,
+        price: parseFloat(v.price) || price,
+        stock: parseInt(v.stock) || 0,
+        sku: v.sku || undefined,
+      }))
+    : undefined;
+
   return {
     name: formData.name,
     description: formData.description || undefined,
@@ -730,5 +797,7 @@ function _transformCreateProductRequest(
     weightUnit: weightUnit as "kg" | "g" | "lb",
     currency: "XOF",
     bulkPrices: bulkPrices && bulkPrices.length > 0 ? bulkPrices : undefined,
+    hasVariants: hasVariants,
+    variants,
   };
 }

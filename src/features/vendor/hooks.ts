@@ -653,6 +653,14 @@ export function useCreateProduct() {
         publishMode: "publish" | "draft";
         hasBulkPricing: boolean;
         bulkTiers: Array<{ minQty: string; price: string }>;
+        hasVariants?: boolean;
+        generatedVariants?: Array<{
+          id: string;
+          combination: Record<string, string>;
+          price: string;
+          stock: string;
+          sku: string;
+        }>;
       };
       categoryId?: string;
       images?: File[];
@@ -700,6 +708,14 @@ export function useUpdateProduct() {
         publishMode: "publish" | "draft";
         hasBulkPricing: boolean;
         bulkTiers: Array<{ minQty: string; price: string }>;
+        hasVariants?: boolean;
+        generatedVariants?: Array<{
+          id: string;
+          combination: Record<string, string>;
+          price: string;
+          stock: string;
+          sku: string;
+        }>;
       };
       categoryId?: string;
       newImages?: File[];

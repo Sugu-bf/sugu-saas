@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, X, Trash2, Banknote } from "lucide-react";
+import { useMemo, useState, useCallback } from "react";
+import { Plus, X, Trash2, Banknote, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
 import {
   type ProductFormData,
   type FormUpdater,
+  type VariantAxis,
   INPUT_CLASS,
   LABEL_CLASS,
 } from "./types";
@@ -73,6 +73,30 @@ function Toggle({
   );
 }
 
+/* ── Variant helpers (pure functions) ── */
+
+function cartesian(axes: VariantAxis[]): Record<string, string>[] {
+  const filtered = axes.filter((a) => a.values.length > 0);
+  if (filtered.length === 0) return [];
+  return filtered.reduce<Record<string, string>[]>((acc, axis) => {
+    if (acc.length === 0) return axis.values.map((v) => ({ [axis.name]: v.value }));
+    const result: Record<string, string>[] = [];
+    for (const prev of acc) {
+      for (const val of axis.values) {
+        result.push({ ...prev, [axis.name]: val.value });
+      }
+    }
+    return result;
+  }, []);
+}
+
+function variantKey(combo: Record<string, string>): string {
+  return Object.entries(combo)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}:${v}`)
+    .join("|");
+}
+
 export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
   const priceNum = parseInt(data.price) || 0;
   const originalPriceNum = parseInt(data.originalPrice) || 0;
@@ -85,26 +109,81 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
     return 0;
   }, [priceNum, originalPriceNum]);
 
-  // ── Variant state for the inline "add variant" form ──
-  const [newVariantLabel, setNewVariantLabel] = useState("");
-  const [newVariantPrice, setNewVariantPrice] = useState("");
+  // ── Variant axis/value management ──
+  const [newAxisName, setNewAxisName] = useState("");
+  const [newValueByAxis, setNewValueByAxis] = useState<Record<string, string>>({});
 
-  const addVariant = () => {
-    const label = newVariantLabel.trim();
-    const price = newVariantPrice.trim();
-    if (!label) return;
-    onChange("variantOptions", [
-      ...data.variantOptions,
-      { id: `v${Date.now()}`, label, price: price || "0" },
-    ]);
-    setNewVariantLabel("");
-    setNewVariantPrice("");
+  const regenerateVariants = useCallback(
+    (axes: VariantAxis[]) => {
+      const combos = cartesian(axes);
+      const existing = new Map(
+        (data.generatedVariants ?? []).map((v) => [variantKey(v.combination), v]),
+      );
+      const variants = combos.map((combo, i) => {
+        const key = variantKey(combo);
+        const prev = existing.get(key);
+        return (
+          prev ?? {
+            id: `gv-${Date.now()}-${i}`,
+            combination: combo,
+            price: data.price || "0",
+            stock: "0",
+            sku: "",
+          }
+        );
+      });
+      onChange("generatedVariants", variants);
+    },
+    [data.generatedVariants, data.price, onChange],
+  );
+
+  const addAxis = () => {
+    const name = newAxisName.trim();
+    if (!name || (data.variantAxes ?? []).some((a) => a.name.toLowerCase() === name.toLowerCase())) return;
+    const newAxes = [...(data.variantAxes ?? []), { id: `ax-${Date.now()}`, name, values: [] }];
+    onChange("variantAxes", newAxes);
+    setNewAxisName("");
   };
 
-  const removeVariant = (id: string) => {
+  const removeAxis = (axisId: string) => {
+    const newAxes = (data.variantAxes ?? []).filter((a) => a.id !== axisId);
+    onChange("variantAxes", newAxes);
+    regenerateVariants(newAxes);
+  };
+
+  const addValue = (axisId: string) => {
+    const val = (newValueByAxis[axisId] || "").trim();
+    if (!val) return;
+    const newAxes = (data.variantAxes ?? []).map((a) => {
+      if (a.id !== axisId) return a;
+      if (a.values.some((v) => v.value.toLowerCase() === val.toLowerCase())) return a;
+      return { ...a, values: [...a.values, { id: `val-${Date.now()}`, value: val }] };
+    });
+    onChange("variantAxes", newAxes);
+    regenerateVariants(newAxes);
+    setNewValueByAxis((prev) => ({ ...prev, [axisId]: "" }));
+  };
+
+  const removeValue = (axisId: string, valueId: string) => {
+    const newAxes = (data.variantAxes ?? []).map((a) => {
+      if (a.id !== axisId) return a;
+      return { ...a, values: a.values.filter((v) => v.id !== valueId) };
+    });
+    onChange("variantAxes", newAxes);
+    regenerateVariants(newAxes);
+  };
+
+  const updateVariantField = (variantId: string, field: "price" | "stock" | "sku", value: string) => {
     onChange(
-      "variantOptions",
-      data.variantOptions.filter((v) => v.id !== id),
+      "generatedVariants",
+      (data.generatedVariants ?? []).map((v) => (v.id === variantId ? { ...v, [field]: value } : v)),
+    );
+  };
+
+  const applyPriceToAll = () => {
+    onChange(
+      "generatedVariants",
+      (data.generatedVariants ?? []).map((v) => ({ ...v, price: data.price || "0" })),
     );
   };
 
@@ -276,69 +355,171 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
       </div>
 
       {data.hasVariants && (
-        <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/30 p-4 dark:border-gray-800 dark:bg-gray-900/20">
-          <p className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-            Options de variante
-          </p>
-
-          {/* Existing variants */}
-          <div className="flex flex-wrap items-start gap-3">
-            {data.variantOptions.map((v) => (
-              <div key={v.id} className="flex flex-col items-center gap-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-200/80 px-3 py-1.5 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                  {v.label}
-                  <button
-                    type="button"
-                    onClick={() => removeVariant(v.id)}
-                    className="text-gray-400 transition-colors hover:text-red-500"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-                <span className="text-[11px] text-gray-400">
-                  {formatCurrency(parseInt(v.price) || 0)} FCFA
-                </span>
+        <div className="mt-3 space-y-4">
+          {/* ── Existing axes ── */}
+          {(data.variantAxes ?? []).map((axis) => (
+            <div
+              key={axis.id}
+              className="rounded-xl border border-gray-100 bg-gray-50/30 p-4 dark:border-gray-800 dark:bg-gray-900/20"
+            >
+              {/* Axis header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-sugu-400" />
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {axis.name}
+                  </span>
+                  <span className="rounded-full bg-gray-200/80 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                    {axis.values.length} valeur{axis.values.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAxis(axis.id)}
+                  className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
+                  title="Supprimer cet axe"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            ))}
-          </div>
 
-          {/* Add new variant inline form */}
-          <div className="mt-3 flex items-end gap-2">
+              {/* Value tags */}
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {axis.values.map((val) => (
+                  <span
+                    key={val.id}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-sugu-50 px-3 py-1 text-sm font-medium text-sugu-700 dark:bg-sugu-950/30 dark:text-sugu-300"
+                  >
+                    {val.value}
+                    <button
+                      type="button"
+                      onClick={() => removeValue(axis.id, val.id)}
+                      className="text-sugu-400 transition-colors hover:text-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Add value input */}
+              <div className="mt-2.5 flex gap-2">
+                <input
+                  type="text"
+                  value={newValueByAxis[axis.id] || ""}
+                  onChange={(e) =>
+                    setNewValueByAxis((prev) => ({ ...prev, [axis.id]: e.target.value }))
+                  }
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && (e.preventDefault(), addValue(axis.id))
+                  }
+                  placeholder={`Ajouter une valeur (ex: ${
+                    axis.name.toLowerCase().includes("couleur")
+                      ? "Rouge, Bleu, Vert"
+                      : axis.name.toLowerCase().includes("taille")
+                        ? "S, M, L, XL"
+                        : "valeur"
+                  })`}
+                  className="flex-1 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-sugu-400 focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => addValue(axis.id)}
+                  disabled={!(newValueByAxis[axis.id] || "").trim()}
+                  className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg bg-sugu-500 text-white transition-all hover:bg-sugu-600 disabled:opacity-40 disabled:hover:bg-sugu-500"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* ── Add new axis ── */}
+          <div className="flex items-end gap-2">
             <div className="flex-1">
               <label className="mb-1 block text-[11px] font-medium text-gray-500">
-                Nom (ex: 250g, Rouge)
+                Ajouter un axe de variation
               </label>
               <input
                 type="text"
-                value={newVariantLabel}
-                onChange={(e) => setNewVariantLabel(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addVariant())}
-                placeholder="Ex: 500g"
-                className="w-full rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-sugu-400 focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-              />
-            </div>
-            <div className="w-28">
-              <label className="mb-1 block text-[11px] font-medium text-gray-500">
-                Prix (FCFA)
-              </label>
-              <input
-                type="number"
-                value={newVariantPrice}
-                onChange={(e) => setNewVariantPrice(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addVariant())}
-                placeholder="0"
+                value={newAxisName}
+                onChange={(e) => setNewAxisName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAxis())}
+                placeholder="Ex: Couleur, Taille, Poids, Matière"
                 className="w-full rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-sugu-400 focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
               />
             </div>
             <button
               type="button"
-              onClick={addVariant}
-              disabled={!newVariantLabel.trim()}
-              className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg bg-sugu-500 text-white transition-all hover:bg-sugu-600 disabled:opacity-40 disabled:hover:bg-sugu-500"
+              onClick={addAxis}
+              disabled={!newAxisName.trim()}
+              className="inline-flex h-[38px] items-center gap-1.5 rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-700 transition-all hover:bg-gray-200 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               <Plus className="h-4 w-4" />
+              Ajouter
             </button>
           </div>
+
+          {/* ── Generated variants table ── */}
+          {(data.generatedVariants ?? []).length > 0 && (
+            <div className="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900/30">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  {data.generatedVariants.length} variante
+                  {data.generatedVariants.length !== 1 ? "s" : ""} générée
+                  {data.generatedVariants.length !== 1 ? "s" : ""}
+                </p>
+                <button
+                  type="button"
+                  onClick={applyPriceToAll}
+                  className="text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
+                >
+                  Appliquer prix par défaut à toutes
+                </button>
+              </div>
+
+              {/* Table header */}
+              <div className="mt-3 grid grid-cols-[1fr_100px_80px_100px] gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                <span>Combinaison</span>
+                <span>Prix (FCFA)</span>
+                <span>Stock</span>
+                <span>SKU</span>
+              </div>
+
+              {/* Table rows */}
+              <div className="mt-1.5 max-h-[280px] space-y-1.5 overflow-y-auto">
+                {data.generatedVariants.map((v) => (
+                  <div
+                    key={v.id}
+                    className="grid grid-cols-[1fr_100px_80px_100px] items-center gap-2"
+                  >
+                    <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {Object.values(v.combination).join(" / ")}
+                    </span>
+                    <input
+                      type="number"
+                      value={v.price}
+                      onChange={(e) => updateVariantField(v.id, "price", e.target.value)}
+                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                    />
+                    <input
+                      type="number"
+                      value={v.stock}
+                      onChange={(e) => updateVariantField(v.id, "stock", e.target.value)}
+                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                    />
+                    <input
+                      type="text"
+                      value={v.sku}
+                      onChange={(e) => updateVariantField(v.id, "sku", e.target.value)}
+                      placeholder="Auto"
+                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

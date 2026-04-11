@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bold, Italic, Underline, List, Link2, X, ChevronDown, ClipboardList } from "lucide-react";
+import { X, ChevronDown, ClipboardList } from "lucide-react";
 import {
   type ProductFormData,
   type FormUpdater,
@@ -13,6 +13,7 @@ import {
   LABEL_CLASS,
 } from "./types";
 import { useProductCategories } from "@/features/vendor/hooks";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface StepInformationsProps {
   data: ProductFormData;
@@ -82,25 +83,12 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
         <label htmlFor="product-desc" className={LABEL_CLASS}>
           Description <span className="text-red-400">*</span>
         </label>
-        {/* WYSIWYG toolbar */}
-        <div className="flex items-center gap-1 rounded-t-xl border border-b-0 border-gray-200/80 bg-gray-50/30 px-3 py-2 dark:border-gray-700/50 dark:bg-gray-900/30">
-          {[Bold, Italic, Underline, List, Link2].map((Icon, i) => (
-            <button
-              key={i}
-              type="button"
-              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/60 hover:text-gray-600 dark:hover:bg-gray-700/50"
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
-        </div>
-        <textarea
+        <RichTextEditor
           id="product-desc"
-          rows={4}
           value={data.description}
-          onChange={(e) => onChange("description", e.target.value)}
-          className="w-full resize-none rounded-b-xl border border-gray-200/80 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-          placeholder="Décrivez votre produit..."
+          onChange={(html) => onChange("description", html)}
+          placeholder="Décrivez votre produit en détail : composition, utilisation, avantages..."
+          minHeight={180}
         />
       </div>
 

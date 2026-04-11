@@ -8,6 +8,28 @@ export interface VariantOption {
   price: string;
 }
 
+/** An axis of variation (e.g. Couleur, Taille, Poids) */
+export interface VariantAxisValue {
+  id: string;
+  value: string;
+  hex?: string;
+}
+
+export interface VariantAxis {
+  id: string;
+  name: string;
+  values: VariantAxisValue[];
+}
+
+/** A generated variant (cartesian product combination) */
+export interface GeneratedVariant {
+  id: string;
+  combination: Record<string, string>;
+  price: string;
+  stock: string;
+  sku: string;
+}
+
 export interface PriceTier {
   id: string;
   minQty: string;
@@ -42,7 +64,8 @@ export interface ProductFormData {
   alertThreshold: string;
   autoTrackStock: boolean;
   hasVariants: boolean;
-  variantOptions: VariantOption[];
+  variantAxes: VariantAxis[];
+  generatedVariants: GeneratedVariant[];
   hasBulkPricing: boolean;
   bulkTiers: PriceTier[];
   publishMode: "publish" | "draft";
@@ -127,12 +150,9 @@ export const DEFAULT_FORM_DATA: ProductFormData = {
   stock: "50",
   alertThreshold: "10",
   autoTrackStock: true,
-  hasVariants: true,
-  variantOptions: [
-    { id: "v1", label: "250g", price: "2000" },
-    { id: "v2", label: "500g", price: "3200" },
-    { id: "v3", label: "1L", price: "4500" },
-  ],
+  hasVariants: false,
+  variantAxes: [],
+  generatedVariants: [],
   hasBulkPricing: true,
   bulkTiers: [
     { id: "t1", minQty: "1", price: "4500" },

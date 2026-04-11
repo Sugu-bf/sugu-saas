@@ -61,6 +61,63 @@ function parseWeightString(raw: string): { value: string; unit: string } {
   };
 }
 
+// ── Helper: reconstruct variantAxes/generatedVariants from API variants ──
+function reconstructVariants(product: Record<string, unknown>): {
+  hasVariants: boolean;
+  variantAxes: Array<{ id: string; name: string; values: Array<{ id: string; value: string }> }>;
+  generatedVariants: Array<{ id: string; combination: Record<string, string>; price: string; stock: string; sku: string }>;
+} {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawVariants: any[] = (product as any).variantsSummary?.weight ?? [];
+  // Try to get raw API variants through the detail response
+  // The detail transformer puts variants in variantsSummary.weight with {label, price, isActive}
+  // But we need the original backend data. Let's check for _rawVariants or use variantsSummary.
+  // For now, reconstruct from the product detail's variantsSummary.
+  
+  // Filter out default "Standard" / "Default" variants
+  const meaningfulVariants = rawVariants.filter(
+    (v: { label: string }) => v.label !== "Default" && v.label !== "Standard",
+  );
+  
+  if (meaningfulVariants.length === 0) {
+    return { hasVariants: false, variantAxes: [], generatedVariants: [] };
+  }
+
+  // Try to parse structured option data if variant labels contain " / " separators (e.g. "Rouge / L")
+  // This is a best-effort reconstruction since the detail API flattens the data
+  const axesMap = new Map<string, Set<string>>();
+  const generatedVariants: Array<{ id: string; combination: Record<string, string>; price: string; stock: string; sku: string }> = [];
+
+  meaningfulVariants.forEach((v: { label: string; price: number }, i: number) => {
+    const parts = v.label.split(" / ").map((p: string) => p.trim());
+    const combination: Record<string, string> = {};
+    
+    // Assign generic axis names if we can't determine them
+    parts.forEach((part: string, idx: number) => {
+      const axisName = `Option ${idx + 1}`;
+      combination[axisName] = part;
+      if (!axesMap.has(axisName)) axesMap.set(axisName, new Set());
+      axesMap.get(axisName)!.add(part);
+    });
+
+    generatedVariants.push({
+      id: `gv-loaded-${i}`,
+      combination,
+      price: String(v.price ?? 0),
+      stock: "0",
+      sku: "",
+    });
+  });
+
+  const variantAxes = Array.from(axesMap.entries()).map(([name, values], i) => ({
+    id: `ax-loaded-${i}`,
+    name,
+    values: Array.from(values).map((val, j) => ({ id: `val-loaded-${i}-${j}`, value: val })),
+  }));
+
+  return { hasVariants: true, variantAxes, generatedVariants };
+}
+
 // ── Helper: price display → form string (handle cents) ─────
 function priceToFormString(price: number | undefined): string {
   if (!price) return "";
@@ -249,7 +306,8 @@ export function EditProductForm({ id }: EditProductFormProps) {
     alertThreshold: "10",
     autoTrackStock: true,
     hasVariants: false,
-    variantOptions: [],
+    variantAxes: [],
+    generatedVariants: [],
     hasBulkPricing: false,
     bulkTiers: [],
     publishMode: "publish",
@@ -310,6 +368,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       hasBulkPricing: bulkTiers.length > 0,
       bulkTiers,
       publishMode,
+      ...reconstructVariants(product),
     }));
 
     // Load existing photos

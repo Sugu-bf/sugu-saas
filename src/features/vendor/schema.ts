@@ -1474,6 +1474,13 @@ export const createProductRequestSchema = z.object({
   weightUnit: z.enum(["kg", "g", "lb"]).optional(),
   currency: z.string().default("XOF"),
   bulkPrices: z.array(createProductBulkPriceSchema).optional(),
+  hasVariants: z.boolean().optional().default(false),
+  variants: z.array(z.object({
+    options: z.record(z.string(), z.string()),
+    price: z.number().min(0),
+    stock: z.number().int().min(0),
+    sku: z.string().optional(),
+  })).optional(),
 });
 
 export type CreateProductRequest = z.infer<typeof createProductRequestSchema>;
