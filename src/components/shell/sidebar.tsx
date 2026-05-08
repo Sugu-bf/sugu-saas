@@ -21,6 +21,10 @@ import {
   Wallet,
   Banknote,
   History,
+  Boxes,
+  PackagePlus,
+  PackageMinus,
+  ScrollText,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import type { UserRole } from "@/types";
@@ -53,6 +57,16 @@ const vendorSections: SideNavSection[] = [
       { label: "Portefeuille", href: "/vendor/wallet", icon: <Wallet className="h-5 w-5" /> },
       { label: "Marketing", href: "/vendor/marketing", icon: <Megaphone className="h-5 w-5" /> },
       { label: "Messages", href: "/vendor/messages", icon: <MessageSquare className="h-5 w-5" /> },
+    ],
+  },
+  {
+    title: "SUGU BOX",
+    items: [
+      { label: "Vue d'ensemble", href: "/vendor/sugubox", icon: <Boxes className="h-5 w-5" /> },
+      { label: "Mon stock", href: "/vendor/sugubox/stock", icon: <Package className="h-5 w-5" /> },
+      { label: "Réceptions", href: "/vendor/sugubox/inbound", icon: <PackagePlus className="h-5 w-5" /> },
+      { label: "Expéditions", href: "/vendor/sugubox/outbound", icon: <PackageMinus className="h-5 w-5" /> },
+      { label: "Mouvements", href: "/vendor/sugubox/movements", icon: <ScrollText className="h-5 w-5" /> },
     ],
   },
   {

@@ -156,3 +156,23 @@ export {
   getRecommendedProducts,
 } from "./messaging.service";
 export type { RecommendedProduct } from "./messaging.service";
+
+// Sugu Box (Read-only seller portal)
+export {
+  getSuguBoxOverview,
+  getSuguBoxStock,
+  getSuguBoxInbound,
+  getSuguBoxInboundDetail,
+  getSuguBoxOutbound,
+  getSuguBoxOutboundDetail,
+  getSuguBoxMovements,
+} from "./sugubox.service";
+export type {
+  SuguBoxOverviewData,
+  SuguBoxMovement,
+  SuguBoxStockItem,
+  SuguBoxInboundShipment,
+  SuguBoxInboundDetail,
+  SuguBoxOutboundOrder,
+  SuguBoxOutboundDetail,
+} from "./sugubox.service";
