@@ -39,8 +39,8 @@
   --color-ring: var(--ring);
 
   /* Fonts */
-  --font-sans: var(--font-quicksand);
-  --font-mono: var(--font-quicksand);
+  --font-sans: var(--font-plus-jakarta-sans);
+  --font-mono: var(--font-plus-jakarta-sans);
 
   /* Brand palette — static values, NO circular var() */
   --color-sugu-50: #fff4ed;
@@ -67,7 +67,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

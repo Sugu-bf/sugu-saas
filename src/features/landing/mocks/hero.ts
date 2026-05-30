@@ -13,12 +13,12 @@ export const landingPageMock: LandingPageData = {
     { label: "Blog", href: "/blog" },
   ],
   hero: {
-    badge: "+2,500 vendeurs nous font confiance",
-    headlineBefore: "Vendez et livrez sur ",
+    badge: "La plateforme tout-en-un des vendeurs ambitieux",
+    headlineBefore: "Vendez plus. Livrez mieux. Gérez tout sur ",
     headlineHighlight: "SUGU",
-    headlineAfter: ", la marketplace #1 d'Afrique",
+    headlineAfter: ".",
     subtext:
-      "Créez votre boutique en ligne, gérez vos produits, suivez vos livraisons et boostez vos ventes — tout depuis un seul tableau de bord.",
+      "Créez votre boutique en ligne, recevez vos commandes, suivez vos livraisons et pilotez vos ventes depuis un seul tableau de bord.",
     ctaPrimary: {
       label: "Créer ma boutique",
       href: "/login",
@@ -34,9 +34,13 @@ export const landingPageMock: LandingPageData = {
     ],
     socialProof: {
       vendorCount: 2500,
-      avatarImages: ["/images/landing/avatars.jpg"],
+      avatarImages: [
+        "/images/landing/testimonials/avatar-fatoumata.jpg",
+        "/images/landing/testimonials/avatar-mamadou.jpg",
+        "/images/landing/testimonials/avatar-seydou.jpg",
+      ],
     },
-    dashboardImage: "/images/landing/dashboard-mockup.jpg",
+    dashboardImage: "https://cdn.sugu.pro/p/sugupro-hero-seller.png?v=20260529-hero",
   },
 
   // ──────────────────────────────────────────

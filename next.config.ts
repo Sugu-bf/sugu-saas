@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "api.mysugu.com" },
       { protocol: "http", hostname: "localhost", port: "8000" },
       { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "cdn.sugu.pro" },
     ],
   },
 
