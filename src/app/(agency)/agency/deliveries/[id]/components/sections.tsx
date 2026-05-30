@@ -7,6 +7,19 @@ import type { DeliveryDetailRow } from "@/features/agency/schema";
 import { MapPlaceholder } from "./skeletons";
 import { AgencyCodMixtePaymentCard } from "./badges";
 
+/**
+ * Whether to show the binary "Payé / En attente" badge (Chantier 5).
+ * Hidden for Mixte — AgencyCodMixtePaymentCard renders the full split-payment
+ * state just below, so the binary badge would be redundant and misleading.
+ * Legacy COD vs prepaid is NOT distinguishable here (no is_cod on the agency
+ * DeliveryDetailRow) → see SUGU-DEBT-AGENCY-LIST-CODMIXTE-VISIBILITY.
+ */
+export function showsLegacyPaymentBadge(
+  detailRow: Pick<DeliveryDetailRow, "codMixte">,
+): boolean {
+  return !detailRow.codMixte?.isCodMixte;
+}
+
 export function DeliveryDetailTrackingSection({
   row,
   detailRow,
@@ -232,20 +245,22 @@ export function DeliveryDetailOrderSection({
             <span className="font-bold">{formatCurrency(orderSubtotal)} FCFA</span>
           </p>
 
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-              row.orderPayment === "paid" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-            )}
-          >
+          {showsLegacyPaymentBadge(detailRow) && (
             <span
               className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                row.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500"
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                row.orderPayment === "paid" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
               )}
-            />
-            {row.orderPayment === "paid" ? "Payé" : "En attente"}
-          </span>
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  row.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500"
+                )}
+              />
+              {row.orderPayment === "paid" ? "Payé" : "En attente"}
+            </span>
+          )}
 
           {detailRow.codMixte?.isCodMixte && (
             <AgencyCodMixtePaymentCard codMixte={detailRow.codMixte} />

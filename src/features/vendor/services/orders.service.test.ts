@@ -20,7 +20,7 @@ vi.mock("@/lib/http/client", () => ({
   apiRequest: vi.fn(),
 }));
 
-import { getVendorOrders } from "./orders.service";
+import { getVendorOrders, getVendorOrderDetail } from "./orders.service";
 
 const baseItem = {
   customer: { name: "Client X" },
@@ -124,5 +124,42 @@ describe("getVendorOrders — Trou n°4 COD field mapping", () => {
     const o = orders.find((x) => x.id === "o-bogus")!;
     expect(o.codFlowType).toBe("none");
     expect(o.paymentStatusCode).toBeNull();
+  });
+});
+
+describe("getVendorOrderDetail — paymentStatus label via mapPaymentStatusCode (Chantier 5)", () => {
+  beforeEach(() => getMock.mockReset());
+
+  const rawDetail = (paymentStatus: string | undefined) => ({
+    data: {
+      order: {
+        id: "o1",
+        reference: "CMD-1",
+        statusCode: "pending",
+        parties: { client: { name: "Client X", phone: "+1", email: "e@x.co", location: "Rue 1, Ville", orderCount: 0 } },
+        items: [{ id: "i1", name: "Produit", quantity: 1, price: 1000, total: 1000, status: "ready" }],
+        pricing: { subtotal: 1000, total: 1000, discount: 0, deliveryFees: 0, paymentStatus, paymentMethod: "Cash (COD)" },
+        timeline: [],
+        createdAt: "2026-05-30T10:00:00.000Z",
+      },
+    },
+  });
+
+  it("maps a Legacy COD code (cod_pending) to 'Paiement à la livraison' instead of the misleading generic", async () => {
+    getMock.mockResolvedValue(rawDetail("cod_pending"));
+    const detail = await getVendorOrderDetail("o1");
+    expect(detail.financial.paymentStatus).toBe("Paiement à la livraison");
+  });
+
+  it("maps 'paid' to 'Payé'", async () => {
+    getMock.mockResolvedValue(rawDetail("paid"));
+    const detail = await getVendorOrderDetail("o1");
+    expect(detail.financial.paymentStatus).toBe("Payé");
+  });
+
+  it("falls back discreetly when paymentStatus is missing", async () => {
+    getMock.mockResolvedValue(rawDetail(undefined));
+    const detail = await getVendorOrderDetail("o1");
+    expect(detail.financial.paymentStatus).toBe("En attente de paiement");
   });
 });

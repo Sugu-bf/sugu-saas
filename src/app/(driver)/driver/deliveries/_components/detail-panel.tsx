@@ -27,6 +27,22 @@ import {
 import type { DriverDeliveryRow } from "@/features/driver/schema";
 import { StatusBadge } from "./status-badge";
 
+/**
+ * Honest inline payment label for the side panel (Chantier 5).
+ * Same disambiguation as the list card's `courierCardCodChip` but returning a
+ * plain string for inline rendering:
+ * - Mixte → "COD Mixte" (the courier collects only the remaining cash, if any).
+ * - Legacy COD → "COD · À encaisser cash" (full total in cash).
+ * - Prepaid → "Payé en ligne".
+ */
+export function courierPanelPaymentLabel(
+  row: Pick<DriverDeliveryRow, "orderPayment" | "codMixte">,
+): string {
+  if (row.codMixte?.isCodMixte) return "COD Mixte";
+  if (row.orderPayment === "cod") return "COD · À encaisser cash";
+  return "Payé en ligne";
+}
+
 // ── Types ──────────────────────────────────────────────────
 
 export interface DetailPanelActions {
@@ -227,9 +243,7 @@ function OrderSection({ row }: { row: DriverDeliveryRow }) {
                 row.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500",
               )}
             />
-            {row.orderPayment === "paid"
-              ? "Payé en ligne"
-              : "COD · À encaisser"}
+            {courierPanelPaymentLabel(row)}
           </span>
         </div>
       </div>

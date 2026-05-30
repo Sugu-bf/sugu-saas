@@ -9,6 +9,7 @@ import {
   type OrderDetail,
 } from "../schema";
 import { api } from "@/lib/http/client";
+import { mapPaymentStatusCode } from "@/lib/utils/payment-status";
 import {
   normalizeStatus,
   STATUS_LABELS,
@@ -360,8 +361,12 @@ function _transformOrderDetailResponse(
   const total = raw.pricing?.total ?? 0;
   const discount = raw.pricing?.discount ?? 0;
   const discountPercent = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
+  // B1 closure: pricing.paymentStatus carries the backend status CODE
+  // (cod_pending / partial / paid / …), not a raw label — map it through the
+  // shared helper so COD orders read "Paiement à la livraison", not the
+  // misleading generic "En attente de paiement".
   const paymentStatusLabel =
-    raw.pricing?.paymentStatus === "paid" ? "Payé" : "En attente de paiement";
+    mapPaymentStatusCode(raw.pricing?.paymentStatus).label || "En attente de paiement";
 
   const clientLocation = raw.parties?.client?.location ?? "";
   const locationParts = clientLocation.split(",").map((s) => s.trim());
