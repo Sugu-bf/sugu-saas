@@ -131,7 +131,16 @@ const PAYMENT_TONE_CLASSES: Record<PaymentStatusTone, string> = {
   danger: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400",
 };
 
-function OrderPaymentBadge({ order }: { order: VendorOrder }) {
+/**
+ * Display label for a badge. In compact mode (mobile), the Mixte badge drops
+ * its flow-step suffix ("COD Mixte · Confirmation requise" → "COD Mixte") to
+ * fit the tight 2-line mobile row; other variants are already short.
+ */
+export function badgeDisplayLabel(badge: OrderListBadge, compact: boolean): string {
+  return compact && badge.variant === "mixte" ? "COD Mixte" : badge.label;
+}
+
+function OrderPaymentBadge({ order, compact = false }: { order: VendorOrder; compact?: boolean }) {
   const badge = orderListPaymentBadge(order);
   if (!badge) return null;
   const className =
@@ -143,12 +152,13 @@ function OrderPaymentBadge({ order }: { order: VendorOrder }) {
   return (
     <span
       className={cn(
-        "mt-1 flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        compact ? "" : "mt-1 flex w-fit",
         className,
       )}
     >
       <CreditCard className="h-2.5 w-2.5" />
-      {badge.label}
+      {badgeDisplayLabel(badge, compact)}
     </span>
   );
 }
@@ -386,17 +396,20 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                     </Link>
                   </div>
                 </div>
-                {/* Mobile: line 2 — status + date */}
-                <div className="mt-1 flex items-center justify-between lg:hidden">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full border px-2 py-px text-[10px] font-medium",
-                      STATUS_BADGE[order.status],
-                    )}
-                  >
-                    {order.statusLabel}
-                  </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                {/* Mobile: line 2 — status (+ payment badge) + date */}
+                <div className="mt-1 flex items-center justify-between gap-2 lg:hidden">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex flex-shrink-0 items-center rounded-full border px-2 py-px text-[10px] font-medium",
+                        STATUS_BADGE[order.status],
+                      )}
+                    >
+                      {order.statusLabel}
+                    </span>
+                    <OrderPaymentBadge order={order} compact />
+                  </div>
+                  <span className="flex-shrink-0 text-[10px] text-gray-400 dark:text-gray-500">
                     {order.date}
                   </span>
                 </div>

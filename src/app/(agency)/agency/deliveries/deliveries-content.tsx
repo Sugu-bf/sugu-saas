@@ -46,7 +46,51 @@ import {
   useBulkStatus,
 } from "@/features/agency/hooks";
 import type { DeliveryFilters } from "@/features/agency/service";
+import type { BulkStatusResult } from "@/features/agency/services/deliveries.service";
+import { mapSuguCodeToMessage, mapSuguErrorMessage } from "@/lib/http/sugu-error-mapper";
+import { toast } from "sonner";
 import { AssignCourierModal } from "./assign-courier-modal";
+
+// ────────────────────────────────────────────────────────────
+// Bulk partial-rejects feedback (Chantier 4)
+// ────────────────────────────────────────────────────────────
+
+export interface BulkFeedback {
+  kind: "success" | "warning" | "error";
+  title: string;
+  rejects: { label: string; message: string }[];
+}
+
+/**
+ * Turn a bulk-status result into a feedback descriptor.
+ * - 0 rejected → success.
+ * - some updated + some rejected → warning (partial).
+ * - 0 updated (all rejected) → error.
+ * `labelFor` maps a shipment_id to a human-readable order ref.
+ */
+export function buildBulkFeedback(
+  result: Pick<BulkStatusResult, "updated_count" | "updated" | "rejected">,
+  labelFor: (shipmentId: string) => string,
+): BulkFeedback {
+  const rejected = result.rejected ?? [];
+  const updatedCount = result.updated_count ?? result.updated?.length ?? 0;
+  const rejects = rejected.map((r) => ({
+    label: labelFor(r.shipment_id),
+    message: mapSuguCodeToMessage(r.reason),
+  }));
+  const plural = updatedCount > 1 ? "s" : "";
+  if (rejected.length === 0) {
+    return { kind: "success", title: `${updatedCount} livraison${plural} mise${plural} à jour`, rejects: [] };
+  }
+  if (updatedCount === 0) {
+    return { kind: "error", title: "Aucune livraison mise à jour", rejects };
+  }
+  return {
+    kind: "warning",
+    title: `${updatedCount} mise${plural} à jour · ${rejected.length} rejetée${rejected.length > 1 ? "s" : ""}`,
+    rejects,
+  };
+}
 
 // ────────────────────────────────────────────────────────────
 // Status config
@@ -589,13 +633,37 @@ export function DeliveriesContent() {
   const handleBulkStatusChange = useCallback(
     (status: string) => {
       if (selectedIds.size === 0) return;
-      bulkStatusMutation.mutate({
-        shipmentIds: Array.from(selectedIds),
-        status,
-      });
+      bulkStatusMutation.mutate(
+        { shipmentIds: Array.from(selectedIds), status },
+        {
+          onSuccess: (result) => {
+            const labelFor = (sid: string) =>
+              data?.rows.find((r) => r.id === sid)?.orderId ?? `#${sid}`;
+            const fb = buildBulkFeedback(result, labelFor);
+            const description =
+              fb.rejects.length > 0 ? (
+                <ul className="mt-1 space-y-0.5">
+                  {fb.rejects.map((rej, i) => (
+                    <li key={i} className="text-xs">
+                      <span className="font-semibold">{rej.label}</span> — {rej.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : undefined;
+            if (fb.kind === "success") toast.success(fb.title);
+            else if (fb.kind === "warning") toast.warning(fb.title, { description });
+            else toast.error(fb.title, { description });
+          },
+          onError: (err: Error) => {
+            // Defensive: a user-cancelled (aborted) mutation must not toast.
+            if ((err as { name?: string }).name === "AbortError") return;
+            toast.error(mapSuguErrorMessage(err));
+          },
+        },
+      );
       setSelectedIds(new Set());
     },
-    [selectedIds, bulkStatusMutation],
+    [selectedIds, bulkStatusMutation, data],
   );
 
   // Loading state

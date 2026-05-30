@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapSuguErrorMessage, SUGU_MESSAGES } from "./sugu-error-mapper";
+import { mapSuguErrorMessage, mapSuguCodeToMessage, SUGU_MESSAGES } from "./sugu-error-mapper";
 import { ApiError } from "./api-error";
 
 const GENERIC = "Une erreur est survenue, veuillez réessayer.";
@@ -88,5 +88,34 @@ describe("mapSuguErrorMessage", () => {
     expect(mapSuguErrorMessage(err)).toBe(
       SUGU_MESSAGES["SUGU-DELIVERY-CODE-NOT-VERIFIED"],
     );
+  });
+});
+
+describe("mapSuguCodeToMessage — bare structured codes (bulk rejected[].reason)", () => {
+  it("maps the two bulk reason codes to their curated FR messages", () => {
+    expect(mapSuguCodeToMessage("SUGU-COD-MIXTE-FEES-UNPAID")).toBe(
+      SUGU_MESSAGES["SUGU-COD-MIXTE-FEES-UNPAID"],
+    );
+    expect(mapSuguCodeToMessage("SUGU-DELIVERY-CODE-NOT-VERIFIED")).toBe(
+      SUGU_MESSAGES["SUGU-DELIVERY-CODE-NOT-VERIFIED"],
+    );
+  });
+
+  it("tolerates surrounding whitespace on the code", () => {
+    expect(mapSuguCodeToMessage("  SUGU-COD-MIXTE-FEES-UNPAID  ")).toBe(
+      SUGU_MESSAGES["SUGU-COD-MIXTE-FEES-UNPAID"],
+    );
+  });
+
+  it("degrades an unknown code to the generic fallback (never the raw code)", () => {
+    const r = mapSuguCodeToMessage("SUGU-FUTURE-CODE");
+    expect(r).toBe(GENERIC);
+    expect(r).not.toContain("SUGU-");
+  });
+
+  it("returns the generic fallback for null/undefined/empty", () => {
+    expect(mapSuguCodeToMessage(null)).toBe(GENERIC);
+    expect(mapSuguCodeToMessage(undefined)).toBe(GENERIC);
+    expect(mapSuguCodeToMessage("")).toBe(GENERIC);
   });
 });

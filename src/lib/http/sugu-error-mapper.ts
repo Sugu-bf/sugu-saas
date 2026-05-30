@@ -69,3 +69,19 @@ export function mapSuguErrorMessage(error: unknown): string {
   const text = rawText.trim();
   return text || GENERIC_FALLBACK;
 }
+
+/**
+ * Maps a BARE SUGU code to a curated French message.
+ *
+ * Distinct from `mapSuguErrorMessage`: the agency bulk-status endpoint is the
+ * only place that exposes SUGU codes in a structured field
+ * (`rejected[].reason`) — a plain code with no `": texte"` suffix. Feeding such
+ * a code to `mapSuguErrorMessage` would leak it verbatim (the prefix regex
+ * needs a colon), so this is the entry point for machine-readable codes.
+ *
+ * Unknown codes degrade to the generic fallback; the raw code is never shown.
+ */
+export function mapSuguCodeToMessage(code: string | null | undefined): string {
+  if (!code) return GENERIC_FALLBACK;
+  return SUGU_MESSAGES[code.trim()] ?? GENERIC_FALLBACK;
+}

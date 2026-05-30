@@ -463,18 +463,42 @@ export async function bulkAssign(
 }
 
 /**
+ * Bulk-status response (backend commit 7c4198f).
+ * `updated_count` is backwards-compatible (= count(updated)). `rejected[]` is
+ * the ONLY place the system exposes SUGU codes in a structured field
+ * (`reason`), not prefixed in a `message` — map it with `mapSuguCodeToMessage`.
+ */
+const bulkStatusRejectionSchema = z.object({
+  shipment_id: z.union([z.string(), z.number()]).transform((v) => String(v)),
+  reason: z.string(),
+});
+
+const bulkStatusResultSchema = z.object({
+  updated_count: z.number(),
+  updated: z.array(z.union([z.string(), z.number()]).transform((v) => String(v))).optional().default([]),
+  rejected: z.array(bulkStatusRejectionSchema).optional().default([]),
+});
+
+export type BulkStatusRejection = z.infer<typeof bulkStatusRejectionSchema>;
+export type BulkStatusResult = z.infer<typeof bulkStatusResultSchema>;
+
+/**
  * Bulk update status for multiple shipments.
+ * Parses the response strictly so a silent backend contract change is caught.
  */
 export async function bulkStatus(
   agencyId: string,
   shipmentIds: string[],
   status: string,
-): Promise<{ updated_count: number }> {
-  const raw = await api.post<{ success: boolean; data: { updated_count: number } }>(
+): Promise<BulkStatusResult> {
+  const raw = await api.post<unknown>(
     `agencies/${agencyId}/shipments/bulk-status`,
     { shipment_ids: shipmentIds, status },
   );
-  return raw.data;
+  const envelope = z
+    .object({ success: z.boolean().optional(), data: bulkStatusResultSchema })
+    .parse(raw);
+  return envelope.data;
 }
 
 /**

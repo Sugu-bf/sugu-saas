@@ -15,7 +15,7 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
-import { orderListPaymentBadge } from "./orders-content";
+import { orderListPaymentBadge, badgeDisplayLabel } from "./orders-content";
 
 describe("orderListPaymentBadge — Mixte / Legacy / prepaid disambiguation", () => {
   it("returns a Mixte badge with the current flow step", () => {
@@ -71,5 +71,23 @@ describe("orderListPaymentBadge — Mixte / Legacy / prepaid disambiguation", ()
         paymentStatusCode: null,
       }),
     ).toBeNull();
+  });
+});
+
+describe("badgeDisplayLabel — compact mobile label (Chantier 4)", () => {
+  it("drops the Mixte flow step in compact mode (mobile)", () => {
+    const mixte = { variant: "mixte", label: "COD Mixte · Confirmation requise" } as const;
+    expect(badgeDisplayLabel(mixte, true)).toBe("COD Mixte");
+    expect(badgeDisplayLabel(mixte, false)).toBe("COD Mixte · Confirmation requise");
+  });
+
+  it("leaves the Legacy label unchanged in compact mode", () => {
+    const legacy = { variant: "legacy", label: "COD · cash" } as const;
+    expect(badgeDisplayLabel(legacy, true)).toBe("COD · cash");
+  });
+
+  it("leaves the prepaid payment label unchanged in compact mode", () => {
+    const payment = { variant: "payment", label: "Payé", tone: "success" } as const;
+    expect(badgeDisplayLabel(payment, true)).toBe("Payé");
   });
 });
