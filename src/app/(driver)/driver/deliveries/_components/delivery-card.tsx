@@ -18,6 +18,7 @@ import {
   Loader2,
   Check,
   Zap,
+  CreditCard,
 } from "lucide-react";
 import {
   useAcceptDelivery,
@@ -27,6 +28,19 @@ import type { DriverDeliveryRow } from "@/features/driver/schema";
 import { STATUS_CONFIG } from "./status-config";
 import { StatusBadge } from "./status-badge";
 import { toast } from "sonner";
+
+/**
+ * Short COD chip for the list card (distinct from the detail's courierPaymentLabel,
+ * which suppresses Mixte). Surfaces Mixte vs Legacy so the courier knows the cash
+ * reality before opening the course. Prepaid → no chip (V4 decision).
+ */
+export function courierCardCodChip(
+  row: Pick<DriverDeliveryRow, "orderPayment" | "codMixte">,
+): { label: string; kind: "mixte" | "legacy" } | null {
+  if (row.codMixte?.isCodMixte) return { label: "COD Mixte", kind: "mixte" };
+  if (row.orderPayment === "cod") return { label: "COD · cash", kind: "legacy" };
+  return null;
+}
 
 export function DeliveryCard({
   row,
@@ -126,6 +140,23 @@ export function DeliveryCard({
           <TrendingUp className="h-3 w-3" />
           {formatCurrency(row.amount)} F
         </span>
+        {(() => {
+          const chip = courierCardCodChip(row);
+          if (!chip) return null;
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold",
+                chip.kind === "mixte"
+                  ? "bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400"
+                  : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
+              )}
+            >
+              <CreditCard className="h-3 w-3" />
+              {chip.label}
+            </span>
+          );
+        })()}
       </div>
 
       {/* ── Progress (en_route) ── */}

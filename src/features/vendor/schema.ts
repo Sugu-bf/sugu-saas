@@ -142,6 +142,20 @@ export const vendorOrderSchema = z.object({
     country: z.string(),
   }),
   timeline: z.array(orderTimelineEventSchema),
+
+  // ── Trou n°4 — COD fields exposed on GET /sellers/orders (B1 parity) ──
+  // Display is driven by codFlowType (+ codCurrentStep for Mixte) and
+  // paymentStatusCode. vendorConfirmedAt is kept as an audit timestamp
+  // (not displayed in the list — Mixte confirmation reads codCurrentStep).
+  // Optional to match the detail-vendor codMixte convention and tolerate
+  // older fixtures / backend payloads; the list transformer always fills them.
+  isCod: z.boolean().optional(),
+  codFlowType: z.enum(["legacy", "mixte", "none"]).optional(),
+  codCurrentStep: z.string().nullable().optional(),
+  deliveryFeePaid: z.boolean().optional(),
+  productFeePaid: z.boolean().optional(),
+  paymentStatusCode: z.string().nullable().optional(),
+  vendorConfirmedAt: z.string().nullable().optional(),
 });
 
 export type VendorOrder = z.infer<typeof vendorOrderSchema>;

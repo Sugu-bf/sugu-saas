@@ -18,7 +18,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  CreditCard,
 } from "lucide-react";
+import {
+  mapPaymentStatusCode,
+  type PaymentStatusTone,
+} from "@/lib/utils/payment-status";
 import type {
   VendorOrdersResponse,
   VendorOrder,
@@ -74,6 +79,79 @@ const STATUS_BADGE: Record<OrderStatus, string> = {
   refunded:
     "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
 };
+
+// ────────────────────────────────────────────────────────────
+// COD / payment list indicator (Trou n°4)
+// ────────────────────────────────────────────────────────────
+
+/** Compact Mixte flow-step labels for the list (driven by codCurrentStep — V5). */
+const COD_STEP_SHORT: Record<string, string> = {
+  awaiting_vendor: "Confirmation requise",
+  awaiting_negotiation: "Négociation",
+  awaiting_delivery_payment: "Frais livraison",
+  awaiting_pickup: "Ramassage",
+  awaiting_inspection: "Inspection",
+  awaiting_product_payment: "Paiement produit",
+  awaiting_code: "Code livraison",
+  completed: "Terminée",
+};
+
+export type OrderListBadge =
+  | { variant: "mixte"; label: string }
+  | { variant: "legacy"; label: string }
+  | { variant: "payment"; label: string; tone: PaymentStatusTone };
+
+/**
+ * Secondary list indicator disambiguating Legacy / Mixte / prepaid.
+ * - Mixte → "COD Mixte" + current flow step (V5: codCurrentStep).
+ * - Legacy COD → "COD · cash" (courier collects the full total in cash).
+ * - Otherwise → prepaid payment status, or null when there's nothing to show.
+ */
+export function orderListPaymentBadge(
+  order: Pick<
+    VendorOrder,
+    "codFlowType" | "isCod" | "codCurrentStep" | "paymentStatusCode"
+  >,
+): OrderListBadge | null {
+  if (order.codFlowType === "mixte") {
+    const step = order.codCurrentStep
+      ? (COD_STEP_SHORT[order.codCurrentStep] ?? null)
+      : null;
+    return { variant: "mixte", label: step ? `COD Mixte · ${step}` : "COD Mixte" };
+  }
+  if (order.isCod) return { variant: "legacy", label: "COD · cash" };
+  const pay = mapPaymentStatusCode(order.paymentStatusCode);
+  return pay.label ? { variant: "payment", label: pay.label, tone: pay.tone } : null;
+}
+
+const PAYMENT_TONE_CLASSES: Record<PaymentStatusTone, string> = {
+  neutral: "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
+  warning: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
+  success: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400",
+  danger: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400",
+};
+
+function OrderPaymentBadge({ order }: { order: VendorOrder }) {
+  const badge = orderListPaymentBadge(order);
+  if (!badge) return null;
+  const className =
+    badge.variant === "mixte"
+      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400"
+      : badge.variant === "legacy"
+        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400"
+        : PAYMENT_TONE_CLASSES[badge.tone];
+  return (
+    <span
+      className={cn(
+        "mt-1 flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        className,
+      )}
+    >
+      <CreditCard className="h-2.5 w-2.5" />
+      {badge.label}
+    </span>
+  );
+}
 
 // ────────────────────────────────────────────────────────────
 // Main Component
@@ -370,6 +448,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                   >
                     {order.statusLabel}
                   </span>
+                  <OrderPaymentBadge order={order} />
                 </div>
 
                 {/* Agency */}

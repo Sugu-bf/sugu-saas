@@ -39,6 +39,14 @@ interface RawOrderItem {
   totalAmount?: number;
   currency?: string;
   items?: Array<{ name?: string; quantity?: number }>;
+  // Trou n°4 — COD fields (snake_case, except paymentStatusCode camelCase per B1 parity).
+  paymentStatusCode?: string | null;
+  is_cod?: boolean;
+  cod_flow_type?: string | null;
+  cod_current_step?: string | null;
+  delivery_fee_paid?: boolean;
+  product_fee_paid?: boolean;
+  vendor_confirmed_at?: string | null;
 }
 
 interface RawOrderStats {
@@ -317,6 +325,17 @@ function _transformOrderListItem(raw: RawOrderItem): Record<string, unknown> {
     date: raw.date ? formatDateFr(raw.date) : "",
     deliveryAddress: { street: "", city: "", country: "" },
     timeline: [],
+    // Trou n°4 — COD fields (normalized to camelCase; flow type clamped to the enum).
+    isCod: Boolean(raw.is_cod),
+    codFlowType:
+      raw.cod_flow_type === "mixte" || raw.cod_flow_type === "legacy"
+        ? raw.cod_flow_type
+        : "none",
+    codCurrentStep: raw.cod_current_step ?? null,
+    deliveryFeePaid: Boolean(raw.delivery_fee_paid),
+    productFeePaid: Boolean(raw.product_fee_paid),
+    paymentStatusCode: raw.paymentStatusCode ?? null,
+    vendorConfirmedAt: raw.vendor_confirmed_at ?? null,
   };
 }
 
