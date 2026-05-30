@@ -119,6 +119,27 @@ export const driverTimelineStepSchema = z.object({
 
 export type DriverTimelineStep = z.infer<typeof driverTimelineStepSchema>;
 
+/**
+ * COD Mixte split-payment context (shared by list rows and the detail view).
+ * `deliveryFeeAmount` / `productFeeAmount` are RAW CENTIMES from the backend —
+ * format them with `formatCentsToXof`, never the plain `formatCurrency`.
+ * The whole object is `null` for Legacy COD and non-COD orders.
+ */
+export const driverCodMixteSchema = z
+  .object({
+    isCodMixte: z.boolean(),
+    currentStep: z.string(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+  })
+  .nullable();
+
+export type DriverCodMixte = z.infer<typeof driverCodMixteSchema>;
+
 /** Single delivery row for the driver deliveries list */
 export const driverDeliveryRowSchema = z.object({
   id: z.string(),
@@ -171,17 +192,10 @@ export const driverDeliveryRowSchema = z.object({
   // Timeline steps
   timeline: z.array(driverTimelineStepSchema),
 
-  // COD Mixte support
-  codMixte: z.object({
-    isCodMixte: z.boolean(),
-    currentStep: z.string(),
-    deliveryFeePaid: z.boolean(),
-    productFeePaid: z.boolean(),
-    deliveryFeeAmount: z.number(),
-    productFeeAmount: z.number(),
-    deliveryFeePaidAt: z.string().nullable(),
-    productFeePaidAt: z.string().nullable(),
-  }).optional(),
+  // COD Mixte support.
+  // Amounts are RAW CENTIMES from the backend — format with formatCentsToXof,
+  // never the plain formatCurrency. `null` for Legacy COD and non-COD orders.
+  codMixte: driverCodMixteSchema,
 });
 
 export type DriverDeliveryRow = z.infer<typeof driverDeliveryRowSchema>;
@@ -301,17 +315,9 @@ export const driverDeliveryDetailSchema = z.object({
   acceptedAt: z.string().nullable(),
   completedAt: z.string().nullable(),
 
-  // COD Mixte context
-  codMixte: z.object({
-    isCodMixte: z.boolean(),
-    currentStep: z.string(),
-    deliveryFeePaid: z.boolean(),
-    productFeePaid: z.boolean(),
-    deliveryFeeAmount: z.number(),
-    productFeeAmount: z.number(),
-    deliveryFeePaidAt: z.string().nullable(),
-    productFeePaidAt: z.string().nullable(),
-  }).optional(),
+  // COD Mixte context. Amounts are RAW CENTIMES (use formatCentsToXof).
+  // `null` for Legacy COD and non-COD orders.
+  codMixte: driverCodMixteSchema,
 });
 
 export type DriverDeliveryDetail = z.infer<typeof driverDeliveryDetailSchema>;

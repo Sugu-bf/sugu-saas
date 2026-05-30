@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
+import { mapSuguErrorMessage } from "@/lib/http/sugu-error-mapper";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -43,6 +45,24 @@ import type {
 } from "@/features/driver/schema";
 import type { DriverDeliveryStatus } from "@/features/driver/schema";
 import { toast } from "sonner";
+
+// ────────────────────────────────────────────────────────────
+// Honest payment label (Axe 3 — Legacy/Mixte disambiguation)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Payment label for the courier earnings card.
+ * - COD Mixte → `null`: the split-payment card is rendered instead of a badge.
+ * - Legacy COD (`orderPayment === "cod"`) → the courier collects the full total
+ *   in cash, so we say so explicitly rather than a bare "COD".
+ * - Prepaid (`orderPayment === "paid"`) → "Payé".
+ */
+export function courierPaymentLabel(
+  detail: Pick<DriverDeliveryDetail, "orderPayment" | "codMixte">,
+): string | null {
+  if (detail.codMixte?.isCodMixte) return null;
+  return detail.orderPayment === "paid" ? "Payé" : "COD · À encaisser cash";
+}
 
 // ────────────────────────────────────────────────────────────
 // Status & Priority config (driver-specific: 5 statuses)
@@ -279,7 +299,7 @@ function DriverCodFeeRow({
       <span className={cn("flex-shrink-0", paid ? "text-green-600" : "text-gray-400")}>{icon}</span>
       <span className={cn("flex-1 font-medium", paid ? "text-green-700" : "text-gray-700")}>{label}</span>
       <span className={cn("font-bold", paid ? "text-green-600" : "text-gray-700")}>
-        {formatCurrency(amount)} FCFA
+        {formatCentsToXof(amount)}
       </span>
       <span
         className={cn(
@@ -484,7 +504,7 @@ function EarningsCard({ detail }: { detail: DriverDeliveryDetail }) {
               detail.orderPayment === "paid" ? "bg-green-500" : "bg-amber-500",
             )}
           />
-          {detail.orderPayment === "paid" ? "Payé" : "COD"}
+          {courierPaymentLabel(detail)}
         </span>
       )}
 
@@ -1026,8 +1046,10 @@ function ActionsCard({
 
 function SuccessBanner({
   completedAt,
+  fullyPaid,
 }: {
   completedAt: string | null;
+  fullyPaid: boolean;
 }) {
   return (
     <div
@@ -1040,9 +1062,11 @@ function SuccessBanner({
       </div>
       <div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-green-200 px-2.5 py-0.5 text-[11px] font-bold text-green-800">
-            PAYÉ
-          </span>
+          {fullyPaid && (
+            <span className="rounded-full bg-green-200 px-2.5 py-0.5 text-[11px] font-bold text-green-800">
+              PAYÉ
+            </span>
+          )}
           {completedAt && (
             <span className="text-[10px] text-gray-400">
               {new Date(completedAt).toLocaleString("fr-FR", {
@@ -1118,16 +1142,14 @@ export function DriverDeliveryDetailContent({
   const handleStartTransit = () => {
     startTransit.mutate(deliveryId, {
       onSuccess: () => toast.success("Itinéraire commencé !"),
-      onError: (err: Error) =>
-        toast.error(err.message || "Erreur lors du démarrage"),
+      onError: (err: Error) => toast.error(mapSuguErrorMessage(err)),
     });
   };
 
   const handleMarkArrived = () => {
     markArrived.mutate(deliveryId, {
       onSuccess: () => toast.success("Vous êtes arrivé à destination !"),
-      onError: (err: Error) =>
-        toast.error(err.message || "Erreur lors du signalement"),
+      onError: (err: Error) => toast.error(mapSuguErrorMessage(err)),
     });
   };
 
@@ -1137,8 +1159,7 @@ export function DriverDeliveryDetailContent({
       { deliveryId, code },
       {
         onSuccess: () => toast.success("Livraison marquée comme livrée !"),
-        onError: (err: Error) => 
-          toast.error(err.message || "Erreur lors de la mise à jour : Code incorrect"),
+        onError: (err: Error) => toast.error(mapSuguErrorMessage(err)),
       }
     );
   };
@@ -1257,7 +1278,14 @@ export function DriverDeliveryDetailContent({
           SUCCESS BANNER (conditional: status === "delivered")
           ════════════════════════════════════════════════════════ */}
       {detail.status === "delivered" && (
-        <SuccessBanner completedAt={detail.completedAt} />
+        <SuccessBanner
+          completedAt={detail.completedAt}
+          fullyPaid={
+            detail.codMixte?.isCodMixte
+              ? detail.codMixte.deliveryFeePaid && detail.codMixte.productFeePaid
+              : true
+          }
+        />
       )}
 
       {/* ════════════════════════════════════════════════════════

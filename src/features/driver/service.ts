@@ -4,6 +4,7 @@ import {
   type DriverDashboardData,
   type DriverDeliveriesResponse,
   type DriverDeliveryStatus,
+  type DriverCodMixte,
 } from "./schema";
 import { api, apiRequest } from "@/lib/http/client";
 import type { ApiSuccessResponse } from "@/types";
@@ -375,6 +376,38 @@ function _getAvatarColor(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
+/**
+ * Raw COD Mixte block from the backend (Trou n°3).
+ * Wrapper key is snake_case (`cod_mixte`) but inner fields are camelCase.
+ * `deliveryFeeAmount` / `productFeeAmount` are RAW CENTIMES.
+ * Whole block is `null` for Legacy COD and non-COD orders.
+ */
+interface RawCodMixte {
+  isCodMixte?: boolean;
+  currentStep?: string;
+  deliveryFeePaid?: boolean;
+  productFeePaid?: boolean;
+  deliveryFeeAmount?: number;
+  productFeeAmount?: number;
+  deliveryFeePaidAt?: string | null;
+  productFeePaidAt?: string | null;
+}
+
+/** @internal Map the backend cod_mixte block → frontend codMixte (centimes preserved). */
+function _mapCodMixte(raw: RawCodMixte | null | undefined): DriverCodMixte {
+  if (!raw) return null;
+  return {
+    isCodMixte: Boolean(raw.isCodMixte),
+    currentStep: raw.currentStep ?? "awaiting_delivery_payment",
+    deliveryFeePaid: Boolean(raw.deliveryFeePaid),
+    productFeePaid: Boolean(raw.productFeePaid),
+    deliveryFeeAmount: raw.deliveryFeeAmount ?? 0,
+    productFeeAmount: raw.productFeeAmount ?? 0,
+    deliveryFeePaidAt: raw.deliveryFeePaidAt ?? null,
+    productFeePaidAt: raw.productFeePaidAt ?? null,
+  };
+}
+
 /** Raw API row shape (snake_case) */
 interface RawDeliveryRow {
   id: string;
@@ -397,6 +430,7 @@ interface RawDeliveryRow {
   fail_reason?: string | null;
   time_label: string;
   timeline: Array<{ id: string; label: string; time: string | null; done: boolean; current: boolean }>;
+  cod_mixte?: RawCodMixte | null;
 }
 
 /** @internal Transform a single API row → DriverDeliveryRow shape */
@@ -434,6 +468,7 @@ function _transformDeliveryRow(raw: RawDeliveryRow): unknown {
     failReason: raw.fail_reason,
     timeLabel: raw.time_label,
     timeline: raw.timeline,
+    codMixte: _mapCodMixte(raw.cod_mixte),
   };
 }
 
@@ -761,6 +796,7 @@ interface RawDeliveryDetailResponse {
   }>;
   accepted_at: string | null;
   completed_at: string | null;
+  cod_mixte?: RawCodMixte | null;
 }
 
 /** @internal Transform API detail response → DriverDeliveryDetail shape */
@@ -809,6 +845,7 @@ function _transformDeliveryDetailResponse(raw: Record<string, unknown>): unknown
     timeline: d.timeline,
     acceptedAt: d.accepted_at,
     completedAt: d.completed_at,
+    codMixte: _mapCodMixte(d.cod_mixte),
   };
 }
 
@@ -924,6 +961,7 @@ export const _MOCK_DELIVERY_DETAIL: DriverDeliveryDetail = {
   ],
   acceptedAt: "2026-03-08T13:45:00",
   completedAt: null,
+  codMixte: null,
 };
 
 // ============================================================
