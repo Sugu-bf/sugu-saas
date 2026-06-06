@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, useLogout } from "@/features/auth/hooks";
 import {
   ArrowLeft,
@@ -191,7 +192,7 @@ export function LandingPageV3() {
               city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.state || "Inconnue",
               neighborhood: data.address?.suburb || data.address?.neighbourhood || data.address?.quarter || data.address?.city_district || "",
             }));
-          } catch (e) {
+          } catch {
             setSellerData((prev) => ({ ...prev, city: "Erreur GPS", neighborhood: "" }));
           }
         },
@@ -221,8 +222,9 @@ export function LandingPageV3() {
       }
 
       setIsSellerSubmitted(true);
-    } catch (err: any) {
-      setSellerError(err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
+      setSellerError(msg);
     } finally {
       setIsSellerLoading(false);
     }
@@ -876,7 +878,7 @@ export function LandingPageV3() {
           <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-4 pb-10 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:pb-16">
             <div className="max-w-4xl">
               <p className="reveal mb-5 max-w-lg text-lg font-black text-orange-100 sm:text-2xl">
-                Le commerce africain n'attend personne.
+                {"Le commerce africain n'attend personne."}
               </p>
               <h1 className="reveal text-[clamp(3.2rem,8vw,8.8rem)] leading-[0.9] tracking-[-0.045em] font-black">
                 Chaque commande doit avancer.
@@ -911,12 +913,12 @@ export function LandingPageV3() {
               {/* Social Proof Avatars Row */}
               <div className="reveal mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
                 <div className="flex -space-x-3">
-                  <img src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-fatoumata.jpg" className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Fatoumata" />
-                  <img src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-mamadou.jpg" className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Mamadou" />
-                  <img src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-seydou.jpg" className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Seydou" />
+                  <Image src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-fatoumata.jpg" width={40} height={40} className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Fatoumata" />
+                  <Image src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-mamadou.jpg" width={40} height={40} className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Mamadou" />
+                  <Image src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-seydou.jpg" width={40} height={40} className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Seydou" />
                   <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#07111F] bg-clay text-xs font-bold text-white shadow-sm">+</span>
                 </div>
-                <p className="text-sm font-semibold text-white/72">Rejoint par <span className="font-black text-white">2 500+ vendeurs</span> en Afrique de l'Ouest</p>
+                <p className="text-sm font-semibold text-white/72">Rejoint par <span className="font-black text-white">2 500+ vendeurs</span> en {"Afrique de l'Ouest"}</p>
               </div>
             </div>
 
@@ -966,7 +968,7 @@ export function LandingPageV3() {
                 Du message au paiement.
               </h2>
               <p className="reveal mt-5 max-w-md text-lg font-semibold leading-8 text-white/64">
-                Une commande ne traverse plus l'équipe comme une rumeur. Elle avance.
+                {"Une commande ne traverse plus l'équipe comme une rumeur. Elle avance."}
               </p>
             </div>
 
@@ -1042,7 +1044,7 @@ export function LandingPageV3() {
             <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr]">
               <div>
                 <h2 className="reveal text-5xl font-black leading-[.94] tracking-[-0.045em] sm:text-6xl text-slate-900">
-                  Un cockpit. Pas une pile d'outils.
+                  {"Un cockpit. Pas une pile d'outils."}
                 </h2>
                 <p className="reveal mt-5 max-w-lg text-lg font-semibold leading-8 text-slate-600">
                   Le vendeur garde la main. La livraison garde le rythme. Le client garde confiance.
@@ -1113,7 +1115,7 @@ export function LandingPageV3() {
 
                     {/* Money Panel */}
                     <div className={`dash-panel gap-4 ${activeTab === "money" ? "is-active" : ""}`}>
-                      <h3 className="text-4xl font-black tracking-[-0.04em] text-slate-900">L'argent sort du brouillard.</h3>
+                      <h3 className="text-4xl font-black tracking-[-0.04em] text-slate-900">{"L'argent sort du brouillard."}</h3>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-2xl bg-white p-5">
                           <p className="text-sm font-black text-slate-400">Payé</p>
@@ -1206,28 +1208,28 @@ export function LandingPageV3() {
                   Acheteurs : Est-ce que je peux vérifier mon colis avant de payer le livreur ? <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
-                  Oui, absolument. Avec SUGU, vous examinez votre produit devant le livreur pour vous assurer qu'il correspond à votre commande. Si tout est conforme, vous payez et donnez le code de validation reçu sur votre téléphone au livreur pour terminer la course.
+                  {"Oui, absolument. Avec SUGU, vous examinez votre produit devant le livreur pour vous assurer qu'il correspond à votre commande. Si tout est conforme, vous payez et donnez le code de validation reçu sur votre téléphone au livreur pour terminer la course."}
                 </p>
               </details>
               <details className="group p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black text-slate-900 outline-none">
-                  Vendeurs : Combien coûte l'utilisation de SUGUPro et comment retirer mon argent ? <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
+                  {"Vendeurs : Combien coûte l'utilisation de SUGUPro et comment retirer mon argent ?"} <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
-                  L'inscription et l'ouverture de votre boutique sont entièrement gratuites. Nous prenons seulement une commission fixe de 5 % sur les ventes réussies. Pour récupérer vos gains, vous pouvez faire une demande de retrait gratuite (0 % de frais) par Orange Money, Moov Money, Wave ou virement bancaire dès 5 000 FCFA. L'argent arrive directement sur votre téléphone.
+                  {"L'inscription et l'ouverture de votre boutique sont entièrement gratuites. Nous prenons seulement une commission fixe de 5 % sur les ventes réussies. Pour récupérer vos gains, vous pouvez faire une demande de retrait gratuite (0 % de frais) par Orange Money, Moov Money, Wave ou virement bancaire dès 5 000 FCFA. L'argent arrive directement sur votre téléphone."}
                 </p>
               </details>
               <details className="group p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black text-slate-900 outline-none">
-                  Vendeurs : Que se passe-t-il si un client refuse le colis ou ne répond pas aux appels ? <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
+                  {"Vendeurs : Que se passe-t-il si un client refuse le colis ou ne répond pas aux appels ?"} <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
-                  Si le client change d'avis ou est injoignable, le livreur ramène immédiatement votre colis à votre stock ou à l'agence partenaire. Vous ne perdez pas votre marchandise et vous pouvez suivre le retour du colis en temps réel directement sur votre application.
+                  {"Si le client change d'avis ou est injoignable, le livreur ramène immédiatement votre colis à votre stock ou à l'agence partenaire. Vous ne perdez pas votre marchandise et vous pouvez suivre le retour du colis en temps réel directement sur votre application."}
                 </p>
               </details>
               <details className="group p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black text-slate-900 outline-none">
-                  Agences : Comment SUGUPro nous aide à trouver plus de courses et à gérer nos livreurs ? <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
+                  {"Agences : Comment SUGUPro nous aide à trouver plus de courses et à gérer nos livreurs ?"} <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
                   En connectant votre agence de livraison à la plateforme, les boutiques locales peuvent vous déléguer leurs commandes en un clic. Depuis votre espace agence, vous suivez le trajet de vos livreurs sur la carte en temps réel, optimisez leurs tournées et gérez les encaissements en toute simplicité.
@@ -1235,10 +1237,10 @@ export function LandingPageV3() {
               </details>
               <details className="group p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black text-slate-900 outline-none">
-                  Livreurs : Comment être sûr que je recevrai la paie de mes courses ? <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
+                  {"Livreurs : Comment être sûr que je recevrai la paie de mes courses ?"} <span className="text-clay group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
-                  Chaque livraison est sécurisée par un code unique. Dès que le client valide la commande en vous donnant ce code et que vous le saisissez dans votre application, la course est marquée comme réussie et le prix de votre livraison est instantanément déposé sur votre compte. Vous pouvez transférer vos gains vers votre compte Mobile Money quand vous le souhaitez.
+                  {"Chaque livraison est sécurisée par un code unique. Dès que le client valide la commande en vous donnant ce code et que vous le saisissez dans votre application, la course est marquée comme réussie et le prix de votre livraison est instantanément déposé sur votre compte. Vous pouvez transférer vos gains vers votre compte Mobile Money quand vous le souhaitez."}
                 </p>
               </details>
             </div>
@@ -1313,7 +1315,7 @@ export function LandingPageV3() {
             {/* Illustration wrapper */}
             <div className="modalHero">
               <div className="modalHeroIllustration">
-                <img
+                <Image
                   src="https://cdn.sugu.pro/p/seller-hero.png"
                   alt="Sugu Seller Illustration"
                   width={180}
@@ -1330,7 +1332,7 @@ export function LandingPageV3() {
                 <div className="successIcon">✓</div>
                 <h3 className="successTitle">Demande envoyée !</h3>
                 <p className="successSub">
-                  Merci de votre intérêt. Notre équipe d'intégration va vous contacter très prochainement sur WhatsApp.
+                  {"Merci de votre intérêt. Notre équipe d'intégration va vous contacter très prochainement sur WhatsApp."}
                 </p>
               </div>
             ) : (
@@ -1371,7 +1373,7 @@ export function LandingPageV3() {
                     required
                   >
                     <option value="" disabled hidden>
-                      Profil d'entreprise (Obligatoire)
+                      {"Profil d'entreprise (Obligatoire)"}
                     </option>
                     <option value="fabricant">Fabricant / Usine locale</option>
                     <option value="importateur">Grand Importateur direct</option>
@@ -1431,7 +1433,7 @@ export function LandingPageV3() {
                       Pays
                     </option>
                     <option value="BF">Burkina Faso 🇧🇫</option>
-                    <option value="CI">Côte d'Ivoire 🇨🇮</option>
+                    <option value="CI">{"Côte d'Ivoire 🇨🇮"}</option>
                     <option value="SN">Sénégal 🇸🇳</option>
                     <option value="ML">Mali 🇲🇱</option>
                     <option value="TG">Togo 🇹🇬</option>
@@ -1516,7 +1518,7 @@ export function LandingPageV3() {
                       checked={sellerData.hasPhotos}
                       onChange={(e) => setSellerData({ ...sellerData, hasPhotos: e.target.checked })}
                     />
-                    <span>J'ai déjà des photos de mes produits</span>
+                    <span>{"J'ai déjà des photos de mes produits"}</span>
                   </label>
                   <label className="sCheckLabel">
                     <input

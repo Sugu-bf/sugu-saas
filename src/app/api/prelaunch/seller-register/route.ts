@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const data = contentType?.includes("application/json") ? await res.json() : { message: "Erreur serveur inattendue." };
     
     return NextResponse.json(data, { status: res.status });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, message: "Internal Server Error" },
       { status: 500 }
