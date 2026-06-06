@@ -7,16 +7,18 @@ import type { LandingPageData } from "../schema";
 export const landingPageMock: LandingPageData = {
   navLinks: [
     { label: "Fonctionnalités", href: "#fonctionnalites" },
-    { label: "Tarifs", href: "#tarifs" },
     { label: "Témoignages", href: "#temoignages" },
     { label: "FAQ", href: "#faq" },
     { label: "Blog", href: "/blog" },
   ],
   hero: {
-    badge: "La plateforme tout-en-un des vendeurs ambitieux",
-    headlineBefore: "Vendez plus. Livrez mieux. Gérez tout sur ",
-    headlineHighlight: "SUGU",
-    headlineAfter: ".",
+    badge: "",
+    headlineBefore: "La plateforme tout-en-un des ",
+    headlineHighlight: "vendeurs ambitieux",
+    headlineAfter: "",
+    subheadlineBefore: "Vendez plus. Livrez mieux. Gérez tout sur ",
+    subheadlineHighlight: "SUGU",
+    subheadlineAfter: ".",
     subtext:
       "Créez votre boutique en ligne, recevez vos commandes, suivez vos livraisons et pilotez vos ventes depuis un seul tableau de bord.",
     ctaPrimary: {
@@ -312,7 +314,6 @@ export const landingPageMock: LandingPageData = {
         title: "Produit",
         links: [
           { label: "Fonctionnalités", href: "#fonctionnalites" },
-          { label: "Tarifs", href: "#tarifs" },
           { label: "Intégrations", href: "#integrations" },
           { label: "Changelog", href: "#changelog" },
         ],

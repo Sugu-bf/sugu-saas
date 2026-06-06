@@ -60,7 +60,7 @@ interface RawProductItem {
     notePublic?: string | null;
     reviewedAt?: string | null;
     submittedAt?: string | null;
-    reviewer?: { id: string; name: string } | null;
+    reviewer?: { id?: string; name: string } | null;
     submitter?: { id: string; name: string } | null;
     logs: Array<{
       id: string;

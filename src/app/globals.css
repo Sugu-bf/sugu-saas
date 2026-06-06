@@ -54,6 +54,18 @@
   --color-sugu-800: #952412;
   --color-sugu-900: #792112;
   --color-sugu-950: #410d07;
+
+  /* V3 landing page tokens */
+  --color-night: #07111f;
+  --color-ink: #101828;
+  --color-clay: #f15412;
+  --color-ember: #d43d0a;
+  --color-sand: #f7f0e7;
+  --color-palm: #0e6b57;
+  --color-mint: #c9f2e2;
+
+  --shadow-glow: 0 0 70px rgba(241, 84, 18, 0.28);
+  --shadow-deep: 0 32px 90px rgba(7, 17, 31, 0.24);
 }
 
 /* ============================================================

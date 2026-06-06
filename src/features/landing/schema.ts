@@ -33,6 +33,9 @@ export const heroSectionSchema = z.object({
   headlineBefore: z.string(),
   headlineHighlight: z.string(),
   headlineAfter: z.string(),
+  subheadlineBefore: z.string(),
+  subheadlineHighlight: z.string(),
+  subheadlineAfter: z.string(),
   subtext: z.string(),
   ctaPrimary: z.object({
     label: z.string(),

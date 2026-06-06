@@ -467,6 +467,16 @@ export const moderationLogEntrySchema = z.object({
 
 export type ModerationLogEntry = z.infer<typeof moderationLogEntrySchema>;
 
+export const moderationActorSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+});
+
+export const identifiedModerationActorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
 /** Moderation info (current state + timeline) */
 export const moderationInfoSchema = z.object({
   status: z.number().nullable().optional(),
@@ -476,8 +486,8 @@ export const moderationInfoSchema = z.object({
   notePublic: z.string().nullable().optional(),
   reviewedAt: z.string().nullable().optional(),
   submittedAt: z.string().nullable().optional(),
-  reviewer: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
-  submitter: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  reviewer: moderationActorSchema.nullable().optional(),
+  submitter: identifiedModerationActorSchema.nullable().optional(),
   logs: z.array(moderationLogEntrySchema),
 });
 
