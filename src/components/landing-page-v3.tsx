@@ -188,8 +188,8 @@ export function LandingPageV3() {
             setSellerData((prev) => ({
               ...prev,
               ...(detectedCountry && COUNTRY_CODES[detectedCountry] ? { country: detectedCountry } : {}),
-              city: data.address?.city || data.address?.town || data.address?.state || "Inconnue",
-              neighborhood: data.address?.suburb || data.address?.neighbourhood || "",
+              city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.state || "Inconnue",
+              neighborhood: data.address?.suburb || data.address?.neighbourhood || data.address?.quarter || data.address?.city_district || "",
             }));
           } catch (e) {
             setSellerData((prev) => ({ ...prev, city: "Erreur GPS", neighborhood: "" }));
