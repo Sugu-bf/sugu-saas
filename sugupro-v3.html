@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SUGUPro - Le système derrière chaque commande</title>
+    <meta
+      name="description"
+      content="SUGUPro relie boutique, commandes, livraison, paiement et revenus dans un seul système pour les vendeurs africains."
+    />
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%23F15412"/><text x="32" y="41" text-anchor="middle" font-family="Arial" font-size="26" font-weight="900" fill="white">S</text></svg>' />
+    <script>document.documentElement.classList.add("has-js");</script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              night: "#07111F",
+              ink: "#101828",
+              clay: "#F15412",
+              ember: "#D43D0A",
+              sand: "#F7F0E7",
+              palm: "#0E6B57",
+              mint: "#C9F2E2"
+            },
+            fontSize: {
+              hero: ["clamp(3.2rem, 8vw, 8.8rem)", { lineHeight: "0.9", letterSpacing: "-0.045em" }]
+            },
+            boxShadow: {
+              glow: "0 0 70px rgba(241,84,18,.28)",
+              deep: "0 32px 90px rgba(7,17,31,.24)"
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+        background: #07111f;
+      }
+
+      .stage {
+        background:
+          radial-gradient(circle at 72% 18%, rgba(241, 84, 18, 0.24), transparent 27rem),
+          radial-gradient(circle at 13% 82%, rgba(14, 107, 87, 0.22), transparent 30rem),
+          linear-gradient(90deg, rgba(7, 17, 31, 0.95), rgba(7, 17, 31, 0.74) 42%, rgba(7, 17, 31, 0.28)),
+          url("sugupro-v3-assets/sugupro-hero-seller.webp");
+        background-size: cover;
+        background-position: center right;
+      }
+
+      .grain::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+        background-image:
+          linear-gradient(0deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 42px 42px;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+
+      .has-js .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 800ms ease, transform 800ms ease;
+      }
+
+      .has-js .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .flow-step {
+        opacity: 0.42;
+        transform: translateX(0);
+        transition: opacity 300ms ease, transform 300ms ease, border-color 300ms ease, background 300ms ease;
+      }
+
+      .flow-step.is-active {
+        opacity: 1;
+        transform: translateX(8px);
+        border-color: rgba(241, 84, 18, 0.65);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .dash-panel {
+        display: none;
+      }
+
+      .dash-panel.is-active {
+        display: grid;
+      }
+
+      .dash-tab.is-active {
+        background: #101828;
+        color: #fff;
+      }
+
+      .pulse {
+        animation: pulseGlow 2.4s ease-in-out infinite;
+      }
+
+      @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 0 rgba(241,84,18,0); }
+        50% { box-shadow: 0 0 38px rgba(241,84,18,.35); }
+      }
+
+      .marquee {
+        animation: marquee 26s linear infinite;
+      }
+
+      @keyframes marquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+
+      @media (max-width: 767px) {
+        .stage {
+          background:
+            linear-gradient(180deg, rgba(7, 17, 31, 0.96), rgba(7, 17, 31, 0.76) 54%, rgba(7, 17, 31, 0.3)),
+            url("sugupro-v3-assets/sugupro-hero-seller-mobile.webp");
+          background-size: cover;
+          background-position: center bottom;
+        }
+
+        .flow-step.is-active {
+          transform: translateX(0);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+        .reveal {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body class="text-white">
+    <div id="top"></div>
+    <div class="fixed left-0 top-0 z-[70] h-1 w-full bg-white/10">
+      <div id="progress" class="h-full w-0 bg-clay"></div>
+    </div>
+
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-night/72 backdrop-blur-xl">
+      <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Navigation principale">
+        <a href="#top" class="flex items-baseline gap-0.5" aria-label="SUGUPro">
+          <span class="text-2xl font-black tracking-[-0.04em]">SUGU</span>
+          <span class="text-xs font-black text-clay">Pro</span>
+        </a>
+
+        <div class="hidden items-center gap-7 text-sm font-bold text-white/72 lg:flex">
+          <a class="hover:text-white" href="#flow">Fil</a>
+          <a class="hover:text-white" href="#cockpit">Cockpit</a>
+          <a class="hover:text-white" href="#terrain">Terrain</a>
+          <a class="hover:text-white" href="#questions">Questions</a>
+        </div>
+
+        <div class="hidden items-center gap-3 lg:flex">
+          <a class="text-sm font-bold text-white/72 hover:text-white" href="#final">Connexion</a>
+          <a class="rounded-full bg-white px-5 py-2.5 text-sm font-black text-night transition hover:bg-mint" href="#final">
+            Ouvrir SUGUPro
+          </a>
+        </div>
+
+        <button id="menuBtn" class="grid h-10 w-10 place-items-center rounded-full border border-white/15 lg:hidden" type="button" aria-label="Ouvrir le menu" aria-controls="mobileNav" aria-expanded="false">
+          <span class="h-0.5 w-5 bg-white"></span>
+        </button>
+      </nav>
+      <div id="mobileNav" class="hidden border-t border-white/10 bg-night px-4 py-4 lg:hidden">
+        <div class="grid gap-2 text-base font-bold">
+          <a class="rounded-xl px-4 py-3 hover:bg-white/10" href="#flow">Fil</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-white/10" href="#cockpit">Cockpit</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-white/10" href="#terrain">Terrain</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-white/10" href="#questions">Questions</a>
+          <a class="mt-2 rounded-full bg-white px-5 py-3 text-center font-black text-night" href="#final">Ouvrir SUGUPro</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage grain relative flex min-h-[92svh] items-end overflow-hidden pt-28">
+        <canvas id="heroCanvas" class="absolute inset-0 h-full w-full opacity-80"></canvas>
+
+        <div class="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-4 pb-10 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:pb-16">
+          <div class="max-w-4xl">
+            <p class="reveal mb-5 max-w-lg text-lg font-black text-orange-100 sm:text-2xl">
+              Le commerce africain n'attend personne.
+            </p>
+            <h1 class="reveal text-hero font-black">
+              Chaque commande doit avancer.
+            </h1>
+            <p class="reveal mt-6 max-w-2xl text-lg font-semibold leading-8 text-white/82 sm:text-2xl sm:leading-9">
+              SUGUPro relie boutique, livraison, paiement et revenus. Un seul fil. Zéro flou.
+            </p>
+            <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row">
+              <a class="group inline-flex items-center justify-center rounded-full bg-clay px-7 py-4 text-base font-black text-white shadow-glow transition hover:bg-ember" href="#final">
+                Ouvrir ma boutique
+                <span class="ml-3 transition group-hover:translate-x-1">→</span>
+              </a>
+              <a class="inline-flex items-center justify-center rounded-full border border-white/28 bg-white/8 px-7 py-4 text-base font-black text-white backdrop-blur transition hover:bg-white/15" href="#flow">
+                Voir le fil
+              </a>
+            </div>
+          </div>
+
+          <div class="reveal hidden self-end lg:block">
+            <div class="relative ml-auto max-w-md rounded-[2rem] border border-white/15 bg-night/58 p-4 shadow-deep backdrop-blur-xl">
+              <div class="grid gap-3">
+                <div class="rounded-2xl bg-white p-4 text-ink">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-black uppercase text-slate-400">Commande</span>
+                    <span class="rounded-full bg-mint px-3 py-1 text-xs font-black text-palm">en route</span>
+                  </div>
+                  <p class="mt-2 text-xl font-black">Sandales cuir naturel</p>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                  <div class="rounded-2xl bg-white/10 p-4">
+                    <p class="text-2xl font-black">01</p>
+                    <p class="mt-1 text-xs font-bold text-white/62">reçue</p>
+                  </div>
+                  <div class="pulse rounded-2xl bg-clay p-4">
+                    <p class="text-2xl font-black">02</p>
+                    <p class="mt-1 text-xs font-bold text-white/80">livrée</p>
+                  </div>
+                  <div class="rounded-2xl bg-white/10 p-4">
+                    <p class="text-2xl font-black">03</p>
+                    <p class="mt-1 text-xs font-bold text-white/62">payée</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="overflow-hidden border-y border-white/10 bg-night py-4">
+        <div class="marquee flex min-w-max gap-10 whitespace-nowrap text-xl font-black text-white/22 sm:text-3xl">
+          <span>commande reçue</span><span>stock confirmé</span><span>livreur assigné</span><span>client rassuré</span><span>paiement visible</span><span>revenu suivi</span>
+          <span>commande reçue</span><span>stock confirmé</span><span>livreur assigné</span><span>client rassuré</span><span>paiement visible</span><span>revenu suivi</span>
+        </div>
+      </section>
+
+      <section id="flow" class="bg-night">
+        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.78fr_1.22fr] lg:px-8 lg:py-24">
+          <div class="lg:sticky lg:top-24 lg:self-start">
+            <h2 class="reveal text-5xl font-black leading-[.94] tracking-[-0.045em] sm:text-6xl">
+              Du message au paiement.
+            </h2>
+            <p class="reveal mt-5 max-w-md text-lg font-semibold leading-8 text-white/64">
+              Une commande ne traverse plus l'équipe comme une rumeur. Elle avance.
+            </p>
+          </div>
+
+          <div class="grid gap-5 lg:grid-cols-[.72fr_1.28fr]">
+            <div class="space-y-3">
+              <button class="flow-step is-active w-full rounded-2xl border border-white/12 p-4 text-left" data-flow="0" type="button">
+                <span class="text-sm font-black text-clay">01</span>
+                <strong class="mt-2 block text-2xl">Reçue</strong>
+                <span class="mt-2 block text-sm font-semibold text-white/56">Produit, client, ville.</span>
+              </button>
+              <button class="flow-step w-full rounded-2xl border border-white/12 p-4 text-left" data-flow="1" type="button">
+                <span class="text-sm font-black text-clay">02</span>
+                <strong class="mt-2 block text-2xl">Préparée</strong>
+                <span class="mt-2 block text-sm font-semibold text-white/56">Stock confirmé.</span>
+              </button>
+              <button class="flow-step w-full rounded-2xl border border-white/12 p-4 text-left" data-flow="2" type="button">
+                <span class="text-sm font-black text-clay">03</span>
+                <strong class="mt-2 block text-2xl">En route</strong>
+                <span class="mt-2 block text-sm font-semibold text-white/56">Livreur assigné.</span>
+              </button>
+              <button class="flow-step w-full rounded-2xl border border-white/12 p-4 text-left" data-flow="3" type="button">
+                <span class="text-sm font-black text-clay">04</span>
+                <strong class="mt-2 block text-2xl">Payée</strong>
+                <span class="mt-2 block text-sm font-semibold text-white/56">Revenu visible.</span>
+              </button>
+            </div>
+
+            <div class="rounded-[2rem] border border-white/12 bg-white/[0.04] p-3 shadow-deep">
+              <div class="rounded-[1.55rem] bg-sand p-4 text-ink sm:p-6">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">SUGU / live</p>
+                    <h3 id="flowTitle" class="mt-2 text-3xl font-black tracking-[-0.04em]">Commande reçue</h3>
+                  </div>
+                  <span id="flowBadge" class="rounded-full bg-ink px-3 py-1.5 text-sm font-black text-white">01</span>
+                </div>
+
+                <div class="mt-6 grid gap-3 sm:grid-cols-[1fr_.9fr]">
+                  <div class="rounded-2xl border border-black/10 bg-white p-5">
+                    <p class="text-sm font-black text-slate-400">Action</p>
+                    <p id="flowAction" class="mt-2 text-2xl font-black">Confirmer la commande</p>
+                    <p id="flowCopy" class="mt-4 min-h-[72px] text-base font-semibold leading-7 text-slate-600">
+                      Le vendeur voit le produit, le client et la ville. Rien ne commence dans le flou.
+                    </p>
+                  </div>
+                  <div class="rounded-2xl border border-black/10 bg-white p-5">
+                    <p class="text-sm font-black text-slate-400">Signal</p>
+                    <div class="mt-4 h-3 rounded-full bg-slate-100">
+                      <div id="flowBar" class="h-3 w-1/4 rounded-full bg-clay transition-all duration-500"></div>
+                    </div>
+                    <p id="flowSignal" class="mt-4 text-xl font-black text-palm">client identifié</p>
+                  </div>
+                </div>
+
+                <div class="mt-3 rounded-2xl bg-ink p-5 text-white">
+                  <p class="text-sm font-bold text-white/48">Ce que ça change</p>
+                  <p id="flowResult" class="mt-2 text-2xl font-black">La vente existe déjà dans le système.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="cockpit" class="bg-sand text-ink">
+        <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div class="grid gap-10 lg:grid-cols-[.9fr_1.1fr]">
+            <div>
+              <h2 class="reveal text-5xl font-black leading-[.94] tracking-[-0.045em] sm:text-6xl">
+                Un cockpit. Pas une pile d'outils.
+              </h2>
+              <p class="reveal mt-5 max-w-lg text-lg font-semibold leading-8 text-slate-600">
+                Le vendeur garde la main. La livraison garde le rythme. Le client garde confiance.
+              </p>
+            </div>
+
+            <div class="rounded-[2rem] bg-white p-3 shadow-deep">
+              <div class="rounded-[1.4rem] border border-black/10 p-3">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Modules SUGUPro">
+                  <button class="dash-tab is-active rounded-xl px-4 py-3 text-sm font-black" data-tab="orders" type="button">Commandes</button>
+                  <button class="dash-tab rounded-xl px-4 py-3 text-sm font-black" data-tab="delivery" type="button">Livraison</button>
+                  <button class="dash-tab rounded-xl px-4 py-3 text-sm font-black" data-tab="money" type="button">Argent</button>
+                  <button class="dash-tab rounded-xl px-4 py-3 text-sm font-black" data-tab="signal" type="button">Chiffres</button>
+                </div>
+
+                <div class="mt-3 min-h-[330px] rounded-2xl bg-sand p-5">
+                  <div class="dash-panel is-active gap-4" data-panel="orders">
+                    <h3 class="text-4xl font-black tracking-[-0.04em]">Tout arrive ici.</h3>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                      <div class="rounded-2xl bg-white p-4"><p class="text-sm font-black text-slate-400">Nouvelles</p><p class="mt-2 text-4xl font-black">18</p></div>
+                      <div class="rounded-2xl bg-white p-4"><p class="text-sm font-black text-slate-400">À préparer</p><p class="mt-2 text-4xl font-black">07</p></div>
+                      <div class="rounded-2xl bg-white p-4"><p class="text-sm font-black text-slate-400">En route</p><p class="mt-2 text-4xl font-black">12</p></div>
+                    </div>
+                  </div>
+                  <div class="dash-panel gap-4" data-panel="delivery">
+                    <h3 class="text-4xl font-black tracking-[-0.04em]">Le trajet parle.</h3>
+                    <div class="relative h-44 overflow-hidden rounded-2xl bg-night">
+                      <canvas id="routeCanvas" class="absolute inset-0 h-full w-full"></canvas>
+                      <div class="absolute bottom-4 left-4 rounded-full bg-white px-4 py-2 text-sm font-black">Bamako → client</div>
+                    </div>
+                  </div>
+                  <div class="dash-panel gap-4" data-panel="money">
+                    <h3 class="text-4xl font-black tracking-[-0.04em]">L'argent sort du brouillard.</h3>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                      <div class="rounded-2xl bg-white p-5"><p class="text-sm font-black text-slate-400">Payé</p><p class="mt-2 text-4xl font-black text-palm">+125k</p></div>
+                      <div class="rounded-2xl bg-white p-5"><p class="text-sm font-black text-slate-400">Attente</p><p class="mt-2 text-4xl font-black">03</p></div>
+                    </div>
+                  </div>
+                  <div class="dash-panel gap-4" data-panel="signal">
+                    <h3 class="text-4xl font-black tracking-[-0.04em]">Le vendeur voit ce qui marche.</h3>
+                    <div class="grid grid-cols-5 items-end gap-3 rounded-2xl bg-white p-5">
+                      <span class="h-14 rounded-t-xl bg-clay/30"></span>
+                      <span class="h-24 rounded-t-xl bg-clay/50"></span>
+                      <span class="h-32 rounded-t-xl bg-clay"></span>
+                      <span class="h-20 rounded-t-xl bg-palm/55"></span>
+                      <span class="h-36 rounded-t-xl bg-palm"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="terrain" class="bg-white text-ink">
+        <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div class="grid gap-10 lg:grid-cols-[.95fr_1.05fr]">
+            <div>
+              <h2 class="reveal text-5xl font-black leading-[.94] tracking-[-0.045em] sm:text-6xl">
+                Conçu pour le terrain.
+              </h2>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="rounded-[1.6rem] bg-sand p-6">
+                <p class="text-3xl font-black">Boutiques</p>
+                <p class="mt-3 text-lg font-semibold leading-8 text-slate-600">Produits clairs. Commandes suivies.</p>
+              </div>
+              <div class="rounded-[1.6rem] bg-ink p-6 text-white">
+                <p class="text-3xl font-black">WhatsApp</p>
+                <p class="mt-3 text-lg font-semibold leading-8 text-white/62">La vente sort du chat.</p>
+              </div>
+              <div class="rounded-[1.6rem] bg-clay p-6 text-white">
+                <p class="text-3xl font-black">Livreurs</p>
+                <p class="mt-3 text-lg font-semibold leading-8 text-white/74">Un statut. Une route. Une preuve.</p>
+              </div>
+              <div class="rounded-[1.6rem] bg-mint p-6">
+                <p class="text-3xl font-black">Marques</p>
+                <p class="mt-3 text-lg font-semibold leading-8 text-slate-700">Plus de ventes. Moins de chaos.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-14 grid gap-4 md:grid-cols-4">
+            <div class="rounded-[1.4rem] border border-black/10 p-6">
+              <p class="text-5xl font-black">2 500+</p>
+              <p class="mt-3 font-bold text-slate-500">vendeurs</p>
+            </div>
+            <div class="rounded-[1.4rem] border border-black/10 p-6">
+              <p class="text-5xl font-black">50k+</p>
+              <p class="mt-3 font-bold text-slate-500">commandes/mois</p>
+            </div>
+            <div class="rounded-[1.4rem] border border-black/10 p-6">
+              <p class="text-5xl font-black">15+</p>
+              <p class="mt-3 font-bold text-slate-500">villes</p>
+            </div>
+            <div class="rounded-[1.4rem] border border-black/10 p-6">
+              <p class="text-5xl font-black">4.8</p>
+              <p class="mt-3 font-bold text-slate-500">note affichée</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="questions" class="bg-sand text-ink">
+        <div class="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <h2 class="reveal max-w-3xl text-5xl font-black leading-[.94] tracking-[-0.045em] sm:text-6xl">
+            Les vraies questions, sans détour.
+          </h2>
+          <div class="mt-10 divide-y divide-black/10 rounded-[1.5rem] bg-white shadow-deep">
+            <details class="group p-6" open>
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black">Puis-je utiliser mes livreurs? <span class="text-clay">+</span></summary>
+              <p class="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">Oui. SUGUPro garde le suivi clair, que la livraison passe par votre équipe ou par un partenaire.</p>
+            </details>
+            <details class="group p-6">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black">Et mes paiements? <span class="text-clay">+</span></summary>
+              <p class="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">Ils restent visibles avec le statut de la commande. Ce qui est payé, attendu ou reversé se lit au même endroit.</p>
+            </details>
+            <details class="group p-6">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-black">Et si je vends surtout dans les chats? <span class="text-clay">+</span></summary>
+              <p class="mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-600">C'est justement le point: transformer une demande éparpillée en commande suivie.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="final" class="relative overflow-hidden bg-night text-white">
+        <canvas id="finalCanvas" class="absolute inset-0 h-full w-full opacity-70"></canvas>
+        <div class="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_.8fr] lg:px-8 lg:py-28">
+          <div>
+            <h2 class="reveal max-w-4xl text-6xl font-black leading-[.9] tracking-[-0.05em] sm:text-7xl">
+              La prochaine commande ne doit plus se perdre.
+            </h2>
+            <p class="reveal mt-6 max-w-2xl text-xl font-semibold leading-9 text-white/68">
+              Ouvrez SUGUPro. Donnez un fil à vos ventes.
+            </p>
+          </div>
+
+          <form class="reveal self-end rounded-[1.7rem] border border-white/12 bg-white/8 p-5 backdrop-blur-xl">
+            <div class="grid gap-3">
+              <input class="h-14 rounded-2xl border border-white/12 bg-white px-5 font-bold text-ink outline-none" placeholder="Nom" autocomplete="name" />
+              <input class="h-14 rounded-2xl border border-white/12 bg-white px-5 font-bold text-ink outline-none" placeholder="Téléphone" autocomplete="tel" />
+              <button class="h-14 rounded-2xl bg-clay font-black text-white transition hover:bg-ember" type="button">
+                Ouvrir ma boutique
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-white/10 bg-night px-4 py-8 text-white/50 sm:px-6 lg:px-8">
+      <div class="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <a href="#top" class="flex items-baseline gap-0.5 text-white">
+          <span class="text-2xl font-black tracking-[-0.04em]">SUGU</span>
+          <span class="text-xs font-black text-clay">Pro</span>
+        </a>
+        <p class="text-sm font-semibold">© 2026 SUGU. Le système derrière chaque commande.</p>
+      </div>
+    </footer>
+
+    <script>
+      const flowData = [
+        {
+          title: "Commande reçue",
+          badge: "01",
+          action: "Confirmer la commande",
+          copy: "Le vendeur voit le produit, le client et la ville. Rien ne commence dans le flou.",
+          signal: "client identifié",
+          result: "La vente existe déjà dans le système.",
+          bar: "25%"
+        },
+        {
+          title: "Commande préparée",
+          badge: "02",
+          action: "Préparer le colis",
+          copy: "Le stock est confirmé. L'équipe sait quoi faire avant la livraison.",
+          signal: "stock confirmé",
+          result: "Le vendeur ne cherche plus l'information.",
+          bar: "50%"
+        },
+        {
+          title: "Commande en route",
+          badge: "03",
+          action: "Suivre le livreur",
+          copy: "La livraison avance avec un statut clair. Le client n'est plus laissé dans le silence.",
+          signal: "livreur actif",
+          result: "La confiance avance avec le colis.",
+          bar: "76%"
+        },
+        {
+          title: "Commande payée",
+          badge: "04",
+          action: "Voir le revenu",
+          copy: "Paiement, commission et historique restent visibles dans le même fil.",
+          signal: "revenu suivi",
+          result: "La vente se termine sans brouillard.",
+          bar: "100%"
+        }
+      ];
+
+      const flowTitle = document.getElementById("flowTitle");
+      const flowBadge = document.getElementById("flowBadge");
+      const flowAction = document.getElementById("flowAction");
+      const flowCopy = document.getElementById("flowCopy");
+      const flowSignal = document.getElementById("flowSignal");
+      const flowResult = document.getElementById("flowResult");
+      const flowBar = document.getElementById("flowBar");
+
+      const setFlow = (index) => {
+        document.querySelectorAll(".flow-step").forEach((step, stepIndex) => {
+          step.classList.toggle("is-active", stepIndex === index);
+        });
+        const item = flowData[index];
+        flowTitle.textContent = item.title;
+        flowBadge.textContent = item.badge;
+        flowAction.textContent = item.action;
+        flowCopy.textContent = item.copy;
+        flowSignal.textContent = item.signal;
+        flowResult.textContent = item.result;
+        flowBar.style.width = item.bar;
+      };
+
+      document.querySelectorAll(".flow-step").forEach((step) => {
+        step.addEventListener("click", () => setFlow(Number(step.dataset.flow)));
+      });
+
+      document.querySelectorAll(".dash-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".dash-tab").forEach((item) => item.classList.remove("is-active"));
+          document.querySelectorAll(".dash-panel").forEach((item) => item.classList.remove("is-active"));
+          tab.classList.add("is-active");
+          document.querySelector(`[data-panel="${tab.dataset.tab}"]`).classList.add("is-active");
+        });
+      });
+
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add("is-visible");
+        });
+      }, { threshold: 0.18 });
+      document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
+
+      const progress = document.getElementById("progress");
+      const onScroll = () => {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        progress.style.width = `${Math.max(0, Math.min(1, scrollY / max)) * 100}%`;
+      };
+      addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+
+      const menuBtn = document.getElementById("menuBtn");
+      const mobileNav = document.getElementById("mobileNav");
+      menuBtn.addEventListener("click", () => {
+        const open = mobileNav.classList.toggle("hidden") === false;
+        menuBtn.setAttribute("aria-expanded", String(open));
+      });
+      mobileNav.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => {
+        mobileNav.classList.add("hidden");
+        menuBtn.setAttribute("aria-expanded", "false");
+      }));
+
+      const drawLines = (canvas, palette = ["#F15412", "#C9F2E2"]) => {
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        let width = 0;
+        let height = 0;
+        let tick = 0;
+        const resize = () => {
+          const ratio = devicePixelRatio || 1;
+          width = canvas.clientWidth;
+          height = canvas.clientHeight;
+          canvas.width = width * ratio;
+          canvas.height = height * ratio;
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        };
+        resize();
+        addEventListener("resize", resize);
+        const render = () => {
+          if (canvas.clientWidth !== width || canvas.clientHeight !== height) resize();
+          tick += 0.006;
+          ctx.clearRect(0, 0, width, height);
+          for (let i = 0; i < 18; i++) {
+            const y = (height * (i + 1)) / 20;
+            const start = -120 + ((tick * 280 + i * 57) % (width + 240));
+            const grad = ctx.createLinearGradient(start, y, start + 220, y);
+            grad.addColorStop(0, "transparent");
+            grad.addColorStop(0.45, palette[i % palette.length]);
+            grad.addColorStop(1, "transparent");
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = i % 3 === 0 ? 2 : 1;
+            ctx.beginPath();
+            ctx.moveTo(start, y);
+            ctx.bezierCurveTo(start + 70, y - 35, start + 140, y + 35, start + 220, y);
+            ctx.stroke();
+          }
+          requestAnimationFrame(render);
+        };
+        render();
+      };
+
+      drawLines(document.getElementById("heroCanvas"));
+      drawLines(document.getElementById("routeCanvas"), ["#F15412", "#0E6B57"]);
+      drawLines(document.getElementById("finalCanvas"));
+
+      const flowSection = document.getElementById("flow");
+      const updateFlowFromScroll = () => {
+        const rect = flowSection.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > innerHeight) return;
+        const progress = Math.min(1, Math.max(0, (innerHeight * 0.62 - rect.top) / rect.height));
+        setFlow(Math.min(3, Math.floor(progress * 4)));
+      };
+      addEventListener("scroll", updateFlowFromScroll, { passive: true });
+      addEventListener("resize", updateFlowFromScroll);
+      updateFlowFromScroll();
+    </script>
+  </body>
+</html>

@@ -91,12 +91,17 @@ export async function apiRequest<T>(
   const correlationId = requestId();
   const token = getToken();
 
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     Accept: "application/json",
     "X-Request-Id": correlationId,
     ...extraHeaders,
   };
+
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -110,7 +115,7 @@ export async function apiRequest<T>(
   };
 
   if (body !== undefined) {
-    fetchOptions.body = JSON.stringify(body);
+    fetchOptions.body = isFormData ? (body as any) : JSON.stringify(body);
   }
 
   let lastError: ApiError | null = null;
