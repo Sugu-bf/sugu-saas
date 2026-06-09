@@ -5,7 +5,7 @@ import type { CommercialFormData, CommercialCountry } from "../types/commercial.
 
 interface StepLocationProps {
   data: CommercialFormData;
-  onChange: (field: keyof CommercialFormData, value: any) => void;
+  onChange: (field: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => void;
   countries: CommercialCountry[];
   errors: Record<string, string>;
 }
@@ -59,7 +59,7 @@ export default function StepLocation({ data, onChange, countries, errors }: Step
     <div className="space-y-4 animate-fade-in">
       <div className="text-center mb-6">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white">Localisation de la Boutique</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Renseignez l'emplacement physique exact de la boutique terrain.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{"Renseignez l'emplacement physique exact de la boutique terrain."}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

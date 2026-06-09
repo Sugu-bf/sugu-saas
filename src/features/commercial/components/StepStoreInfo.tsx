@@ -1,42 +1,43 @@
 import { useState, useEffect } from "react";
-import { Store, Image, Trash2, UploadCloud } from "lucide-react";
+import { Store, Image as ImageIcon, Trash2, UploadCloud } from "lucide-react";
 import { Field, PillInput } from "@/components/shared/settings-ui";
 import type { CommercialFormData, CommercialCategory } from "../types/commercial.types";
 
 interface StepStoreInfoProps {
   data: CommercialFormData;
-  onChange: (field: keyof CommercialFormData, value: any) => void;
+  onChange: (field: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => void;
   categories: CommercialCategory[];
   errors: Record<string, string>;
 }
 
 export default function StepStoreInfo({ data, onChange, categories, errors }: StepStoreInfoProps) {
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(() => {
+    return data.logo ? URL.createObjectURL(data.logo) : null;
+  });
+  const [coverPreview, setCoverPreview] = useState<string | null>(() => {
+    return data.cover ? URL.createObjectURL(data.cover) : null;
+  });
 
-  // Set initial previews from files if returning to step
+  // Clean up blob URLs when they change or component unmounts
   useEffect(() => {
-    if (data.logo) {
-      const url = URL.createObjectURL(data.logo);
-      setLogoPreview(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setLogoPreview(null);
-    }
-  }, [data.logo]);
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
 
   useEffect(() => {
-    if (data.cover) {
-      const url = URL.createObjectURL(data.cover);
-      setCoverPreview(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setCoverPreview(null);
-    }
-  }, [data.cover]);
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [coverPreview]);
 
   const handleFileChange = (field: "logo" | "cover", file: File | null) => {
     onChange(field, file);
+    if (field === "logo") {
+      setLogoPreview(file ? URL.createObjectURL(file) : null);
+    } else {
+      setCoverPreview(file ? URL.createObjectURL(file) : null);
+    }
   };
 
   const handleCategoryToggle = (catId: string) => {
@@ -113,6 +114,7 @@ export default function StepStoreInfo({ data, onChange, categories, errors }: St
         <Field label="Logo (Optionnel)" hint="Format carré, max 2Mo">
           {logoPreview ? (
             <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800/50 aspect-square flex items-center justify-center bg-gray-50 dark:bg-gray-900/40 p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={logoPreview} alt="Logo" className="max-h-full max-w-full object-contain rounded-lg" />
               <button
                 type="button"
@@ -141,6 +143,7 @@ export default function StepStoreInfo({ data, onChange, categories, errors }: St
         <Field label="Couverture (Optionnel)" hint="Format paysage, max 4Mo">
           {coverPreview ? (
             <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800/50 aspect-square flex items-center justify-center bg-gray-50 dark:bg-gray-900/40 p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={coverPreview} alt="Couverture" className="max-h-full max-w-full object-contain rounded-lg" />
               <button
                 type="button"
@@ -152,7 +155,7 @@ export default function StepStoreInfo({ data, onChange, categories, errors }: St
             </div>
           ) : (
             <label className="border border-dashed border-gray-300 dark:border-gray-700 hover:border-sugu-400 hover:bg-sugu-50/10 dark:hover:bg-sugu-950/10 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all aspect-square text-center">
-              <Image className="h-8 w-8 text-gray-400 mb-2" />
+              <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
               <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Charger Couverture</span>
               <span className="text-[10px] text-gray-400 mt-1">PNG, JPG, WEBP</span>
               <input

@@ -23,7 +23,7 @@ export default function FormDisabled({ message }: FormDisabledProps) {
           </p>
 
           <div className="text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-800/40 pt-4">
-            Veuillez contacter votre superviseur ou administrateur de la plateforme pour plus d'informations.
+            {"Veuillez contacter votre superviseur ou administrateur de la plateforme pour plus d'informations."}
           </div>
         </SectionCard>
       </div>

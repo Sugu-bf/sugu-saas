@@ -5,7 +5,7 @@ import type { CommercialFormData, CommercialCategory, CommercialCountry } from "
 
 interface StepReviewProps {
   data: CommercialFormData;
-  onChange: (field: keyof CommercialFormData, value: any) => void;
+  onChange: (field: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => void;
   categories: CommercialCategory[];
   countries: CommercialCountry[];
   errors: Record<string, string>;

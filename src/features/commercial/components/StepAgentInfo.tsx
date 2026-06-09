@@ -4,7 +4,7 @@ import type { CommercialFormData } from "../types/commercial.types";
 
 interface StepAgentInfoProps {
   data: CommercialFormData;
-  onChange: (field: keyof CommercialFormData, value: any) => void;
+  onChange: (field: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => void;
   errors: Record<string, string>;
 }
 
@@ -12,8 +12,8 @@ export default function StepAgentInfo({ data, onChange, errors }: StepAgentInfoP
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="text-center mb-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Identité de l'Agent Commercial</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Renseignez vos informations professionnelles pour l'audit de cette soumission.</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">{"Identité de l'Agent Commercial"}</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{"Renseignez vos informations professionnelles pour l'audit de cette soumission."}</p>
       </div>
 
       <Field label="Nom Complet du Commercial" required hint="Saisissez votre nom et prénom">

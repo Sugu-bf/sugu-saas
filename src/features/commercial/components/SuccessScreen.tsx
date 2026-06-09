@@ -26,7 +26,7 @@ export default function SuccessScreen({
             Boutique Créée !
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-            La demande d'inscription a été enregistrée avec succès. Elle est désormais en attente de validation par l'administrateur.
+            {"La demande d'inscription a été enregistrée avec succès. Elle est désormais en attente de validation par l'administrateur."}
           </p>
 
           <div className="bg-white/30 dark:bg-white/5 rounded-2xl p-5 border border-white/40 dark:border-white/5 text-left mb-8 space-y-4">
@@ -49,7 +49,7 @@ export default function SuccessScreen({
           </div>
 
           <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-4 text-left text-xs text-amber-800 dark:text-amber-400 mb-8">
-            💡 Un email de bienvenue contenant un lien de réinitialisation de mot de passe a été envoyé au propriétaire pour lui permettre d'accéder à son portail vendeur.
+            {"💡 Un email de bienvenue contenant un lien de réinitialisation de mot de passe a été envoyé au propriétaire pour lui permettre d'accéder à son portail vendeur."}
           </div>
 
           <div className="flex justify-center">

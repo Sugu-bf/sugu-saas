@@ -4,7 +4,7 @@ import type { CommercialFormData } from "../types/commercial.types";
 
 interface StepOwnerInfoProps {
   data: CommercialFormData;
-  onChange: (field: keyof CommercialFormData, value: any) => void;
+  onChange: (field: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => void;
   errors: Record<string, string>;
 }
 

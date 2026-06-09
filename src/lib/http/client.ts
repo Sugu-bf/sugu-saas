@@ -115,7 +115,7 @@ export async function apiRequest<T>(
   };
 
   if (body !== undefined) {
-    fetchOptions.body = isFormData ? (body as any) : JSON.stringify(body);
+    fetchOptions.body = isFormData ? (body as unknown as BodyInit) : JSON.stringify(body);
   }
 
   let lastError: ApiError | null = null;

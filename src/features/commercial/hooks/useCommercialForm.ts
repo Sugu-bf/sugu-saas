@@ -43,7 +43,7 @@ export function useCommercialForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const setField = (key: keyof CommercialFormData, value: any) => {
+  const setField = (key: keyof CommercialFormData, value: string | number | File | number[] | string[] | null) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) {
       setErrors((prev) => {
