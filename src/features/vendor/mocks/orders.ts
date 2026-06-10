@@ -34,7 +34,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-amber-100 text-amber-700",
       },
       products: [
-        { id: "p1", name: "Robe en pagne", variant: "Taille L", quantity: 1, price: 25000, emoji: "👗" },
+        { id: "p1", name: "Robe en pagne", variant: "Taille L", quantity: 1, price: 25000, image: null },
       ],
       productSummary: "Robe en pagne",
       total: 25000,
@@ -60,7 +60,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-blue-100 text-blue-700",
       },
       products: [
-        { id: "p2", name: "Chaussures en cuir", variant: "Pointure 43", quantity: 1, price: 18500, emoji: "👞" },
+        { id: "p2", name: "Chaussures en cuir", variant: "Pointure 43", quantity: 1, price: 18500, image: null },
       ],
       productSummary: "Chaussures en cuir",
       total: 18500,
@@ -87,7 +87,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-purple-100 text-purple-700",
       },
       products: [
-        { id: "p3", name: "Sac à main artisanal", variant: "Marron", quantity: 1, price: 12000, emoji: "👜" },
+        { id: "p3", name: "Sac à main artisanal", variant: "Marron", quantity: 1, price: 12000, image: null },
       ],
       productSummary: "Sac à main artisanal",
       total: 12000,
@@ -115,8 +115,8 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-green-100 text-green-700",
       },
       products: [
-        { id: "p4a", name: "Ensemble Bazin", variant: "Bleu Royal, XL", quantity: 1, price: 35000, emoji: "👔" },
-        { id: "p4b", name: "Chapeau assorti", variant: "", quantity: 1, price: 10000, emoji: "🎩" },
+        { id: "p4a", name: "Ensemble Bazin", variant: "Bleu Royal, XL", quantity: 1, price: 35000, image: null },
+        { id: "p4b", name: "Chapeau assorti", variant: "", quantity: 1, price: 10000, image: null },
       ],
       productSummary: "Ensemble Bazin",
       total: 45000,
@@ -144,7 +144,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-pink-100 text-pink-700",
       },
       products: [
-        { id: "p5", name: "Bijoux perlés", variant: "Collier + Bracelet", quantity: 1, price: 8500, emoji: "📿" },
+        { id: "p5", name: "Bijoux perlés", variant: "Collier + Bracelet", quantity: 1, price: 8500, image: null },
       ],
       productSummary: "Bijoux perlés",
       total: 8500,
@@ -169,7 +169,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-teal-100 text-teal-700",
       },
       products: [
-        { id: "p6", name: "Tissu Kenté", variant: "4 mètres", quantity: 1, price: 30000, emoji: "🧵" },
+        { id: "p6", name: "Tissu Kenté", variant: "4 mètres", quantity: 1, price: 30000, image: null },
       ],
       productSummary: "Tissu Kenté",
       total: 30000,
@@ -197,7 +197,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-rose-100 text-rose-700",
       },
       products: [
-        { id: "p7", name: "Crèmes de beauté", variant: "Pack 3", quantity: 1, price: 15000, emoji: "🧴" },
+        { id: "p7", name: "Crèmes de beauté", variant: "Pack 3", quantity: 1, price: 15000, image: null },
       ],
       productSummary: "Crèmes de beauté",
       total: 15000,
@@ -222,7 +222,7 @@ export const mockVendorOrders: VendorOrdersResponse = {
         avatarColor: "bg-orange-100 text-orange-700",
       },
       products: [
-        { id: "p8", name: "Épices locales", variant: "Assortiment 500g", quantity: 2, price: 2500, emoji: "🌶️" },
+        { id: "p8", name: "Épices locales", variant: "Assortiment 500g", quantity: 2, price: 2500, image: null },
       ],
       productSummary: "Épices locales",
       total: 5000,

@@ -13,7 +13,6 @@ import { mapPaymentStatusCode } from "@/lib/utils/payment-status";
 import {
   normalizeStatus,
   STATUS_LABELS,
-  PRODUCT_EMOJIS,
   avatarColor,
   initials,
   formatDateFr,
@@ -316,7 +315,7 @@ function _transformOrderListItem(raw: RawOrderItem): Record<string, unknown> {
       name: item.name ?? "Produit",
       quantity: item.quantity ?? 1,
       price: 0,
-      emoji: PRODUCT_EMOJIS[idx % PRODUCT_EMOJIS.length],
+      image: null,
     })),
     productSummary: items.length > 1 ? `${firstItemName} +${items.length - 1}` : firstItemName,
     total: raw.totalAmount ?? 0,
@@ -350,7 +349,7 @@ function _transformOrderDetailResponse(
   const items = (raw.items ?? []).map((item, idx) => ({
     id: item.id ?? `item-${idx}`,
     name: item.name ?? "Produit",
-    emoji: PRODUCT_EMOJIS[idx % PRODUCT_EMOJIS.length],
+    image: item.image ?? null,
     quantity: item.quantity ?? 1,
     unitPrice: item.price ?? 0,
     lineTotal: item.total ?? (item.price ?? 0) * (item.quantity ?? 1),

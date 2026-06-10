@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Loader2,
   CreditCard,
+  Package,
 } from "lucide-react";
 import {
   mapPaymentStatusCode,
@@ -674,8 +676,12 @@ function OrderDetailPanel({
                     key={product.id}
                     className="flex items-center gap-3 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/50"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl shadow-sm dark:bg-gray-800">
-                      {product.emoji}
+                    <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
+                      {product.image ? (
+                        <Image src={product.image} alt={product.name} fill className="object-cover" />
+                      ) : (
+                        <Package className="h-5 w-5 text-gray-400" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">

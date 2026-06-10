@@ -25,7 +25,7 @@ export const mockOrderDetail: OrderDetail = {
     {
       id: "p1",
       name: "Huile de Palme Bio 1L",
-      emoji: "🫒",
+      image: null,
       quantity: 3,
       unitPrice: 4500,
       lineTotal: 13500,
@@ -34,7 +34,7 @@ export const mockOrderDetail: OrderDetail = {
     {
       id: "p2",
       name: "Café Arabica Premium 500g",
-      emoji: "☕",
+      image: null,
       quantity: 2,
       unitPrice: 8900,
       lineTotal: 17800,
@@ -43,7 +43,7 @@ export const mockOrderDetail: OrderDetail = {
     {
       id: "p3",
       name: "Beurre de Karité Pur 250g",
-      emoji: "🧴",
+      image: null,
       quantity: 1,
       unitPrice: 3200,
       lineTotal: 3200,
@@ -52,7 +52,7 @@ export const mockOrderDetail: OrderDetail = {
     {
       id: "p4",
       name: "Miel du Sahel 500ml",
-      emoji: "🍯",
+      image: null,
       quantity: 1,
       unitPrice: 12000,
       lineTotal: 12000,

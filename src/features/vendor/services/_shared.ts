@@ -19,9 +19,6 @@ export const STATUS_LABELS: Record<string, string> = {
   refunded: "Remboursée",
 };
 
-/** Default product emojis */
-export const PRODUCT_EMOJIS = ["📦", "🛍️", "🛒", "🎁", "🧴"];
-
 /** Avatar color palette (deterministic from name) */
 const AVATAR_COLORS = [
   "bg-amber-100 text-amber-700",

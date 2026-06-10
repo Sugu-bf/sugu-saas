@@ -103,7 +103,7 @@ export const orderProductSchema = z.object({
   variant: z.string().optional(),
   quantity: z.number(),
   price: z.number(),
-  emoji: z.string(),
+  image: z.string().nullable().optional(),
 });
 
 export type OrderProduct = z.infer<typeof orderProductSchema>;
@@ -190,7 +190,7 @@ export type VendorOrdersResponse = z.infer<typeof vendorOrdersResponseSchema>;
 export const orderDetailProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  emoji: z.string(),
+  image: z.string().nullable().optional(),
   quantity: z.number(),
   unitPrice: z.number(),
   lineTotal: z.number(),

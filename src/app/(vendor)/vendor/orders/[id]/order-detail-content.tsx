@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
@@ -667,8 +668,14 @@ function ProductPrepRow({
         )}
       </button>
 
-      {/* Emoji */}
-      <span className="text-lg lg:text-xl">{product.emoji}</span>
+      {/* Product image */}
+      {product.image ? (
+        <div className="relative h-8 w-8 overflow-hidden rounded-lg lg:h-9 lg:w-9">
+          <Image src={product.image} alt={product.name} fill className="object-cover" />
+        </div>
+      ) : (
+        <Package className="h-5 w-5 text-gray-400 lg:h-6 lg:w-6" />
+      )}
 
       {/* Name */}
       <div className="flex-1 min-w-0">
