@@ -8,6 +8,7 @@ import { mapSuguErrorMessage } from "@/lib/http/sugu-error-mapper";
 import {
   ArrowLeft,
   ShieldCheck,
+  KeyRound,
   Copy,
   MapPin,
   Phone,
@@ -415,18 +416,65 @@ function DetailSkeleton() {
 }
 
 // ────────────────────────────────────────────────────────────
-// SecurityCodeCard
+// SecurityCodeCard — contextuelle (collecte vs livraison)
 // ────────────────────────────────────────────────────────────
 
 function SecurityCodeCard({
   code,
   copied,
   onCopy,
+  isPickupPhase,
+  pickupStops,
 }: {
   code: string;
   copied: boolean;
   onCopy: () => void;
+  isPickupPhase?: boolean;
+  pickupStops?: PickupStop[];
 }) {
+  // Collection phase: show per-vendor pickup codes
+  if (isPickupPhase && pickupStops?.some((s) => s.type === "pickup" && s.pickupCode)) {
+    return (
+      <div
+        className="glass-card rounded-2xl p-5 animate-card-enter"
+        style={{ animationDelay: "60ms" }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sugu-50">
+            <KeyRound className="h-5 w-5 text-sugu-600" />
+          </div>
+          <p className="mt-3 text-xs text-gray-500">Codes de collecte vendeurs :</p>
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {pickupStops
+            .filter((s) => s.type === "pickup")
+            .map((stop) => (
+              <div
+                key={stop.id}
+                className="flex items-center justify-between rounded-xl border border-sugu-100 bg-sugu-50/40 px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-sugu-500">
+                    Point {stop.letter}
+                  </p>
+                  <p className="text-xs font-medium text-gray-700 truncate">{stop.name}</p>
+                </div>
+                <span className="ml-3 flex-shrink-0 font-mono text-base font-extrabold tracking-widest text-gray-900">
+                  {stop.pickupCode ?? "—"}
+                </span>
+              </div>
+            ))}
+        </div>
+
+        <p className="mt-3 text-center text-[10px] italic leading-relaxed text-gray-400">
+          Présentez ce code au vendeur pour valider la collecte.
+        </p>
+      </div>
+    );
+  }
+
+  // Delivery phase (default): show delivery security code
   return (
     <div
       className="glass-card rounded-2xl p-5 flex flex-col items-center text-center animate-card-enter"
@@ -458,7 +506,7 @@ function SecurityCodeCard({
       {/* Warning */}
       <p className="mt-3 max-w-[250px] text-[10px] italic leading-relaxed text-gray-400">
         Ne partagez pas ce code publiquement. Il sert à valider votre identité
-        auprès des vendeurs.
+        auprès des clients.
       </p>
     </div>
   );
@@ -1294,6 +1342,8 @@ export function DriverDeliveryDetailContent({
           code={detail.securityCode}
           copied={copiedCode}
           onCopy={handleCopyCode}
+          isPickupPhase={detail.status === "pickup"}
+          pickupStops={detail.stops}
         />
         <EarningsCard detail={detail} />
       </div>

@@ -768,6 +768,7 @@ interface RawDeliveryDetailResponse {
     type: string;
     name: string;
     address: string;
+    pickup_code?: string | null;
     products: Array<{
       id: string;
       name: string;
@@ -822,6 +823,7 @@ function _transformDeliveryDetailResponse(raw: Record<string, unknown>): unknown
       type: stop.type,
       name: stop.name,
       address: stop.address,
+      pickupCode: stop.pickup_code ?? null,
       products: stop.products.map((p) => ({
         id: p.id,
         name: p.name,

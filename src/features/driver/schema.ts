@@ -256,6 +256,7 @@ export const pickupStopSchema = z.object({
   address: z.string(),               // "Rue de Kaolack, Ouagadougou"
   products: z.array(pickupProductSchema), // Only for type="pickup"
   isCompleted: z.boolean(),
+  pickupCode: z.string().nullable().optional(), // Vendor pickup code (Sugu Box 6B)
 });
 
 export type PickupStop = z.infer<typeof pickupStopSchema>;
