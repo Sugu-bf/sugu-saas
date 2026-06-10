@@ -34,6 +34,8 @@ export {
   markOrderDelivered,
   downloadDeliverySlip,
   getOrderInvoiceLink,
+  getOrderPickupCodes,
+  confirmItemHandoff,
   // Products
   getVendorProducts,
   getVendorProductDetail,

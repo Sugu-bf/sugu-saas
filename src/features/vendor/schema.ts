@@ -195,9 +195,26 @@ export const orderDetailProductSchema = z.object({
   unitPrice: z.number(),
   lineTotal: z.number(),
   ready: z.boolean(),
+  storeId: z.string().nullable().optional(),
 });
 
 export type OrderDetailProduct = z.infer<typeof orderDetailProductSchema>;
+
+/** Per-store pickup code entry from GET /sellers/orders/{id}/pickup-code */
+export const pickupCodeEntrySchema = z.object({
+  store_id: z.string(),
+  pickup_code: z.string(),
+  status: z.string(),
+  vendor_handoff_at: z.string().nullable().optional(),
+});
+
+export type PickupCodeEntry = z.infer<typeof pickupCodeEntrySchema>;
+
+export const pickupCodesResponseSchema = z.object({
+  codes: z.array(pickupCodeEntrySchema),
+});
+
+export type PickupCodesResponse = z.infer<typeof pickupCodesResponseSchema>;
 
 /** Order detail timeline event */
 export const orderDetailTimelineSchema = z.object({

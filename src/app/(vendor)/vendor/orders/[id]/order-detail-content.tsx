@@ -25,14 +25,18 @@ import {
   CreditCard,
   ShieldCheck,
   AlertCircle,
+  KeyRound,
+  HandshakeIcon,
 } from "lucide-react";
-import type { OrderDetail, OrderDetailProduct } from "@/features/vendor/schema";
+import type { OrderDetail, OrderDetailProduct, PickupCodeEntry } from "@/features/vendor/schema";
 import {
   useConfirmOrder,
   useCancelOrder,
   useMarkShipped,
   useMarkDelivered,
   useRequestDelivery,
+  useOrderPickupCodes,
+  useConfirmHandoff,
 } from "@/features/vendor/hooks";
 import * as vendorService from "@/features/vendor/service";
 import { toast } from "sonner";
@@ -63,6 +67,14 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
   const [products, setProducts] = useState(data.products);
 
   const readyCount = products.filter((p) => p.ready).length;
+
+  const { data: pickupCodesData } = useOrderPickupCodes(data.id);
+  const pickupCodes = pickupCodesData?.codes ?? [];
+
+  // Build a map: storeId → PickupCodeEntry for per-item handoff resolution
+  const pickupByStore = Object.fromEntries(
+    pickupCodes.map((c: PickupCodeEntry) => [c.store_id, c]),
+  ) as Record<string, PickupCodeEntry>;
 
   const toggleReady = (id: string) => {
     setProducts((prev) =>
@@ -259,6 +271,8 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
                 <ProductPrepRow
                   key={product.id}
                   product={product}
+                  pickup={product.storeId ? pickupByStore[product.storeId] : undefined}
+                  orderId={data.id}
                   onToggle={() => toggleReady(product.id)}
                 />
               ))}
@@ -341,6 +355,10 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
               })}
             </div>
           </section>
+          {/* ── Code de collecte (visible after courier assigned) ── */}
+          {pickupCodes.length > 0 && (
+            <PickupCodeCard codes={pickupCodes} />
+          )}
         </div>
 
         {/* ───────── MIDDLE COLUMN ───────── */}
@@ -633,87 +651,208 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
 // Product Prep Row
 // ────────────────────────────────────────────────────────────
 
+function HandoffBadge({
+  pickup,
+  orderId,
+  itemId,
+}: {
+  pickup: PickupCodeEntry | undefined;
+  orderId: string;
+  itemId: string;
+}) {
+  const confirmMutation = useConfirmHandoff(orderId);
+
+  if (!pickup) return null;
+
+  const isConfirmed = !!pickup.vendor_handoff_at;
+  const courierCollected = pickup.status === "collected";
+
+  if (isConfirmed) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 whitespace-nowrap dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
+        <ShieldCheck className="h-3 w-3" />
+        Remise confirmée
+      </span>
+    );
+  }
+
+  if (courierCollected) {
+    return (
+      <button
+        onClick={() =>
+          confirmMutation.mutate(itemId, {
+            onSuccess: () => toast.success("Remise confirmée !"),
+            onError: (err) => toast.error(err.message || "Erreur lors de la confirmation"),
+          })
+        }
+        disabled={confirmMutation.isPending}
+        className="inline-flex items-center gap-1 rounded-full border border-sugu-200 bg-sugu-50 px-2 py-0.5 text-[10px] font-semibold text-sugu-600 transition-all active:scale-[0.98] hover:bg-sugu-100 whitespace-nowrap disabled:opacity-60 dark:border-sugu-800 dark:bg-sugu-950/30 dark:text-sugu-400"
+      >
+        {confirmMutation.isPending ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <HandshakeIcon className="h-3 w-3" />
+        )}
+        Confirmer remise
+      </button>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-500 whitespace-nowrap dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+      <Clock className="h-3 w-3" />
+      En attente coursier
+    </span>
+  );
+}
+
 function ProductPrepRow({
   product,
+  pickup,
+  orderId,
   onToggle,
 }: {
   product: OrderDetailProduct;
+  pickup: PickupCodeEntry | undefined;
+  orderId: string;
   onToggle: () => void;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors lg:gap-3 lg:px-3 lg:py-2.5",
+        "flex flex-col gap-1.5 rounded-xl px-2.5 py-2 transition-colors lg:px-3 lg:py-2.5",
         product.ready
           ? "bg-green-50/40 dark:bg-green-950/10"
           : "bg-white/40 dark:bg-white/5",
       )}
     >
-      {/* Checkbox */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className={cn(
-          "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
-          product.ready
-            ? "border-green-500 bg-green-500 text-white"
-            : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900",
-        )}
-        aria-label={product.ready ? `Marquer ${product.name} comme non prêt` : `Marquer ${product.name} comme prêt`}
-      >
-        {product.ready && (
-          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-            <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </button>
+      <div className="flex items-center gap-2.5 lg:gap-3">
+        {/* Checkbox */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className={cn(
+            "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
+            product.ready
+              ? "border-green-500 bg-green-500 text-white"
+              : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900",
+          )}
+          aria-label={product.ready ? `Marquer ${product.name} comme non prêt` : `Marquer ${product.name} comme prêt`}
+        >
+          {product.ready && (
+            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+              <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
 
-      {/* Product image */}
-      {product.image ? (
-        <div className="relative h-8 w-8 overflow-hidden rounded-lg lg:h-9 lg:w-9">
-          <Image src={product.image} alt={product.name} fill className="object-cover" />
+        {/* Product image */}
+        {product.image ? (
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg lg:h-9 lg:w-9">
+            <Image src={product.image} alt={product.name} fill className="object-cover" />
+          </div>
+        ) : (
+          <Package className="h-5 w-5 text-gray-400 lg:h-6 lg:w-6" />
+        )}
+
+        {/* Name */}
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            "text-xs font-medium truncate lg:text-sm",
+            product.ready
+              ? "text-gray-500 line-through"
+              : "text-gray-900 dark:text-white",
+          )}>
+            {product.name}
+          </p>
         </div>
-      ) : (
-        <Package className="h-5 w-5 text-gray-400 lg:h-6 lg:w-6" />
-      )}
 
-      {/* Name */}
-      <div className="flex-1 min-w-0">
-        <p className={cn(
-          "text-xs font-medium truncate lg:text-sm",
-          product.ready
-            ? "text-gray-500 line-through"
-            : "text-gray-900 dark:text-white",
-        )}>
-          {product.name}
-        </p>
+        {/* Qty */}
+        <span className="rounded-md border border-gray-200 bg-gray-50/80 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+          Qté: {product.quantity}
+        </span>
+
+        {/* Price */}
+        <span className="hidden text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap lg:inline">
+          {formatCurrency(product.unitPrice)} × {product.quantity} = {formatCurrency(product.lineTotal)} FCFA
+        </span>
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap lg:hidden">
+          {formatCurrency(product.lineTotal)}
+        </span>
+
+        {/* Status badge */}
+        <span
+          className={cn(
+            "rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
+            product.ready
+              ? "border-green-200 bg-green-50 text-green-600"
+              : "border-amber-200 bg-amber-50 text-amber-600",
+          )}
+        >
+          {product.ready ? "Prêt" : "En attente"}
+        </span>
       </div>
 
-      {/* Qty */}
-      <span className="rounded-md border border-gray-200 bg-gray-50/80 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-        Qté: {product.quantity}
-      </span>
-
-      {/* Price */}
-      <span className="hidden text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap lg:inline">
-        {formatCurrency(product.unitPrice)} × {product.quantity} = {formatCurrency(product.lineTotal)} FCFA
-      </span>
-      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap lg:hidden">
-        {formatCurrency(product.lineTotal)}
-      </span>
-
-      {/* Status badge */}
-      <span
-        className={cn(
-          "rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
-          product.ready
-            ? "border-green-200 bg-green-50 text-green-600"
-            : "border-amber-200 bg-amber-50 text-amber-600",
-        )}
-      >
-        {product.ready ? "Prêt" : "En attente"}
-      </span>
+      {/* Handoff badge/button row — only shown when a courier pickup exists */}
+      {pickup && (
+        <div className="pl-7 lg:pl-8">
+          <HandoffBadge pickup={pickup} orderId={orderId} itemId={product.id} />
+        </div>
+      )}
     </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// Pickup Code Card
+// ────────────────────────────────────────────────────────────
+
+function PickupCodeCard({ codes }: { codes: PickupCodeEntry[] }) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(code);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  return (
+    <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-sugu-500 lg:h-5 lg:w-5" />
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
+          Code{codes.length > 1 ? "s" : ""} de collecte
+        </h2>
+      </div>
+      <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        Donnez ce code au coursier lors de la remise des articles.
+      </p>
+
+      <div className="mt-3 space-y-2 lg:mt-4">
+        {codes.map((entry) => (
+          <div
+            key={entry.store_id}
+            className="flex items-center justify-between rounded-xl border border-sugu-200/60 bg-sugu-50/60 px-3 py-2.5 dark:border-sugu-800/40 dark:bg-sugu-950/20"
+          >
+            <span className="font-mono text-lg font-bold tracking-widest text-sugu-700 dark:text-sugu-300 lg:text-xl">
+              {entry.pickup_code}
+            </span>
+            <button
+              onClick={() => handleCopy(entry.pickup_code)}
+              className="ml-3 flex items-center gap-1.5 rounded-lg border border-sugu-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-sugu-600 transition-all active:scale-[0.97] hover:bg-sugu-50 dark:border-sugu-800 dark:bg-gray-900 dark:text-sugu-400"
+            >
+              {copied === entry.pickup_code ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              {copied === entry.pickup_code ? "Copié !" : "Copier"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

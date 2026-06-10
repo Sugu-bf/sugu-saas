@@ -76,6 +76,35 @@ export function useVendorOrderDetail(id: string) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Pickup codes + handoff
+// ────────────────────────────────────────────────────────────
+
+/** Hook: Fetch pickup codes for an order (lazy — only once courier accepted). */
+export function useOrderPickupCodes(orderId: string) {
+  return useQuery({
+    queryKey: queryKeys.vendor.orderPickupCodes(orderId),
+    queryFn: () => vendorService.getOrderPickupCodes(orderId),
+    staleTime: 30 * 1000,
+    enabled: !!orderId,
+    retry: false,
+  });
+}
+
+/** Hook: Confirm vendor handoff for a specific item. Invalidates pickup codes cache on success. */
+export function useConfirmHandoff(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (itemId: string) => vendorService.confirmItemHandoff(orderId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vendor.orderPickupCodes(orderId),
+      });
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────
 // Order Mutations
 // ────────────────────────────────────────────────────────────
 

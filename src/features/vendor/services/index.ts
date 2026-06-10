@@ -17,6 +17,8 @@ export {
   markOrderDelivered,
   downloadDeliverySlip,
   getOrderInvoiceLink,
+  getOrderPickupCodes,
+  confirmItemHandoff,
 } from "./orders.service";
 
 // Products

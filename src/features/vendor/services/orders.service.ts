@@ -5,8 +5,10 @@
 import {
   vendorOrdersResponseSchema,
   orderDetailSchema,
+  pickupCodesResponseSchema,
   type VendorOrdersResponse,
   type OrderDetail,
+  type PickupCodesResponse,
 } from "../schema";
 import { api } from "@/lib/http/client";
 import { mapPaymentStatusCode } from "@/lib/utils/payment-status";
@@ -102,6 +104,7 @@ interface RawOrderDetail {
         total?: number;
         status?: string;
         image?: string | null;
+        storeId?: string | null;
       }>;
       pricing?: {
         subtotal?: number;
@@ -291,6 +294,25 @@ export async function getOrderInvoiceLink(
   };
 }
 
+/** Fetch pickup codes for an order (available after courier accepts). */
+export async function getOrderPickupCodes(orderId: string): Promise<PickupCodesResponse> {
+  const res = await api.get<{ success: boolean; data: { codes: unknown[] } }>(
+    `sellers/orders/${orderId}/pickup-code`,
+  );
+  return pickupCodesResponseSchema.parse(res.data);
+}
+
+/** Vendor confirms handoff of a specific item to the courier. Idempotent. */
+export async function confirmItemHandoff(
+  orderId: string,
+  itemId: string,
+): Promise<{ success: boolean; vendor_handoff_at?: string }> {
+  const res = await api.post<{ success: boolean; data?: { vendor_handoff_at?: string } }>(
+    `sellers/orders/${orderId}/items/${itemId}/confirm-handoff`,
+  );
+  return { success: res.success, vendor_handoff_at: res.data?.vendor_handoff_at };
+}
+
 // ── Transformers ───────────────────────────────────────────
 
 function _transformOrderListItem(raw: RawOrderItem): Record<string, unknown> {
@@ -354,6 +376,7 @@ function _transformOrderDetailResponse(
     unitPrice: item.price ?? 0,
     lineTotal: item.total ?? (item.price ?? 0) * (item.quantity ?? 1),
     ready: item.status === "ready" || item.status === "in_stock",
+    storeId: item.storeId ?? null,
   }));
 
   const subtotal = raw.pricing?.subtotal ?? 0;

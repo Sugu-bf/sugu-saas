@@ -15,6 +15,8 @@ export const queryKeys = {
       [...queryKeys.vendor.all, "orders", filters] as const,
     orderDetail: (id: string) =>
       [...queryKeys.vendor.all, "orders", "detail", id] as const,
+    orderPickupCodes: (id: string) =>
+      [...queryKeys.vendor.all, "orders", "pickup-codes", id] as const,
     orderStats: () =>
       [...queryKeys.vendor.all, "orders", "stats"] as const,
     products: (filters?: Record<string, unknown>) =>
