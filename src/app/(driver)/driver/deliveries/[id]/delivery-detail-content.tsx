@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
 import { formatCentsToXof } from "@/lib/utils/format-cents";
 import { mapSuguErrorMessage } from "@/lib/http/sugu-error-mapper";
 import {
@@ -481,9 +480,8 @@ function EarningsCard({ detail }: { detail: DriverDeliveryDetail }) {
 
       <p className="mt-2">
         <span className="text-4xl font-extrabold text-gray-900">
-          {formatCurrency(detail.amount)}
+          {formatCentsToXof(detail.amount)}
         </span>
-        <span className="ml-1 text-lg font-bold text-gray-500">FCFA</span>
       </p>
 
       {/* Payment badge or COD Mixte Card */}
@@ -552,7 +550,7 @@ function ProductCard({
           <p className="text-[10px] text-gray-400">{product.variant}</p>
         )}
         <p className="text-xs font-semibold text-gray-900">
-          {formatCurrency(product.price)} FCFA
+          {formatCentsToXof(product.price)}
         </p>
       </div>
 

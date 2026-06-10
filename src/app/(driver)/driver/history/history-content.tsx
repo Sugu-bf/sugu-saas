@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import {
   Download,
   Search,
@@ -195,7 +195,7 @@ function HistoryRow({
           isFailed ? "text-gray-400 line-through" : "text-green-600",
         )}
       >
-        {formatCurrency(row.amount)} F
+        {formatCentsToXof(row.amount)}
       </span>
 
       {/* Duration */}
@@ -263,7 +263,7 @@ function MobileHistoryRow({
             isFailed ? "text-gray-400 line-through" : "text-green-600",
           )}
         >
-          {formatCurrency(row.amount)} F
+          {formatCentsToXof(row.amount)}
         </span>
         <ChevronRight className="ml-1 inline h-4 w-4 text-gray-300" />
       </div>
@@ -366,9 +366,9 @@ export function DriverHistoryContent() {
         <KpiCard
           icon={Banknote}
           iconBg="bg-amber-50 text-amber-500"
-          value={formatCurrency(kpis.totalEarnings)}
-          label="FCFA gagnés"
-          badge={`Moy. ${formatCurrency(kpis.avgEarningsPerDelivery)} F/course`}
+          value={formatCentsToXof(kpis.totalEarnings)}
+          label="gagnés"
+          badge={`Moy. ${formatCentsToXof(kpis.avgEarningsPerDelivery)}/course`}
           badgeBg="bg-amber-50 text-amber-700"
         />
       </div>

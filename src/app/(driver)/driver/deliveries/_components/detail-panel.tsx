@@ -6,7 +6,7 @@
 
 import { Fragment } from "react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import {
   MapPin,
   Phone,
@@ -225,7 +225,7 @@ function OrderSection({ row }: { row: DriverDeliveryRow }) {
             {row.orderItems} articles
           </p>
           <span className="text-sm font-extrabold text-gray-900 dark:text-white">
-            {formatCurrency(row.orderTotal)} FCFA
+            {formatCentsToXof(row.orderTotal)}
           </span>
         </div>
         <div className="mt-2">

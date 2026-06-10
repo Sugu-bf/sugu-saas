@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import {
   Package,
   CheckCircle2,
@@ -138,7 +138,7 @@ export function DeliveryCard({
         </span>
         <span className="inline-flex items-center gap-1 rounded-lg bg-sugu-50 px-2 py-0.5 text-[10px] font-bold text-sugu-600 dark:bg-sugu-950/30 dark:text-sugu-400">
           <TrendingUp className="h-3 w-3" />
-          {formatCurrency(row.amount)} F
+          {formatCentsToXof(row.amount)}
         </span>
         {(() => {
           const chip = courierCardCodChip(row);
@@ -223,7 +223,7 @@ export function DeliveryCard({
             ) : (
               <Check className="h-3.5 w-3.5" />
             )}
-            Accepter · {formatCurrency(row.amount)} F
+            Accepter · {formatCentsToXof(row.amount)}
           </button>
         </div>
       )}
