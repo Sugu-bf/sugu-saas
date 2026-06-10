@@ -99,7 +99,9 @@ export type DriverDashboardData = z.infer<typeof driverDashboardSchema>;
 /** All possible statuses from the driver's perspective */
 export const driverDeliveryStatusSchema = z.enum([
   "to_accept",
+  "awaiting_fee_payment",
   "pickup",
+  "picked_up",
   "en_route",
   "arrived",
   "delivered",

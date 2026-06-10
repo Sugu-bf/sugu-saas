@@ -78,11 +78,23 @@ const STATUS_CONFIG: Record<
     text: "text-gray-600",
     dot: "bg-gray-400",
   },
+  awaiting_fee_payment: {
+    label: "En attente de paiement frais",
+    bg: "bg-yellow-50",
+    text: "text-yellow-700",
+    dot: "bg-yellow-500",
+  },
   pickup: {
     label: "Ramassage",
     bg: "bg-blue-50",
     text: "text-blue-700",
     dot: "bg-blue-500",
+  },
+  picked_up: {
+    label: "Collecté",
+    bg: "bg-cyan-50",
+    text: "text-cyan-700",
+    dot: "bg-cyan-500",
   },
   en_route: {
     label: "En route",

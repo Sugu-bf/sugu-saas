@@ -27,6 +27,15 @@ export const STATUS_CONFIG: Record<DriverDeliveryStatus, StatusStyle> = {
     gradient: "from-amber-500 to-orange-500",
     iconBg: "bg-gradient-to-br from-amber-400 to-orange-500",
   },
+  awaiting_fee_payment: {
+    label: "En attente de paiement frais",
+    bg: "bg-yellow-50 dark:bg-yellow-950/30",
+    text: "text-yellow-700 dark:text-yellow-400",
+    dot: "bg-yellow-500 animate-pulse",
+    borderL: "border-l-[3px] border-yellow-400",
+    gradient: "from-yellow-500 to-amber-500",
+    iconBg: "bg-gradient-to-br from-yellow-400 to-amber-500",
+  },
   pickup: {
     label: "Ramassage",
     bg: "bg-blue-50 dark:bg-blue-950/40",
@@ -35,6 +44,15 @@ export const STATUS_CONFIG: Record<DriverDeliveryStatus, StatusStyle> = {
     borderL: "border-l-[3px] border-blue-400",
     gradient: "from-blue-500 to-cyan-500",
     iconBg: "bg-gradient-to-br from-blue-400 to-cyan-500",
+  },
+  picked_up: {
+    label: "Collecté",
+    bg: "bg-cyan-50 dark:bg-cyan-950/40",
+    text: "text-cyan-700 dark:text-cyan-400",
+    dot: "bg-cyan-500",
+    borderL: "border-l-[3px] border-cyan-400",
+    gradient: "from-cyan-500 to-blue-500",
+    iconBg: "bg-gradient-to-br from-cyan-400 to-blue-500",
   },
   en_route: {
     label: "En route",

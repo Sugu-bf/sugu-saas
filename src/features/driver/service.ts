@@ -329,20 +329,31 @@ export interface DriverDeliveryFilters {
 function _mapShipmentStatus(backendStatus: string): string {
   const statusMap: Record<string, string> = {
     pending: "to_accept",
+    awaiting_fee_payment: "awaiting_fee_payment",
     assigned: "pickup",
+    picked_up: "picked_up",
     in_transit: "en_route",
+    arrived: "arrived",
     delivered: "delivered",
     delivery_failed: "failed",
   };
-  return statusMap[backendStatus] ?? backendStatus;
+  const mapped = statusMap[backendStatus];
+  if (mapped === undefined) {
+    console.warn(`[driver] unknown backend status: "${backendStatus}" — passed through`);
+    return backendStatus;
+  }
+  return mapped;
 }
 
 /** @internal Map frontend status → human-readable label */
 function _statusLabel(status: string): string {
   const labels: Record<string, string> = {
     to_accept: "À accepter",
+    awaiting_fee_payment: "En attente de paiement frais",
     pickup: "Ramassage",
+    picked_up: "Collecté",
     en_route: "En route",
+    arrived: "Arrivé au client",
     delivered: "Livré",
     failed: "Échoué",
   };
