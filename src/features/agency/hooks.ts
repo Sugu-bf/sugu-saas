@@ -208,6 +208,76 @@ export function useBulkStatus() {
   });
 }
 
+// ============================================================
+// 6C — Agency Decision Hooks
+// ============================================================
+
+export function useAcceptShipment(shipmentId: string) {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: () => agencyService.acceptShipment(agencyId, shipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agency.deliveryDetail(shipmentId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.all });
+    },
+  });
+}
+
+export function useRefuseShipment(shipmentId: string) {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (reason: string) =>
+      agencyService.refuseShipment(agencyId, shipmentId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agency.deliveryDetail(shipmentId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.all });
+    },
+  });
+}
+
+export function useAdjustPrice(shipmentId: string) {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (amount: number) =>
+      agencyService.adjustShipmentPrice(agencyId, shipmentId, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agency.deliveryDetail(shipmentId),
+      });
+    },
+  });
+}
+
+export function useReassignCourier(shipmentId: string) {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: (courierId: string) =>
+      agencyService.reassignCourier(agencyId, shipmentId, courierId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agency.deliveryDetail(shipmentId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.all });
+    },
+  });
+}
+
 /**
  * Hook: Create a new delivery.
  * Invalidates all agency queries on success.

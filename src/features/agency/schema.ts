@@ -272,6 +272,27 @@ export const trackingEventSchema = z.object({
 });
 export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 
+/** Stop (pickup or delivery point) in the itinerary */
+export const shipmentStopSchema = z.object({
+  id: z.string(),
+  letter: z.string(),
+  type: z.enum(["pickup", "delivery"]),
+  name: z.string(),
+  address: z.string(),
+  products: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    variant: z.string().nullable().optional(),
+    quantity: z.number(),
+    price: z.number(),
+    image_url: z.string().nullable().optional(),
+    collected: z.boolean().optional(),
+  })).optional().default([]),
+  pickup_code: z.string().nullable().optional(),
+  is_completed: z.boolean().optional(),
+});
+export type ShipmentStop = z.infer<typeof shipmentStopSchema>;
+
 /** Extended delivery row for detail page (backwards-compatible with DeliveryRow) */
 export const deliveryDetailRowSchema = deliveryRowSchema.extend({
   shippingAmount: z.number(),            // shipping fee in FCFA (divided by 100)
@@ -282,6 +303,12 @@ export const deliveryDetailRowSchema = deliveryRowSchema.extend({
   orderItemsList: z.array(orderItemSchema),
   trackingEvents: z.array(trackingEventSchema),
   notes: z.array(shipmentNoteSchema),
+  stops: z.array(shipmentStopSchema).optional().default([]),
+
+  // 6C — Agency decision state
+  agencyAcceptedAt: z.string().nullable().optional(),
+  agencyRefusedAt: z.string().nullable().optional(),
+  agencyRefusalReason: z.string().nullable().optional(),
 
   // COD Mixte split-payment data (optional — only for COD orders)
   codMixte: z.object({

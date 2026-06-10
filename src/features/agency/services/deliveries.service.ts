@@ -94,12 +94,38 @@ const backendOrderDetailSchema = backendOrderSchema.unwrap().unwrap().extend({
   items: z.array(backendOrderItemSchema).optional().default([]),
 }).nullable().optional();
 
+const backendStopProductSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  variant: z.string().nullable().optional(),
+  quantity: z.number(),
+  price: z.number(),
+  image_url: z.string().nullable().optional(),
+  collected: z.boolean().optional(),
+});
+
+const backendStopSchema = z.object({
+  id: z.string(),
+  letter: z.string(),
+  type: z.string(),
+  name: z.string(),
+  address: z.string(),
+  products: z.array(backendStopProductSchema).optional().default([]),
+  pickup_code: z.string().nullable().optional(),
+  is_completed: z.boolean().optional(),
+});
+
 const backendShipmentDetailSchema = backendShipmentSchema.extend({
   order: backendOrderDetailSchema,
   courier_phone: z.string().nullable().optional(),
   status_updated_at: z.string().nullable().optional(),
   tracking_events: z.array(backendTrackingEventSchema).optional().default([]),
   notes: z.array(backendNoteSchema).optional().default([]),
+  stops: z.array(backendStopSchema).optional().default([]),
+  // 6C — agency decision state
+  agency_accepted_at: z.string().nullable().optional(),
+  agency_refused_at: z.string().nullable().optional(),
+  agency_refusal_reason: z.string().nullable().optional(),
 });
 
 const backendShipmentsResponseSchema = z.object({
@@ -310,6 +336,27 @@ function _transformShipmentDetail(
       noted_at: n.noted_at,
       author: n.author,
     })),
+    stops: (raw.stops ?? []).map((s) => ({
+      id: s.id,
+      letter: s.letter,
+      type: s.type as "pickup" | "delivery",
+      name: s.name,
+      address: s.address,
+      products: (s.products ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        variant: p.variant ?? null,
+        quantity: p.quantity,
+        price: p.price,
+        image_url: p.image_url ?? null,
+        collected: p.collected ?? false,
+      })),
+      pickup_code: s.pickup_code ?? null,
+      is_completed: s.is_completed ?? false,
+    })),
+    agencyAcceptedAt: raw.agency_accepted_at ?? null,
+    agencyRefusedAt: raw.agency_refused_at ?? null,
+    agencyRefusalReason: raw.agency_refusal_reason ?? null,
     codMixte: raw.cod_mixte ? {
       isCodMixte: Boolean(raw.cod_mixte.isCodMixte),
       currentStep: raw.cod_mixte.currentStep ?? "awaiting_delivery_payment",
@@ -445,6 +492,40 @@ export async function updateDeliveryStatus(
   );
   const shipment = backendShipmentSchema.parse(raw.data);
   return _transformShipment(shipment);
+}
+
+// ── 6C-2 Agency decision endpoints ────────────────────────────
+
+export async function acceptShipment(agencyId: string, shipmentId: string): Promise<DeliveryRow> {
+  const raw = await api.post<{ success: boolean; data: z.infer<typeof backendShipmentSchema> }>(
+    `agencies/${agencyId}/shipments/${shipmentId}/accept`,
+    {},
+  );
+  return _transformShipment(backendShipmentSchema.parse(raw.data));
+}
+
+export async function refuseShipment(agencyId: string, shipmentId: string, reason: string): Promise<DeliveryRow> {
+  const raw = await api.post<{ success: boolean; data: z.infer<typeof backendShipmentSchema> }>(
+    `agencies/${agencyId}/shipments/${shipmentId}/refuse`,
+    { reason },
+  );
+  return _transformShipment(backendShipmentSchema.parse(raw.data));
+}
+
+export async function adjustShipmentPrice(agencyId: string, shipmentId: string, amount: number): Promise<DeliveryRow> {
+  const raw = await api.put<{ success: boolean; data: z.infer<typeof backendShipmentSchema> }>(
+    `agencies/${agencyId}/shipments/${shipmentId}/price`,
+    { amount },
+  );
+  return _transformShipment(backendShipmentSchema.parse(raw.data));
+}
+
+export async function reassignCourier(agencyId: string, shipmentId: string, courierId: string): Promise<DeliveryRow> {
+  const raw = await api.post<{ success: boolean; data: z.infer<typeof backendShipmentSchema> }>(
+    `agencies/${agencyId}/shipments/${shipmentId}/reassign`,
+    { courier_id: courierId },
+  );
+  return _transformShipment(backendShipmentSchema.parse(raw.data));
 }
 
 /**

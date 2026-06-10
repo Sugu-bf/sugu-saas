@@ -20,6 +20,9 @@ import {
   DeliveryDetailItinerarySection,
   DeliveryDetailActionsSection,
   DeliveryDetailNotesSection,
+  DeliveryDetailAgencyDecisionSection,
+  DeliveryDetailReassignSection,
+  DeliveryDetailStopsSection,
 } from "./components/sections";
 
 // ────────────────────────────────────────────────────────────
@@ -170,9 +173,14 @@ export function DeliveryDetailContent({
         <DeliveryDetailOrderSection row={row} detailRow={detailRow} orderSubtotal={orderSubtotal} deliveryFee={deliveryFee} totalWithFees={totalWithFees} />
         <DeliveryDetailItinerarySection row={row} enrichedTimeline={enrichedTimeline} />
         <div className="space-y-4 lg:space-y-5">
+          <DeliveryDetailAgencyDecisionSection shipmentId={shipmentId} detailRow={detailRow} />
+          <DeliveryDetailReassignSection shipmentId={shipmentId} detailRow={detailRow} />
           <DeliveryDetailActionsSection row={row} updateStatus={updateStatus} isMutating={isMutating} />
           <DeliveryDetailNotesSection detailRow={detailRow} internalNote={internalNote} setInternalNote={setInternalNote} addNote={addNote} />
         </div>
+        {detailRow.stops && detailRow.stops.length > 0 && (
+          <DeliveryDetailStopsSection stops={detailRow.stops} />
+        )}
       </div>
     </div>
   );

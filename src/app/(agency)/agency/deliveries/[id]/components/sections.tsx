@@ -1,9 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import type { SetStateAction } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
-import { MapPin, Navigation, Bike, Phone, MessageCircle, Star, UserCheck, User, StickyNote, Package, ExternalLink, CheckCircle2, Check, Zap, Loader2, AlertTriangle, XCircle } from "lucide-react";
-import type { DeliveryDetailRow } from "@/features/agency/schema";
+import { MapPin, Navigation, Bike, Phone, MessageCircle, Star, UserCheck, User, StickyNote, Package, ExternalLink, CheckCircle2, Check, Zap, Loader2, AlertTriangle, XCircle, Clock, CheckCheck, Ban, RefreshCw, DollarSign, ShoppingBag } from "lucide-react";
+import type { DeliveryDetailRow, ShipmentStop } from "@/features/agency/schema";
+import { useAcceptShipment, useRefuseShipment, useAdjustPrice, useReassignCourier, useAvailableCouriers } from "@/features/agency/hooks";
 import { MapPlaceholder } from "./skeletons";
 import { AgencyCodMixtePaymentCard } from "./badges";
 
@@ -517,6 +521,357 @@ export function DeliveryDetailActionsSection({
           </button>
         )}
       </div>
+    </section>
+  );
+}
+
+// ── 6C: Agency Decision Section ──────────────────────────────
+
+export function DeliveryDetailAgencyDecisionSection({
+  shipmentId,
+  detailRow,
+}: {
+  shipmentId: string;
+  detailRow: DeliveryDetailRow;
+}) {
+  const [showRefuseForm, setShowRefuseForm] = useState(false);
+  const [refuseReason, setRefuseReason] = useState("");
+  const [showPriceForm, setShowPriceForm] = useState(false);
+  const [newPrice, setNewPrice] = useState("");
+
+  const accept = useAcceptShipment(shipmentId);
+  const refuse = useRefuseShipment(shipmentId);
+  const adjustPrice = useAdjustPrice(shipmentId);
+
+  const isAccepted = Boolean(detailRow.agencyAcceptedAt);
+  const isRefused = Boolean(detailRow.agencyRefusedAt);
+
+  return (
+    <section
+      className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
+      style={{ animationDelay: "380ms" }}
+      aria-labelledby="detail-agency-decision-heading"
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <CheckCheck className="h-4 w-4 text-gray-500" />
+        <h2 id="detail-agency-decision-heading" className="text-sm font-bold text-gray-900">
+          Décision agence
+        </h2>
+      </div>
+
+      {isAccepted && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5">
+            <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-green-700">Commande acceptée</p>
+              <p className="text-[10px] text-green-500 mt-0.5">
+                {new Date(detailRow.agencyAcceptedAt!).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          </div>
+
+          {!showPriceForm ? (
+            <button
+              onClick={() => setShowPriceForm(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              Ajuster le prix de livraison
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-700">Nouveau prix (FCFA)</label>
+              <input
+                type="number"
+                min="1"
+                className="form-input w-full text-xs"
+                placeholder="ex: 3500"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const amount = parseInt(newPrice, 10);
+                    if (amount > 0) {
+                      adjustPrice.mutate(amount, {
+                        onSuccess: () => { setShowPriceForm(false); setNewPrice(""); },
+                      });
+                    }
+                  }}
+                  disabled={adjustPrice.isPending || !newPrice || parseInt(newPrice, 10) <= 0}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-sugu-500 py-2 text-xs font-semibold text-white hover:bg-sugu-600 disabled:opacity-60 transition-colors"
+                >
+                  {adjustPrice.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirmer"}
+                </button>
+                <button
+                  onClick={() => { setShowPriceForm(false); setNewPrice(""); }}
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+              {adjustPrice.isError && (
+                <p className="text-[10px] text-red-500">
+                  {(adjustPrice.error as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code === "SUGU-PRICE-LOCKED"
+                    ? "Prix verrouillé — le frais de livraison a déjà été payé."
+                    : "Erreur lors de la mise à jour du prix."}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isRefused && (
+        <div className="rounded-xl bg-red-50 px-3 py-2.5 space-y-1">
+          <div className="flex items-center gap-2">
+            <Ban className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <p className="text-xs font-semibold text-red-700">Commande refusée</p>
+          </div>
+          {detailRow.agencyRefusalReason && (
+            <p className="text-[11px] italic text-red-600 ml-6">{detailRow.agencyRefusalReason}</p>
+          )}
+          <p className="text-[10px] text-red-400 ml-6">
+            {new Date(detailRow.agencyRefusedAt!).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
+      )}
+
+      {!isAccepted && !isRefused && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2.5 mb-3">
+            <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+            <p className="text-xs text-amber-700">En attente de votre décision</p>
+          </div>
+
+          <button
+            onClick={() => accept.mutate()}
+            disabled={accept.isPending || refuse.isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sugu-500 py-2.5 text-xs font-semibold text-white hover:bg-sugu-600 disabled:opacity-60 transition-colors"
+          >
+            {accept.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            Accepter la commande
+          </button>
+
+          {!showRefuseForm ? (
+            <button
+              onClick={() => setShowRefuseForm(true)}
+              disabled={accept.isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-60 transition-colors"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Refuser la commande
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-red-100 bg-red-50/50 p-3">
+              <label className="text-xs font-semibold text-gray-700">Motif du refus <span className="text-red-500">*</span></label>
+              <textarea
+                className="form-input w-full h-16 resize-none text-xs"
+                placeholder="Décrivez la raison du refus..."
+                value={refuseReason}
+                onChange={(e) => setRefuseReason(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (refuseReason.trim()) {
+                      refuse.mutate(refuseReason.trim(), {
+                        onSuccess: () => { setShowRefuseForm(false); setRefuseReason(""); },
+                      });
+                    }
+                  }}
+                  disabled={refuse.isPending || !refuseReason.trim()}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-60 transition-colors"
+                >
+                  {refuse.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirmer le refus"}
+                </button>
+                <button
+                  onClick={() => { setShowRefuseForm(false); setRefuseReason(""); }}
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── 6C: Reassign Section ──────────────────────────────────────
+
+export function DeliveryDetailReassignSection({
+  shipmentId,
+  detailRow,
+}: {
+  shipmentId: string;
+  detailRow: DeliveryDetailRow;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedCourierId, setSelectedCourierId] = useState("");
+
+  const reassign = useReassignCourier(shipmentId);
+  const { data: couriersData } = useAvailableCouriers();
+
+  const blockedStatuses = ["picked_up", "in_transit", "arrived", "delivered", "delivery_failed"];
+  const canReassign = !blockedStatuses.includes(detailRow.status);
+
+  if (!canReassign) return null;
+
+  return (
+    <section
+      className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
+      style={{ animationDelay: "400ms" }}
+      aria-labelledby="detail-reassign-heading"
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <RefreshCw className="h-4 w-4 text-gray-500" />
+        <h2 id="detail-reassign-heading" className="text-sm font-bold text-gray-900">
+          Réassignation
+        </h2>
+      </div>
+
+      {!showForm ? (
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Réassigner à un autre livreur
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-700">Sélectionner un livreur</label>
+          <select
+            className="form-input w-full text-xs"
+            value={selectedCourierId}
+            onChange={(e) => setSelectedCourierId(e.target.value)}
+          >
+            <option value="">— Choisir un livreur —</option>
+            {(couriersData ?? []).map((c: { id: string; name: string }) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-amber-600 flex items-start gap-1">
+            <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+            Les codes de retrait existants seront invalidés. Le nouveau livreur devra accepter la livraison.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (selectedCourierId) {
+                  reassign.mutate(selectedCourierId, {
+                    onSuccess: () => { setShowForm(false); setSelectedCourierId(""); },
+                  });
+                }
+              }}
+              disabled={reassign.isPending || !selectedCourierId}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-sugu-500 py-2 text-xs font-semibold text-white hover:bg-sugu-600 disabled:opacity-60 transition-colors"
+            >
+              {reassign.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirmer"}
+            </button>
+            <button
+              onClick={() => { setShowForm(false); setSelectedCourierId(""); }}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+          {reassign.isError && (
+            <p className="text-[10px] text-red-500">
+              {(reassign.error as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code === "SUGU-REASSIGN-TOO-LATE"
+                ? "Réassignation impossible — la livraison est déjà en cours de ramassage."
+                : "Erreur lors de la réassignation."}
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── 6C: Stops Section ─────────────────────────────────────────
+
+export function DeliveryDetailStopsSection({ stops }: { stops: ShipmentStop[] }) {
+  if (!stops || stops.length === 0) return null;
+
+  return (
+    <section
+      className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
+      style={{ animationDelay: "420ms" }}
+      aria-labelledby="detail-stops-heading"
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-gray-500" />
+        <h2 id="detail-stops-heading" className="text-sm font-bold text-gray-900">
+          Arrêts ({stops.length})
+        </h2>
+      </div>
+
+      <ol className="space-y-3">
+        {stops.map((stop, i) => {
+          const isPickup = stop.type === "pickup";
+          const isLast = i === stops.length - 1;
+          return (
+            <li key={stop.id} className="flex gap-3">
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
+                  stop.is_completed ? "bg-green-500 text-white" : isPickup ? "bg-blue-100 text-blue-700" : "bg-sugu-100 text-sugu-700"
+                )}>
+                  {stop.letter}
+                </div>
+                {!isLast && <span className="mt-1 h-full min-h-[24px] w-px border-l border-dashed border-gray-200" />}
+              </div>
+
+              <div className="flex-1 min-w-0 pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                    isPickup ? "bg-blue-100 text-blue-700" : "bg-sugu-100 text-sugu-700"
+                  )}>
+                    {isPickup ? "Ramassage" : "Livraison"}
+                  </span>
+                  {stop.is_completed && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                      <Check className="h-2.5 w-2.5" /> Complété
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-1 text-xs font-semibold text-gray-900">{stop.name}</p>
+                <p className="text-[10px] text-gray-400">{stop.address}</p>
+
+                {stop.pickup_code && (
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-mono font-bold text-amber-700">
+                    Code: {stop.pickup_code}
+                  </div>
+                )}
+
+                {stop.products && stop.products.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {stop.products.map((p) => (
+                      <li key={p.id} className="flex items-center gap-2 text-[10px] text-gray-500">
+                        <ShoppingBag className="h-3 w-3 flex-shrink-0 text-gray-300" />
+                        <span className="font-medium text-gray-700">{p.quantity}×</span>
+                        <span className="truncate">{p.name}</span>
+                        {p.variant && <span className="text-gray-400">({p.variant})</span>}
+                        {p.collected && (
+                          <span className="ml-auto flex-shrink-0 text-green-600 font-semibold">✓</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
