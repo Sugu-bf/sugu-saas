@@ -16,7 +16,15 @@ export const ConversationCard = memo(function ConversationCard({
   isSelected,
   onSelect,
 }: ConversationCardProps) {
-  const customerName = conversation.customer?.name ?? "Client";
+  const isCourierConv =
+    conversation.type === "courier_store" ||
+    conversation.type === "courier_customer";
+  const courierParticipant = isCourierConv
+    ? conversation.participants?.find((p) => p.type === "courier")
+    : null;
+  const displayName =
+    courierParticipant?.name ?? conversation.customer?.name ?? "Client";
+  const customerName = displayName;
   const avatarCls = avatarColor(customerName);
   const ini = initials(customerName);
   const lastMsg = conversation.last_message;
@@ -78,7 +86,9 @@ export const ConversationCard = memo(function ConversationCard({
         </div>
         <div className="mt-0.5 flex items-center justify-between">
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
-            {_conversationTypeLabel(conversation.type)}
+            {conversation.type === "courier_store" && conversation.order_id
+              ? `Livraison — commande #${conversation.order_id.slice(-4).toUpperCase()}`
+              : _conversationTypeLabel(conversation.type)}
           </span>
           {unread > 0 && (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-sugu-400 to-sugu-500 px-1.5 text-[10px] font-bold text-white">
@@ -113,6 +123,8 @@ const CONVERSATION_TYPE_LABELS: Record<string, string> = {
   order_support: "Support commande",
   delivery_support: "Support livraison",
   support_chat: "Support",
+  courier_customer: "Livreur ↔ Client",
+  courier_store: "Livraison boutique",
 };
 
 function _conversationTypeLabel(type: string): string {

@@ -5,7 +5,9 @@ export type ConversationType =
   | "pre_order"
   | "order_support"
   | "delivery_support"
-  | "support_chat";
+  | "support_chat"
+  | "courier_customer"
+  | "courier_store";
 
 export type ConversationStatus = "open" | "closed" | "archived" | "blocked";
 
