@@ -775,6 +775,7 @@ interface RawDeliveryDetailResponse {
   parcel_count: number;
   stops: Array<{
     id: string;
+    store_id?: string | null;
     letter: string;
     type: string;
     name: string;
@@ -830,6 +831,7 @@ function _transformDeliveryDetailResponse(raw: Record<string, unknown>): unknown
     parcelCount: d.parcel_count,
     stops: d.stops.map((stop) => ({
       id: stop.id,
+      storeId: stop.store_id ?? null,
       letter: stop.letter,
       type: stop.type,
       name: stop.name,

@@ -21,6 +21,18 @@ interface PresenceResponse { success: boolean; data: PresenceInfo[]; }
 export interface RecommendedProduct { id: string; name: string; slug: string; price: number; compare_price: number | null; currency: string; thumbnail: string | null; in_stock: boolean; }
 interface RecommendedProductsResponse { success: boolean; data: RecommendedProduct[]; }
 
+// ── Start conversation ────────
+export async function startCourierConversation(
+  shipmentId: string,
+  target: "courier_customer" | "courier_store",
+  storeId?: string,
+): Promise<Conversation> {
+  const payload: Record<string, string> = { shipment_id: shipmentId, target };
+  if (storeId) payload.store_id = storeId;
+  const res = await api.post<SingleConversationResponse>("courier/conversations/start", payload);
+  return res.data;
+}
+
 // ── Conversations ────────
 export async function getCourierConversations(params?: Record<string, string | number | boolean | undefined>) {
   const res = await api.get<PaginatedConversationsResponse>("courier/conversations", { params });

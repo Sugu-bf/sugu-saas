@@ -23,6 +23,7 @@ import {
   getCourierPresence,
   reportCourierMessage,
   getRecommendedProducts,
+  startCourierConversation,
 } from "../services/messaging.service";
 import type { Message } from "@/lib/messaging/types";
 
@@ -167,7 +168,23 @@ export function useMarkCourierAsRead() {
   });
 }
 
-// removed unsupported hooks
+export function useStartCourierConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      shipmentId,
+      target,
+      storeId,
+    }: {
+      shipmentId: string;
+      target: "courier_customer" | "courier_store";
+      storeId?: string;
+    }) => startCourierConversation(shipmentId, target, storeId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.driver.conversations() });
+    },
+  });
+}
 
 export function useReportMessage() {
   return useMutation({

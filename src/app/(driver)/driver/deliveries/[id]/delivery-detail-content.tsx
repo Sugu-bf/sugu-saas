@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatCentsToXof } from "@/lib/utils/format-cents";
 import { mapSuguErrorMessage } from "@/lib/http/sugu-error-mapper";
@@ -37,6 +38,7 @@ import {
   useAcceptDelivery,
   useRefuseDelivery,
 } from "@/features/driver/hooks";
+import { useStartCourierConversation } from "@/features/driver/messaging/hooks";
 import type {
   DriverDeliveryDetail,
   PickupStop,
@@ -641,6 +643,8 @@ function ItineraryCard({
   status: string;
 }) {
   const confirmMutation = useConfirmCollection();
+  const startConvMutation = useStartCourierConversation();
+  const router = useRouter();
   const pickupStops = stops.filter((s) => s.type === "pickup");
   const deliveryStop = stops.find((s) => s.type === "delivery");
 
@@ -731,6 +735,28 @@ function ItineraryCard({
                     <CheckCircle2 className="h-3.5 w-3.5" /> Collecté
                   </p>
                 )}
+
+                {stop.storeId && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const conv = await startConvMutation.mutateAsync({
+                          shipmentId: deliveryId,
+                          target: "courier_store",
+                          storeId: stop.storeId!,
+                        });
+                        router.push(`/driver/messages/${conv.id}`);
+                      } catch {
+                        toast.error("Impossible de contacter la boutique");
+                      }
+                    }}
+                    disabled={startConvMutation.isPending}
+                    className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-sugu-200 bg-sugu-50/60 py-2 text-xs font-semibold text-sugu-700 transition-colors hover:bg-sugu-100 disabled:opacity-60"
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                    Contacter la boutique
+                  </button>
+                )}
               </div>
             </div>
 
@@ -759,8 +785,22 @@ function ItineraryCard({
                 <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
                   <Phone className="h-3.5 w-3.5" /> Appeler
                 </button>
-                <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
-                  <MessageCircle className="h-3.5 w-3.5" /> Message
+                <button
+                  onClick={async () => {
+                    try {
+                      const conv = await startConvMutation.mutateAsync({
+                        shipmentId: deliveryId,
+                        target: "courier_customer",
+                      });
+                      router.push(`/driver/messages/${conv.id}`);
+                    } catch {
+                      toast.error("Impossible de contacter le client");
+                    }
+                  }}
+                  disabled={startConvMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-sugu-200 bg-sugu-50/60 px-3 py-1.5 text-xs font-semibold text-sugu-700 transition hover:bg-sugu-100 disabled:opacity-60"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Contacter
                 </button>
               </div>
             </div>
@@ -858,10 +898,14 @@ function TrackingTimeline({ steps }: { steps: DetailTimelineStep[] }) {
 
 function ClientCard({
   client,
+  shipmentId,
 }: {
   client: DriverDeliveryDetail["client"];
   status: string;
+  shipmentId: string;
 }) {
+  const startConvMutation = useStartCourierConversation();
+  const router = useRouter();
   return (
     <div
       className="glass-card rounded-2xl p-5 animate-card-enter"
@@ -891,13 +935,28 @@ function ClientCard({
         </div>
       </div>
 
-      {/* Call / SMS buttons */}
+      {/* Call / Message buttons */}
       <div className="mt-3 flex gap-2">
         <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">
           <Phone className="h-3.5 w-3.5" /> Appeler
         </button>
-        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">
-          <MessageCircle className="h-3.5 w-3.5" /> SMS
+        <button
+          onClick={async () => {
+            try {
+              const conv = await startConvMutation.mutateAsync({
+                shipmentId,
+                target: "courier_customer",
+              });
+              router.push(`/driver/messages/${conv.id}`);
+            } catch {
+              toast.error("Impossible de contacter le client");
+            }
+          }}
+          disabled={startConvMutation.isPending}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-sugu-200 bg-sugu-50/60 py-2.5 text-xs font-semibold text-sugu-700 transition hover:bg-sugu-100 disabled:opacity-60"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          {startConvMutation.isPending ? "..." : "Contacter le client"}
         </button>
       </div>
 
@@ -1376,7 +1435,7 @@ export function DriverDeliveryDetailContent({
 
         {/* COL 3: Client + Actions */}
         <div className="space-y-4">
-          <ClientCard client={detail.client} status={detail.status} />
+          <ClientCard client={detail.client} status={detail.status} shipmentId={detail.id} />
           <ActionsCard
             detail={detail}
             onStartTransit={handleStartTransit}

@@ -252,6 +252,7 @@ export type PickupProduct = z.infer<typeof pickupProductSchema>;
 /** A single pickup stop (vendeur / point de retrait) */
 export const pickupStopSchema = z.object({
   id: z.string(),
+  storeId: z.string().nullable().optional(), // Store.id — for courier_store messaging (6F)
   letter: z.string(),                // "A", "B", "C"...
   type: z.enum(["pickup", "delivery"]),
   name: z.string(),                  // "Moussa Telecom"
