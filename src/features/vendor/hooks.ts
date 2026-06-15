@@ -691,10 +691,10 @@ export function useCreateProduct() {
           sku: string;
         }>;
       };
-      categoryId?: string;
+      categoryIds?: string[];
       images?: File[];
       previewIds?: string[];
-    }) => vendorService.createVendorProduct(params.formData, params.categoryId, params.images, params.previewIds),
+    }) => vendorService.createVendorProduct(params.formData, params.categoryIds, params.images, params.previewIds),
     onSuccess: (data) => {
       // Invalidate product list, stats, and dashboard
       queryClient.invalidateQueries({ queryKey: queryKeys.vendor.products() });
@@ -746,14 +746,14 @@ export function useUpdateProduct() {
           sku: string;
         }>;
       };
-      categoryId?: string;
+      categoryIds?: string[];
       newImages?: File[];
       removeMediaIds?: (string | number)[];
     }) =>
       vendorService.updateVendorProduct(
         params.id,
         params.formData,
-        params.categoryId,
+        params.categoryIds,
         params.newImages,
         params.removeMediaIds,
       ),

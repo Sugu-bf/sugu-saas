@@ -34,6 +34,7 @@ import type {
 } from "@/features/vendor/schema";
 import {
   useVendorOrders,
+  useVendorOrderDetail,
   useConfirmOrder,
   useCancelOrder,
   useRequestDelivery,
@@ -65,21 +66,21 @@ const STATUS_TABS: StatusTab[] = [
 
 const STATUS_BADGE: Record<OrderStatus, string> = {
   pending:
-    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
+    "bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30",
   confirmed:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400",
+    "bg-emerald-100/80 text-emerald-800 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30",
   processing:
-    "bg-sugu-50 text-sugu-600 border-sugu-200 dark:bg-sugu-950/30 dark:text-sugu-400",
+    "bg-sugu-100/80 text-sugu-700 border-sugu-300 dark:bg-sugu-500/10 dark:text-sugu-400 dark:border-sugu-500/30",
   packed:
-    "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400",
+    "bg-violet-100/80 text-violet-800 border-violet-300 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30",
   shipped:
-    "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
+    "bg-blue-100/80 text-blue-800 border-blue-300 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30",
   delivered:
-    "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400",
+    "bg-green-100/80 text-green-800 border-green-300 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30",
   cancelled:
-    "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400",
+    "bg-red-100/80 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
   refunded:
-    "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
+    "bg-gray-100/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -127,10 +128,10 @@ export function orderListPaymentBadge(
 }
 
 const PAYMENT_TONE_CLASSES: Record<PaymentStatusTone, string> = {
-  neutral: "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
-  warning: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
-  success: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400",
-  danger: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400",
+  neutral: "bg-gray-100/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400",
+  warning: "bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30",
+  success: "bg-green-100/80 text-green-800 border-green-300 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30",
+  danger: "bg-red-100/80 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
 };
 
 /**
@@ -147,14 +148,14 @@ function OrderPaymentBadge({ order, compact = false }: { order: VendorOrder; com
   if (!badge) return null;
   const className =
     badge.variant === "mixte"
-      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400"
+      ? "bg-purple-100/80 text-purple-800 border-purple-300 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30"
       : badge.variant === "legacy"
-        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400"
+        ? "bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30"
         : PAYMENT_TONE_CLASSES[badge.tone];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
         compact ? "" : "mt-1 flex w-fit",
         className,
       )}
@@ -296,9 +297,9 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
       </div>
 
       {/* ════════════ Orders Table ════════════ */}
-      <div className="glass-card overflow-hidden rounded-2xl lg:rounded-3xl">
+      <div className="glass-card overflow-x-auto rounded-2xl lg:rounded-3xl">
         {/* Table Header */}
-        <div className="hidden border-b border-gray-100/80 bg-gray-50/30 dark:border-gray-800/50 lg:block">
+        <div className="hidden border-b border-gray-100/80 bg-gray-50/30 dark:border-b-gray-800/50 lg:block lg:min-w-[1000px]">
           <div className="grid grid-cols-12 items-center gap-3 px-6 py-3">
             <div className="col-span-1 flex items-center">
               <input
@@ -307,7 +308,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                 aria-label="Sélectionner toutes les commandes"
               />
             </div>
-            <span className="col-span-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <span className="col-span-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               N° Commande
             </span>
             <span className="col-span-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -319,7 +320,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
             <span className="col-span-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Montant
             </span>
-            <span className="col-span-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <span className="col-span-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Statut
             </span>
             <span className="col-span-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -348,7 +349,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                 key={order.id}
                 onClick={() => setSelectedOrder(order)}
                 className={cn(
-                  "group cursor-pointer px-4 py-2.5 transition-colors active:bg-white/40 dark:active:bg-white/5 lg:grid lg:grid-cols-12 lg:items-center lg:gap-3 lg:px-6 lg:py-4 lg:cursor-default",
+                  "group cursor-pointer px-4 py-2.5 transition-colors active:bg-white/40 dark:active:bg-white/5 lg:grid lg:grid-cols-12 lg:items-center lg:gap-3 lg:px-6 lg:py-4 lg:cursor-default lg:min-w-[1000px]",
                   selectedOrder?.id === order.id && "bg-sugu-50/30 dark:bg-sugu-950/10",
                 )}
               >
@@ -385,7 +386,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                   </div>
                   {/* Right: amount + eye icon */}
                   <div className="flex flex-shrink-0 items-center gap-1.5 pl-2">
-                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                       {formatCurrency(order.total)}
                     </span>
                     <Link
@@ -403,7 +404,7 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                   <div className="flex min-w-0 items-center gap-1.5">
                     <span
                       className={cn(
-                        "inline-flex flex-shrink-0 items-center rounded-full border px-2 py-px text-[10px] font-medium",
+                        "inline-flex flex-shrink-0 items-center rounded-full border px-2 py-px text-[10px] font-medium whitespace-nowrap",
                         STATUS_BADGE[order.status],
                       )}
                     >
@@ -411,17 +412,17 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                     </span>
                     <OrderPaymentBadge order={order} compact />
                   </div>
-                  <span className="flex-shrink-0 text-[10px] text-gray-400 dark:text-gray-500">
+                  <span className="flex-shrink-0 text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     {order.date}
                   </span>
                 </div>
 
                 {/* ── Desktop: original grid cells ── */}
                 {/* Reference */}
-                <div className="hidden lg:col-span-2 lg:block">
+                <div className="hidden lg:col-span-1 lg:block">
                   <Link
                     href={`/vendor/orders/${order.id}`}
-                    className="text-sm font-bold text-gray-800 transition-colors hover:text-sugu-500 dark:text-gray-200 dark:hover:text-sugu-400"
+                    className="text-sm font-bold text-gray-800 transition-colors hover:text-sugu-500 dark:text-gray-200 dark:hover:text-sugu-400 whitespace-nowrap"
                   >
                     {order.reference}
                   </Link>
@@ -440,24 +441,24 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
                 </div>
 
                 {/* Products */}
-                <div className="hidden lg:col-span-2 lg:block">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="hidden lg:col-span-2 lg:block" title={order.productSummary}>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                     {order.productSummary}
                   </span>
                 </div>
 
                 {/* Amount */}
                 <div className="hidden lg:col-span-1 lg:block">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                     {formatCurrency(order.total)} FCFA
                   </span>
                 </div>
 
                 {/* Status */}
-                <div className="hidden lg:col-span-1 lg:block">
+                <div className="hidden lg:col-span-2 lg:flex lg:flex-col lg:items-start lg:gap-1">
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
                       STATUS_BADGE[order.status],
                     )}
                   >
@@ -468,14 +469,14 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
 
                 {/* Agency */}
                 <div className="hidden lg:col-span-1 lg:block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {order.agency}
                   </span>
                 </div>
 
                 {/* Date */}
                 <div className="hidden lg:col-span-1 lg:block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {order.date}
                   </span>
                 </div>
@@ -569,15 +570,19 @@ export function OrdersContent({ data: initialData }: OrdersContentProps) {
 // ────────────────────────────────────────────────────────────
 
 function OrderDetailPanel({
-  order,
+  order: listOrder,
   onClose,
 }: {
   order: VendorOrder;
   onClose: () => void;
 }) {
+  const { data: detailOrder, isLoading } = useVendorOrderDetail(listOrder.id);
   const confirmMutation = useConfirmOrder();
   const cancelMutation = useCancelOrder();
   const deliveryMutation = useRequestDelivery();
+
+  // Prefer full detailOrder fields, fallback to listOrder fields
+  const order = detailOrder ?? listOrder;
 
   const handleConfirm = () => {
     confirmMutation.mutate(order.id, {
@@ -618,6 +623,15 @@ function OrderDetailPanel({
 
   const isMutating = confirmMutation.isPending || cancelMutation.isPending || deliveryMutation.isPending;
 
+  const address =
+    "delivery" in order && order.delivery?.address
+      ? {
+          street: order.delivery.address.line1 || order.delivery.address.line2,
+          city: order.delivery.address.city,
+          country: order.delivery.address.country,
+        }
+      : (order as any).deliveryAddress;
+
   return (
     <>
       {/* Backdrop */}
@@ -644,173 +658,187 @@ function OrderDetailPanel({
             </button>
           </div>
 
-          <div className="flex-1 space-y-5 p-4 lg:space-y-6 lg:p-6">
-            {/* ── Client Info ── */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Information Client
-              </h3>
-              <div className="mt-3 space-y-2">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {order.client.name}
-                </p>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <Phone className="h-3.5 w-3.5" />
-                  {order.client.phone}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <Mail className="h-3.5 w-3.5" />
-                  {order.client.email}
-                </div>
-              </div>
-            </section>
-
-            {/* ── Products ── */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Produits
-              </h3>
-              <div className="mt-3 space-y-3">
-                {order.products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center gap-3 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/50"
-                  >
-                    <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
-                      {product.image ? (
-                        <Image src={product.image} alt={product.name} fill className="object-cover" />
-                      ) : (
-                        <Package className="h-5 w-5 text-gray-400" />
-                      )}
+          {isLoading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-sugu-500" />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 space-y-5 p-4 lg:space-y-6 lg:p-6">
+                {/* ── Client Info ── */}
+                <section>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Information Client
+                  </h3>
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {order.client.name}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <Phone className="h-3.5 w-3.5" />
+                      {order.client.phone}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                        {product.name}
-                        {product.variant && (
-                          <span className="font-normal text-gray-500 dark:text-gray-400">
-                            {" "}
-                            - {product.variant}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Quantité : {product.quantity}
-                      </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <Mail className="h-3.5 w-3.5" />
+                      {order.client.email}
                     </div>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                      {formatCurrency(product.price)} FCFA
-                    </span>
                   </div>
-                ))}
-              </div>
-            </section>
+                </section>
 
-            {/* ── Delivery Address ── */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Adresse de livraison
-              </h3>
-              <div className="mt-3 flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
-                <div>
-                  <p>{order.deliveryAddress.street}</p>
-                  <p>
-                    {order.deliveryAddress.city},{" "}
-                    {order.deliveryAddress.country}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* ── Timeline ── */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Chronologie
-              </h3>
-              <div className="mt-3 space-y-0">
-                {order.timeline.map((event, i) => (
-                  <div key={event.id} className="flex gap-3">
-                    {/* Dot + line */}
-                    <div className="flex flex-col items-center">
+                {/* ── Products ── */}
+                <section>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Produits
+                  </h3>
+                  <div className="mt-3 space-y-3">
+                    {order.products.map((product) => (
                       <div
-                        className={cn(
-                          "mt-1 h-3 w-3 rounded-full border-2",
-                          event.completed
-                            ? "border-sugu-500 bg-sugu-500"
-                            : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900",
-                        )}
-                      />
-                      {i < order.timeline.length - 1 && (
-                        <div
-                          className={cn(
-                            "my-0.5 w-0.5 flex-1",
-                            event.completed
-                              ? "bg-sugu-200 dark:bg-sugu-800"
-                              : "bg-gray-200 dark:bg-gray-700",
-                          )}
-                        />
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div className="pb-4">
-                      <p
-                        className={cn(
-                          "text-sm font-medium",
-                          event.completed
-                            ? "text-gray-900 dark:text-white"
-                            : "text-gray-400 dark:text-gray-500",
-                        )}
+                        key={product.id}
+                        className="flex items-center gap-3 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/50"
                       >
-                        {event.label}
+                        <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
+                          {product.image ? (
+                            <Image src={product.image} alt={product.name} fill className="object-cover" />
+                          ) : (
+                            <Package className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            {product.name}
+                            {(product as any).variant && (
+                              <span className="font-normal text-gray-500 dark:text-gray-400">
+                                {" "}
+                                - {(product as any).variant}
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Quantité : {product.quantity}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                          {formatCurrency((product as any).price ?? (product as any).unitPrice ?? 0)} FCFA
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* ── Delivery Address ── */}
+                <section>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Adresse de livraison
+                  </h3>
+                  <div className="mt-3 flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                    <div>
+                      <p>{address?.street || "Non renseignée"}</p>
+                      <p>
+                        {address?.city || ""}{address?.city && address?.country ? ", " : ""}{address?.country || ""}
                       </p>
-                      {event.date && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          {event.date}
-                        </p>
-                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
+                </section>
 
-          {/* Panel Footer — Actions */}
-          <div className="sticky bottom-0 flex gap-2 border-t border-gray-200/60 bg-white/80 p-3 backdrop-blur-md dark:border-gray-800/60 dark:bg-gray-950/80 lg:gap-3 lg:p-4">
-            {order.status === "pending" && (
-              <button
-                onClick={handleConfirm}
-                disabled={isMutating}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                {confirmMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Préparer la commande
-              </button>
-            )}
-            {(order.status === "confirmed" || order.status === "processing" || order.status === "packed") && (
-              <button
-                onClick={handleRequestDelivery}
-                disabled={isMutating}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                {deliveryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Demander la livraison
-              </button>
-            )}
-            {!["delivered", "cancelled", "refunded", "shipped"].includes(order.status) && (
-              <button
-                onClick={handleCancel}
-                disabled={isMutating}
-                className="rounded-xl border border-red-200 bg-red-50/80 px-4 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              >
-                {cancelMutation.isPending && <Loader2 className="h-4 w-4 animate-spin inline mr-1" />}
-                Annuler
-              </button>
-            )}
-            <button className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
-              Contacter le client
-            </button>
-          </div>
+                {/* ── Timeline ── */}
+                <section>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Chronologie
+                  </h3>
+                  <div className="mt-3 space-y-0">
+                    {order.timeline.map((event, i) => {
+                      const isCompleted =
+                        "completed" in event
+                          ? event.completed
+                          : event.status === "completed" || event.status === "current";
+
+                      return (
+                        <div key={event.id} className="flex gap-3">
+                          {/* Dot + line */}
+                          <div className="flex flex-col items-center">
+                            <div
+                              className={cn(
+                                "mt-1 h-3 w-3 rounded-full border-2",
+                                isCompleted
+                                  ? "border-sugu-500 bg-sugu-500"
+                                  : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900",
+                              )}
+                            />
+                            {i < order.timeline.length - 1 && (
+                              <div
+                                className={cn(
+                                  "my-0.5 w-0.5 flex-1",
+                                  isCompleted
+                                    ? "bg-sugu-200 dark:bg-sugu-800"
+                                    : "bg-gray-200 dark:bg-gray-700",
+                                )}
+                              />
+                            )}
+                          </div>
+                          {/* Content */}
+                          <div className="pb-4">
+                            <p
+                              className={cn(
+                                "text-sm font-medium",
+                                isCompleted
+                                  ? "text-gray-900 dark:text-white"
+                                  : "text-gray-400 dark:text-gray-500",
+                              )}
+                            >
+                              {event.label}
+                            </p>
+                            {event.date && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                                {event.date}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+
+              {/* Panel Footer — Actions */}
+              <div className="sticky bottom-0 flex gap-2 border-t border-gray-200/60 bg-white/80 p-3 backdrop-blur-md dark:border-gray-800/60 dark:bg-gray-950/80 lg:gap-3 lg:p-4">
+                {order.status === "pending" && (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={isMutating}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {confirmMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Préparer la commande
+                  </button>
+                )}
+                {(order.status === "confirmed" || order.status === "processing" || order.status === "packed") && (
+                  <button
+                    onClick={handleRequestDelivery}
+                    disabled={isMutating}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {deliveryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Demander la livraison
+                  </button>
+                )}
+                {!["delivered", "cancelled", "refunded", "shipped"].includes(order.status) && (
+                  <button
+                    onClick={handleCancel}
+                    disabled={isMutating}
+                    className="rounded-xl border border-red-200 bg-red-50/80 px-4 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+                  >
+                    {cancelMutation.isPending && <Loader2 className="h-4 w-4 animate-spin inline mr-1" />}
+                    Annuler
+                  </button>
+                )}
+                <button className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
+                  Contacter le client
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

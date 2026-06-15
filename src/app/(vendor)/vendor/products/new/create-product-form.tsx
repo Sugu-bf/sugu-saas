@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronRight, ChevronLeft, Rocket, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useCreateProduct, useProductCategories } from "@/features/vendor/hooks";
+import { useCreateProduct } from "@/features/vendor/hooks";
 import { type ProductFormData, type FormUpdater, STEPS, DEFAULT_FORM_DATA } from "./_components/types";
 import { StepIndicator } from "./_components/step-indicator";
 import { StepInformations } from "./_components/step-informations";
@@ -38,11 +38,11 @@ export function CreateProductForm() {
     bulkTiers: [],
     publishMode: "publish",
     photos: [],
+    categoryIds: [],
   });
 
   // ── Hooks ──
   const createProduct = useCreateProduct();
-  const { data: categories } = useProductCategories();
 
   // Generic field updater
   const handleChange: FormUpdater = useCallback((field, value) => {
@@ -66,26 +66,9 @@ export function CreateProductForm() {
   const validateForm = useCallback((): string | null => {
     if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
     if (!formData.price || parseFloat(formData.price) <= 0) return "Le prix de vente est obligatoire.";
+    if (!formData.categoryIds || formData.categoryIds.length === 0) return "Sélectionnez au moins une catégorie.";
     return null;
-  }, [formData.name, formData.price]);
-
-  // ── Resolve category ID from label ──
-  const resolveCategoryId = useCallback((): string | undefined => {
-    if (!categories || !formData.mainCategory) return undefined;
-    // Try matching on the main category name first
-    const match = categories.find(
-      (cat) => cat.name.toLowerCase() === formData.mainCategory.toLowerCase(),
-    );
-    if (match) return match.id;
-    // Try subcategory
-    if (formData.subCategory) {
-      const subMatch = categories.find(
-        (cat) => cat.name.toLowerCase() === formData.subCategory.toLowerCase(),
-      );
-      if (subMatch) return subMatch.id;
-    }
-    return undefined;
-  }, [categories, formData.mainCategory, formData.subCategory]);
+  }, [formData.name, formData.price, formData.categoryIds]);
 
   // ── Submit handler (publish or draft) ──
   const handleSubmit = useCallback(
@@ -96,7 +79,6 @@ export function CreateProductForm() {
         return;
       }
 
-      const categoryId = resolveCategoryId();
       const submissionData = {
         ...formData,
         publishMode: mode,
@@ -114,7 +96,7 @@ export function CreateProductForm() {
       createProduct.mutate(
         {
           formData: submissionData,
-          categoryId,
+          categoryIds: formData.categoryIds,
           images: rawImageFiles.length > 0 ? rawImageFiles : undefined,
           previewIds: previewIds.length > 0 ? previewIds : undefined,
         },
@@ -143,7 +125,7 @@ export function CreateProductForm() {
         },
       );
     },
-    [formData, validateForm, resolveCategoryId, createProduct],
+    [formData, validateForm, createProduct],
   );
 
   const isSubmitting = createProduct.isPending;

@@ -46,13 +46,13 @@ import { toast } from "sonner";
 // ────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
-  confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  processing: "bg-sugu-50 text-sugu-600 border-sugu-200",
-  packed: "bg-violet-50 text-violet-700 border-violet-200",
-  shipped: "bg-blue-50 text-blue-700 border-blue-200",
-  delivered: "bg-green-50 text-green-700 border-green-200",
-  cancelled: "bg-red-50 text-red-600 border-red-200",
+  pending: "bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30",
+  confirmed: "bg-emerald-100/80 text-emerald-800 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30",
+  processing: "bg-sugu-100/80 text-sugu-700 border-sugu-300 dark:bg-sugu-500/10 dark:text-sugu-400 dark:border-sugu-500/30",
+  packed: "bg-violet-100/80 text-violet-800 border-violet-300 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30",
+  shipped: "bg-blue-100/80 text-blue-800 border-blue-300 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30",
+  delivered: "bg-green-100/80 text-green-800 border-green-300 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30",
+  cancelled: "bg-red-100/80 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -206,8 +206,8 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
             </h1>
             <span
               className={cn(
-                "rounded-full border px-3 py-0.5 text-xs font-semibold",
-                STATUS_BADGE[data.status] ?? "bg-gray-50 text-gray-600 border-gray-200",
+                "rounded-full border px-3 py-0.5 text-xs font-semibold whitespace-nowrap",
+                STATUS_BADGE[data.status] ?? "bg-gray-100/80 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400",
               )}
             >
               {data.statusLabel}

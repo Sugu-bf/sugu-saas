@@ -49,7 +49,9 @@ export async function searchVendorProducts(query: string): Promise<ProductSearch
 
 /** Fetch ALL vendor products in one call for client-side filtering */
 export async function getAllVendorProducts(): Promise<ProductSearchResult[]> {
-  const res = await api.get<{ success: boolean; data: RawProductSearchItem[] }>("sellers/sales/products");
+  const res = await api.get<{ success: boolean; data: RawProductSearchItem[] }>("sellers/sales/products", {
+    params: { include_out_of_stock: true },
+  });
   return (res.data ?? []).map((item) =>
     productSearchResultSchema.parse({
       id: item.id, name: item.name, sku: item.sku ?? "",

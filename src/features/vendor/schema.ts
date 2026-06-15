@@ -532,6 +532,7 @@ export const vendorProductDetailSchema = z.object({
   statusLabel: z.string(),
   isPromo: z.boolean().optional(),
   publishedAt: z.string(),
+  category_ids: z.array(z.string()).optional(),
 
   photos: z.array(productPhotoSchema),
 
@@ -1510,6 +1511,7 @@ export const createProductRequestSchema = z.object({
   compareAtPrice: z.number().min(0).optional(),
   stock: z.number().int().min(0).optional(),
   primary_category_id: z.string().optional(),
+  category: z.array(z.string()).optional(),
   brand_id: z.string().optional(),
   status: z.enum(["published", "draft", "archived"]).default("draft"),
   weight: z.number().optional(),

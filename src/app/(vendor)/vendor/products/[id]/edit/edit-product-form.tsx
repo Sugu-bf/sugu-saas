@@ -312,6 +312,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
     bulkTiers: [],
     publishMode: "publish",
     photos: [],
+    categoryIds: [],
   });
 
   // ── Photo state ──
@@ -368,6 +369,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       hasBulkPricing: bulkTiers.length > 0,
       bulkTiers,
       publishMode,
+      categoryIds: product.category_ids ?? [],
       ...reconstructVariants(product),
     }));
 
@@ -429,29 +431,15 @@ export function EditProductForm({ id }: EditProductFormProps) {
     });
   }, []);
 
-  // ── Resolve category ID ──
-  const resolveCategoryId = useCallback((): string | undefined => {
-    if (!categories || !formData.mainCategory) return undefined;
-    const match = categories.find(
-      (cat) => cat.name.toLowerCase() === formData.mainCategory.toLowerCase(),
-    );
-    if (match) return match.id;
-    if (formData.subCategory) {
-      const subMatch = categories.find(
-        (cat) => cat.name.toLowerCase() === formData.subCategory.toLowerCase(),
-      );
-      if (subMatch) return subMatch.id;
-    }
-    return undefined;
-  }, [categories, formData.mainCategory, formData.subCategory]);
-
   // ── Validation ──
   const validateForm = useCallback((): string | null => {
     if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
     if (!formData.price || parseFloat(formData.price) <= 0)
       return "Le prix de vente est obligatoire.";
+    if (!formData.categoryIds || formData.categoryIds.length === 0)
+      return "Sélectionnez au moins une catégorie.";
     return null;
-  }, [formData.name, formData.price]);
+  }, [formData.name, formData.price, formData.categoryIds]);
 
   // ── Submit ──
   const handleSubmit = useCallback(
@@ -462,7 +450,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
         return;
       }
 
-      const categoryId = resolveCategoryId();
+      const categoryIds = formData.categoryIds;
       const removeMediaIds = existingPhotos
         .filter((p) => p.markedForRemoval)
         .map((p) => p.id);
@@ -472,7 +460,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
         {
           id,
           formData: { ...formData, publishMode: mode },
-          categoryId,
+          categoryIds,
           newImages: newImageFiles.length > 0 ? newImageFiles : undefined,
           removeMediaIds: removeMediaIds.length > 0 ? removeMediaIds : undefined,
         },
@@ -496,7 +484,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
         },
       );
     },
-    [formData, validateForm, resolveCategoryId, existingPhotos, newPhotos, updateProduct, id],
+    [formData, validateForm, existingPhotos, newPhotos, updateProduct, id],
   );
 
   const isSubmitting = updateProduct.isPending;

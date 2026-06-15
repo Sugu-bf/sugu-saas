@@ -1,8 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { SectionCard, PillBadge, PillButton } from "@/components/shared/settings-ui";
-import { Download, Star, Check, X as XIcon, CheckCircle2 } from "lucide-react";
+import { Download, Star, Check, CheckCircle2 } from "lucide-react";
 import { useVendorSettings } from "@/features/vendor/hooks";
 
 // ────────────────────────────────────────────────────────────
@@ -19,20 +18,7 @@ const PRO_BENEFITS = [
   { label: "Export CSV/PDF illimité" },
 ];
 
-interface PlanFeature { label: string; free: boolean; pro: boolean; enterprise: boolean }
 
-const PLAN_FEATURES: PlanFeature[] = [
-  { label: "Jusqu'à 50 produits", free: true, pro: false, enterprise: false },
-  { label: "Produits illimités", free: false, pro: true, enterprise: true },
-  { label: "Statistiques de base", free: true, pro: true, enterprise: true },
-  { label: "Analytics avancés", free: false, pro: true, enterprise: true },
-  { label: "Support email", free: true, pro: true, enterprise: true },
-  { label: "Support prioritaire 24/7", free: false, pro: true, enterprise: true },
-  { label: "Badge vérifié", free: false, pro: true, enterprise: true },
-  { label: "API & Webhooks", free: false, pro: true, enterprise: true },
-  { label: "Manager de compte dédié", free: false, pro: false, enterprise: true },
-  { label: "Intégrations sur mesure", free: false, pro: false, enterprise: true },
-];
 
 export function TabSubscription() {
   const { data: settingsData } = useVendorSettings();
@@ -72,69 +58,6 @@ export function TabSubscription() {
         </div>
       </SectionCard>
 
-      {/* ─── Card 2: Comparaison des plans ─── */}
-      <SectionCard title="Comparaison des plans" id="plan-comparison">
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Gratuit */}
-          <div className={cn(
-            "rounded-2xl border p-5 backdrop-blur",
-            isFree ? "border-2 border-sugu-300 bg-sugu-50/20 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 dark:border-gray-700/50 dark:bg-gray-800/20"
-          )}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gratuit</h3>
-              {isFree && <PillBadge variant="orange">Actuel</PillBadge>}
-            </div>
-            <p className="mt-1 text-xl font-extrabold text-gray-700 dark:text-gray-300">0 <span className="text-sm font-medium text-gray-400">FCFA/mois</span></p>
-            <div className="mt-4 space-y-2">
-              {PLAN_FEATURES.map((f) => (
-                <div key={f.label} className="flex items-center gap-2">
-                  {f.free ? <Check className="h-3.5 w-3.5 text-green-500" /> : <XIcon className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" />}
-                  <span className={cn("text-xs", f.free ? "text-gray-700 dark:text-gray-300" : "text-gray-400 line-through dark:text-gray-600")}>{f.label}</span>
-                </div>
-              ))}
-            </div>
-            {!isFree && <PillButton variant="outline" className="mt-4 w-full" size="sm">Rétrograder</PillButton>}
-            {isFree && <p className="mt-4 text-center text-xs font-semibold text-sugu-600 dark:text-sugu-400"><CheckCircle2 className="inline h-3 w-3" /> Plan actuel</p>}
-          </div>
-
-          {/* Pro */}
-          <div className={cn(
-            "rounded-2xl border p-5",
-            isPro ? "border-2 border-sugu-300 bg-sugu-50/20 dark:border-sugu-700 dark:bg-sugu-950/10" : "border-white/60 bg-white/30 backdrop-blur dark:border-gray-700/50 dark:bg-gray-800/20"
-          )}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-sugu-600 dark:text-sugu-400">Pro</h3>
-              {isPro && <PillBadge variant="orange">Actuel</PillBadge>}
-            </div>
-            <p className="mt-1 text-xl font-extrabold text-sugu-600 dark:text-sugu-400">14 900 <span className="text-sm font-medium text-gray-400">FCFA/mois</span></p>
-            <div className="mt-4 space-y-2">
-              {PLAN_FEATURES.map((f) => (
-                <div key={f.label} className="flex items-center gap-2">
-                  {f.pro ? <Check className="h-3.5 w-3.5 text-sugu-500" /> : <XIcon className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" />}
-                  <span className={cn("text-xs", f.pro ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-400 line-through")}>{f.label}</span>
-                </div>
-              ))}
-            </div>
-            {isPro && <p className="mt-4 text-center text-xs font-semibold text-sugu-600 dark:text-sugu-400"><CheckCircle2 className="inline h-3 w-3" /> Plan actuel</p>}
-            {!isPro && <PillButton variant="primary" className="mt-4 w-full" size="sm">Passer au Pro</PillButton>}
-          </div>
-
-          {/* Enterprise */}
-          <div className="rounded-2xl border border-gray-300 bg-gray-50/30 p-5 backdrop-blur dark:border-gray-600 dark:bg-gray-800/30">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Enterprise</h3>
-            <p className="mt-1 text-xl font-extrabold text-gray-700 dark:text-gray-300">Sur devis</p>
-            <div className="mt-4 space-y-2">
-              {PLAN_FEATURES.map((f) => (
-                <div key={f.label} className="flex items-center gap-2">
-                  {f.enterprise ? <Check className="h-3.5 w-3.5 text-green-500" /> : <XIcon className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" />}
-                  <span className={cn("text-xs", f.enterprise ? "text-gray-700 dark:text-gray-300" : "text-gray-400 line-through dark:text-gray-600")}>{f.label}</span>
-                </div>
-              ))}
-            </div>
-            <PillButton variant="outline" className="mt-4 w-full" size="sm">Nous contacter</PillButton>
-          </div>
-        </div>
-      </SectionCard>
 
       {/* ─── Card 3: Historique paiements ─── */}
       <SectionCard title="Historique des paiements d'abonnement" id="sub-payments">

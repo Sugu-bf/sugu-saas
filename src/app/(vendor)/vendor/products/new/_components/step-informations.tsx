@@ -15,6 +15,8 @@ import {
 import { useProductCategories } from "@/features/vendor/hooks";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
+import { CategoryPicker } from "./category-picker";
+
 interface StepInformationsProps {
   data: ProductFormData;
   onChange: FormUpdater;
@@ -39,16 +41,20 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
     );
   };
 
-  // Use API categories if available, otherwise fall back to hardcoded ones
-  const categoryNames = apiCategories
-    ? apiCategories.map((c) => c.name)
-    : Object.keys(CATEGORIES);
+  // Map hardcoded CATEGORIES to ProductCategory list if API categories are missing
+  const fallbackCategories = Object.keys(CATEGORIES).flatMap((cat, catIdx) => {
+    const subs = CATEGORIES[cat] ?? [];
+    return [
+      { id: `main-${catIdx}`, name: cat, slug: cat.toLowerCase() },
+      ...subs.map((sub, subIdx) => ({
+        id: `sub-${catIdx}-${subIdx}`,
+        name: `${cat} > ${sub}`,
+        slug: sub.toLowerCase(),
+      })),
+    ];
+  });
 
-  // For subcategories: if we have API categories (flat list), don't show subcategories
-  // If using hardcoded categories, show nested subcategories
-  const subCategories = apiCategories
-    ? [] // API categories are flat, no subcategories
-    : (CATEGORIES[data.mainCategory] ?? []);
+  const pickerCategories = apiCategories ?? fallbackCategories;
 
   return (
     <section className="glass-card animate-slide-in-right rounded-3xl p-5 sm:p-8">
@@ -92,55 +98,16 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
         />
       </div>
 
-      {/* ── Catégorie + Sous-catégorie ── */}
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className={LABEL_CLASS}>
-            Catégorie principale <span className="text-red-400">*</span>
-          </label>
-          <div className="relative">
-            <select
-              value={data.mainCategory}
-              onChange={(e) => {
-                onChange("mainCategory", e.target.value);
-                if (!apiCategories) {
-                  const subs = CATEGORIES[e.target.value];
-                  if (subs?.length) onChange("subCategory", subs[0]);
-                }
-              }}
-              className={SELECT_CLASS}
-            >
-              <option value="">Sélectionner une catégorie</option>
-              {categoryNames.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          </div>
-        </div>
-        {subCategories.length > 0 && (
-          <div>
-            <label className={LABEL_CLASS}>
-              Sous-catégorie <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <select
-                value={data.subCategory}
-                onChange={(e) => onChange("subCategory", e.target.value)}
-                className={SELECT_CLASS}
-              >
-                {subCategories.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-        )}
+      {/* ── Catégories ── */}
+      <div className="mt-5">
+        <label className={LABEL_CLASS}>
+          Catégories <span className="text-red-400">*</span>
+        </label>
+        <CategoryPicker
+          categories={pickerCategories}
+          selectedIds={data.categoryIds || []}
+          onChange={(ids) => onChange("categoryIds", ids)}
+        />
       </div>
 
       {/* ── Tags ── */}

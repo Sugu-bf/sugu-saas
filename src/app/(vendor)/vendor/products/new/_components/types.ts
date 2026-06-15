@@ -70,6 +70,7 @@ export interface ProductFormData {
   bulkTiers: PriceTier[];
   publishMode: "publish" | "draft";
   photos: ProductPhoto[];
+  categoryIds: string[];
 }
 
 export type FormUpdater = <K extends keyof ProductFormData>(
@@ -161,4 +162,5 @@ export const DEFAULT_FORM_DATA: ProductFormData = {
   ],
   publishMode: "publish",
   photos: [],
+  categoryIds: [],
 };

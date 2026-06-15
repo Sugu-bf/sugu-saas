@@ -47,6 +47,7 @@ interface RawProductItem {
   channel?: string;
   category?: string;
   primary_category_id?: string;
+  category_ids?: string[];
   weight?: number | null;
   dimensions?: { length?: number | null; width?: number | null; height?: number | null };
   bulkPrices?: Array<{ id: string; minQty: number; price: number; currency: string; isActive: boolean }>;
@@ -273,11 +274,11 @@ export async function createVendorProduct(
       sku: string;
     }>;
   },
-  categoryId?: string,
+  categoryIds?: string[],
   images?: File[],
   previewIds?: string[],
 ): Promise<CreateProductResponse> {
-  const requestBody = _transformCreateProductRequest(formData, categoryId);
+  const requestBody = _transformCreateProductRequest(formData, categoryIds);
 
   const hasImages = images && images.length > 0;
   const hasPreviewIds = previewIds && previewIds.length > 0;
@@ -290,6 +291,11 @@ export async function createVendorProduct(
     if (requestBody.compareAtPrice !== undefined) fd.append("compareAtPrice", String(requestBody.compareAtPrice));
     if (requestBody.stock !== undefined) fd.append("stock", String(requestBody.stock));
     if (requestBody.primary_category_id) fd.append("primary_category_id", requestBody.primary_category_id);
+    if (requestBody.category && Array.isArray(requestBody.category)) {
+      requestBody.category.forEach((id) => {
+        fd.append("category[]", id);
+      });
+    }
     if (requestBody.brand_id) fd.append("brand_id", requestBody.brand_id);
     fd.append("status", requestBody.status);
     if (requestBody.weight !== undefined) fd.append("weight", String(requestBody.weight));
@@ -400,7 +406,7 @@ export async function updateVendorProduct(
       sku: string;
     }>;
   },
-  categoryId?: string,
+  categoryIds?: string[],
   newImages?: File[],
   removeMediaIds?: (string | number)[],
 ): Promise<CreateProductResponse> {
@@ -427,7 +433,12 @@ export async function updateVendorProduct(
   fd.append("currency", "XOF");
   if (weightValue > 0) fd.append("weight", String(weightValue));
   if (weightUnit) fd.append("weightUnit", weightUnit);
-  if (categoryId) fd.append("primary_category_id", categoryId);
+  if (categoryIds && categoryIds.length > 0) {
+    fd.append("primary_category_id", categoryIds[0]);
+    categoryIds.forEach((id) => {
+      fd.append("category[]", id);
+    });
+  }
   fd.append("compare_at_amount", originalPrice > 0 ? String(Math.round(originalPrice * 100)) : "");
 
   bulkPrices.forEach((bp, idx) => {
@@ -628,6 +639,8 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     reviewCount: 0,
     reviewLabel: "0 avis",
     category: raw.category ?? "",
+    primary_category_id: raw.primary_category_id,
+    category_ids: raw.category_ids ?? [],
     weight: weightStr,
     packaging: "—",
     origin: raw.brand ?? "—",
@@ -778,7 +791,7 @@ function _transformCreateProductRequest(
       sku: string;
     }>;
   },
-  categoryId?: string,
+  categoryIds?: string[],
 ): CreateProductRequest {
   const price = parseFloat(formData.price) || 0;
   const compareAtPrice = parseFloat(formData.originalPrice) || undefined;
@@ -814,7 +827,8 @@ function _transformCreateProductRequest(
     price,
     compareAtPrice,
     stock,
-    primary_category_id: categoryId || undefined,
+    primary_category_id: categoryIds && categoryIds.length > 0 ? categoryIds[0] : undefined,
+    category: categoryIds || undefined,
     status,
     weight,
     weightUnit: weightUnit as "kg" | "g" | "lb",
