@@ -921,10 +921,13 @@ export function useAddInventoryStock() {
                 ? {
                     ...p,
                     stockCurrent: p.stockCurrent + params.quantity,
-                    stockPercent: Math.min(
-                      100,
-                      Math.round(
-                        ((p.stockCurrent + params.quantity) / p.stockMax) * 100,
+                    stockPercent: Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        Math.round(
+                          ((p.stockCurrent + params.quantity) / p.stockMax) * 100,
+                        ),
                       ),
                     ),
                     status: (p.stockCurrent + params.quantity > 10

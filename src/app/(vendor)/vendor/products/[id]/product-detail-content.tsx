@@ -142,7 +142,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
          ═══════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5 items-start">
         {/* ─── COLUMN 1: Photos & Ventes Récentes ─── */}
-        <div className="lg:col-span-3 space-y-3 lg:space-y-5">
+        <div className="lg:col-span-5 xl:col-span-3 space-y-3 lg:space-y-5">
           {/* Photos */}
           <div className="glass-card rounded-2xl p-4 space-y-3">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -172,7 +172,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             </div>
 
             {/* Thumbnails */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {data.photos.map((photo, i) => (
                 <button
                   key={photo.id}
@@ -212,7 +212,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
         </div>
 
         {/* ─── Main Info ─── */}
-        <div className="lg:col-span-5 h-full">
+        <div className="lg:col-span-7 xl:col-span-5 h-full">
           <div className="glass-card rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-full">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Informations principales
@@ -251,6 +251,11 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                 <span className="text-xl font-extrabold text-sugu-500 lg:text-2xl">
                   {formatCurrency(data.price)} {data.currency}
                 </span>
+                {data.originalPrice && data.originalPrice > data.price && (
+                  <span className="text-sm text-gray-400 line-through decoration-red-400 decoration-2">
+                    {formatCurrency(data.originalPrice)} {data.currency}
+                  </span>
+                )}
                 {data.discountPercent && (
                   <span className="rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
                     -{data.discountPercent}%
@@ -259,7 +264,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
               </div>
               {data.marginEstimated && (
                 <p className="text-xs text-muted-foreground">
-                  {formatCurrency(data.marginEstimated)} {data.currency} · Margin estimated
+                  {formatCurrency(data.marginEstimated)} {data.currency} · Marge estimée
                 </p>
               )}
             </div>
@@ -267,10 +272,10 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             {/* Attributes table */}
             <div className="space-y-2 text-sm">
               {[
-                { label: "Categorty", value: data.category },
+                { label: "Catégorie", value: data.category },
                 { label: "Poids", value: data.weight },
                 { label: "Packaging", value: data.packaging },
-                { label: "Origin", value: data.origin },
+                { label: "Origine", value: data.origin },
               ].map((attr) => (
                 <div key={attr.label} className="flex items-center gap-4">
                   <span className="w-24 flex-shrink-0 text-muted-foreground">{attr.label}</span>
@@ -280,17 +285,21 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
             </div>
 
             {/* Description */}
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Description : {data.description}
-            </p>
+            <div className="space-y-1 text-sm text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">Description :</span>
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: data.description || "" }}
+              />
+            </div>
 
             {/* Volume discounts — only show if tiers exist */}
             {data.volumeDiscounts.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-border">
               <div className="grid grid-cols-3 gap-px bg-muted/50 text-xs font-semibold text-muted-foreground">
                 <div className="bg-white/80 px-3 py-2 dark:bg-gray-900/80">Quantité</div>
-                <div className="bg-white/80 px-3 py-2 dark:bg-gray-900/80">Price</div>
-                <div className="bg-white/80 px-3 py-2 dark:bg-gray-900/80">Déscount</div>
+                <div className="bg-white/80 px-3 py-2 dark:bg-gray-900/80">Prix</div>
+                <div className="bg-white/80 px-3 py-2 dark:bg-gray-900/80">Remise</div>
               </div>
               {data.volumeDiscounts.map((tier) => (
                 <div key={tier.label} className="grid grid-cols-3 gap-px border-t border-border text-sm">
@@ -322,9 +331,9 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
         </div>
 
         {/* ─── Right Column: KPIs + Variants Summary + Reviews Summary ─── */}
-        <div className="lg:col-span-4 space-y-3 lg:space-y-4">
+        <div className="lg:col-span-12 xl:col-span-4 space-y-3 lg:space-y-4">
           {/* KPI stat cards (4x1 grid on wide screens, 2x2 on small desktops) */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {/* Stock */}
             <KpiStatCard
               icon={<Package className="h-4 w-4" />}
@@ -332,7 +341,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
               label="Stock"
               value={String(data.kpis.stock.value)}
               sub={`${data.kpis.stock.unit || "unités"}  ${data.kpis.stock.percent ? data.kpis.stock.percent + "%" : ""}`}
-              footer={data.kpis.stock.alertThreshold ? `Alert thrbsi ${data.kpis.stock.alertThreshold}` : undefined}
+              footer={data.kpis.stock.alertThreshold ? `Seuil d'alerte : ${data.kpis.stock.alertThreshold}` : undefined}
             />
             {/* Vendus */}
             <KpiStatCard
@@ -376,26 +385,26 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
               {/* Weight row */}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground font-medium">Poids</span>
-                <span className="font-medium text-foreground">Price</span>
+                <span className="font-medium text-foreground">Prix</span>
               </div>
               {data.variantsSummary.weight.map((v) => (
-                <div key={v.label} className="flex items-center justify-between text-sm">
+                <div key={v.label} className="flex items-center justify-between gap-3 text-sm">
                   <span className={cn(
-                    "inline-flex items-center justify-center rounded-lg px-3 py-1 text-xs font-bold",
+                    "inline-flex items-center justify-center rounded-lg px-3 py-1 text-xs font-bold truncate",
                     v.isActive
                       ? "bg-sugu-500 text-white"
                       : "bg-muted text-muted-foreground"
                   )}>
                     {v.label}
                   </span>
-                  <span className="font-medium">{formatCurrency(v.price)} FCFA</span>
+                  <span className="font-medium flex-shrink-0">{formatCurrency(v.price)} FCFA</span>
                 </div>
               ))}
               {/* Packaging row */}
               {data.variantsSummary.packaging.map((v) => (
-                <div key={v.label} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{v.label}</span>
-                  <span className="font-medium">{formatCurrency(v.price)} FCFA</span>
+                <div key={v.label} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground truncate">{v.label}</span>
+                  <span className="font-medium flex-shrink-0">{formatCurrency(v.price)} FCFA</span>
                 </div>
               ))}
             </div>
@@ -403,7 +412,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
               href="#"
               className="inline-flex items-center gap-1 text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
             >
-              Modifier ou tes tarifs →
+              Modifier vos tarifs →
             </Link>
           </div>
 
@@ -444,7 +453,7 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
                 href="#"
                 className="inline-flex items-center gap-1 text-xs font-medium text-sugu-500 transition-colors hover:text-sugu-600"
               >
-                Toutes les avis →
+                Tous les avis →
               </Link>
             </div>
             )}
@@ -462,21 +471,21 @@ export function ProductDetailContent({ data }: ProductDetailContentProps) {
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-5">
           {/* ─── Recent Sales ─── */}
           {data.recentSales.orders.length > 0 && (
-            <div className="lg:col-span-3 lg:col-start-1 h-full">
+            <div className="lg:col-span-6 xl:col-span-3 h-full">
               <RecentSalesCard data={data} />
             </div>
           )}
 
           {/* ─── Variants & Tarifs Detail ─── */}
           {data.variantsDetail.pricingTiers.length > 0 && (
-            <div className="lg:col-span-5 lg:col-start-4 h-full">
+            <div className="lg:col-span-6 xl:col-span-5 h-full">
               <VariantsDetailCard data={data} />
             </div>
           )}
 
           {/* ─── Reviews Detail ─── */}
           {data.reviewsDetail.reviews.length > 0 && (
-            <div className="lg:col-span-2 lg:col-start-9 h-full">
+            <div className="lg:col-span-12 xl:col-span-4 h-full">
               <ReviewsDetailCard data={data} />
             </div>
           )}
@@ -739,8 +748,8 @@ function VariantsDetailCard({ data }: { data: VendorProductDetail }) {
       <div className="overflow-hidden rounded-xl border border-border">
         <div className="grid grid-cols-3 bg-muted/50 text-xs font-semibold text-muted-foreground">
           <div className="px-3 py-2">Quantité</div>
-          <div className="px-3 py-2">Price</div>
-          <div className="px-3 py-2">Déscount</div>
+          <div className="px-3 py-2">Prix</div>
+          <div className="px-3 py-2">Remise</div>
         </div>
         {variantsDetail.pricingTiers.map((tier, i) => (
           <div key={i} className="grid grid-cols-3 border-t border-border text-sm">

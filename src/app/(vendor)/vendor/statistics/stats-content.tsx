@@ -14,6 +14,15 @@ import {
   MapPin,
   Package,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import type { VendorStats } from "@/features/vendor/schema";
 
 // ────────────────────────────────────────────────────────────
@@ -39,6 +48,35 @@ function StarRating({ value, max = 5 }: { value: number; max?: number }) {
   );
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      date: string;
+      revenue: number;
+      orders: number;
+    };
+  }>;
+}
+
+const CustomChartTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="rounded-xl border border-gray-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
+        <p className="mb-1 text-xs font-bold text-gray-900 dark:text-white">{data.date}</p>
+        <p className="text-xs font-semibold text-sugu-600 dark:text-sugu-500">
+          Revenus: {formatCurrency(data.revenue)} FCFA
+        </p>
+        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+          Commandes: {data.orders}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 // ────────────────────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────────────────────
@@ -47,7 +85,6 @@ export function StatsContent({ data }: { data: VendorStats }) {
   const [period, setPeriod] = useState("30j");
   const [activeTab, setActiveTab] = useState("Vue d'ensemble");
 
-  const maxRevenue = Math.max(1, ...data.revenueChart.map((p) => p.revenue));
   const maxWeekly = Math.max(1, ...data.weeklySales.map((s) => s.value));
 
   return (
@@ -130,47 +167,48 @@ export function StatsContent({ data }: { data: VendorStats }) {
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Évolution des revenus</h2>
           </div>
 
-          {/* SVG area chart */}
-          <div className="relative mt-4 h-48 w-full overflow-hidden">
-            {/* Y-axis labels */}
-            <div className="absolute inset-y-0 left-0 flex flex-col justify-between text-[9px] text-gray-400">
-              <span>{formatCurrency(maxRevenue)}</span>
-              <span>{formatCurrency(Math.round(maxRevenue / 2))}</span>
-              <span>0</span>
-            </div>
-
-            {/* Grid lines */}
-            <div className="absolute inset-0 ml-12 flex flex-col justify-between">
-              {[0, 1, 2].map((i) => <div key={i} className="border-t border-gray-100 dark:border-gray-800" />)}
-            </div>
-
-            {/* Bars visualization */}
-            <div className="ml-12 flex h-full items-end gap-1">
-              {data.revenueChart.map((point, i) => {
-                const height = (point.revenue / maxRevenue) * 100;
-                return (
-                  <div key={i} className="group relative flex flex-1 flex-col items-center">
-                    <div
-                      className="w-full rounded-t-md bg-sugu-400 opacity-80 transition-all hover:opacity-100"
-                      style={{ height: `${height}%` }}
-                    />
-                    {/* Tooltip */}
-                    <div className="pointer-events-none absolute -top-14 z-10 hidden rounded-lg bg-gray-900 px-2.5 py-1.5 text-[9px] text-white shadow-lg group-hover:block">
-                      <p className="font-bold">{point.date}</p>
-                      <p>Revenus: {formatCurrency(point.revenue)} FCFA</p>
-                      <p>Commandes: {point.orders}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* X-axis labels */}
-            <div className="ml-12 mt-1 flex">
-              {data.revenueChart.map((point, i) => (
-                <span key={i} className="flex-1 text-center text-[8px] text-gray-400 truncate">{point.date}</span>
-              ))}
-            </div>
+          {/* Recharts Area Chart */}
+          <div className="h-48 w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={data.revenueChart}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f15412" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#f15412" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#9ca3af" strokeOpacity={0.2} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9ca3af', fontSize: 10 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9ca3af', fontSize: 10 }}
+                  tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+                />
+                <Tooltip 
+                  content={<CustomChartTooltip />} 
+                  cursor={{ stroke: '#f15412', strokeWidth: 1, strokeDasharray: '5 5' }} 
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#f15412"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                  activeDot={{ r: 6, fill: '#f15412', stroke: '#fff', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
 
           {/* Footer comparison */}

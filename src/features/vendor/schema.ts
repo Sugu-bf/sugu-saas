@@ -1507,6 +1507,7 @@ export const createProductRequestSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
   price: z.number().min(0),
+  compareAtPrice: z.number().min(0).optional(),
   stock: z.number().int().min(0).optional(),
   primary_category_id: z.string().optional(),
   brand_id: z.string().optional(),

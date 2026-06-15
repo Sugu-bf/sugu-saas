@@ -35,6 +35,8 @@ interface RawProductItem {
   gallery?: Array<{ id: string | number; url: string; type?: string }>;
   all_images?: Array<{ id: string | number; url: string }>;
   price?: number;
+  compareAtAmount?: number | null;
+  compareAtPrice?: number | null;
   currency?: string;
   stock?: number;
   sales?: number;
@@ -285,6 +287,7 @@ export async function createVendorProduct(
     fd.append("name", requestBody.name);
     if (requestBody.description) fd.append("description", requestBody.description);
     fd.append("price", String(requestBody.price));
+    if (requestBody.compareAtPrice !== undefined) fd.append("compareAtPrice", String(requestBody.compareAtPrice));
     if (requestBody.stock !== undefined) fd.append("stock", String(requestBody.stock));
     if (requestBody.primary_category_id) fd.append("primary_category_id", requestBody.primary_category_id);
     if (requestBody.brand_id) fd.append("brand_id", requestBody.brand_id);
@@ -402,6 +405,7 @@ export async function updateVendorProduct(
   removeMediaIds?: (string | number)[],
 ): Promise<CreateProductResponse> {
   const price = parseFloat(formData.price) || 0;
+  const originalPrice = parseFloat(formData.originalPrice) || 0;
   const stock = parseInt(formData.stock) || 0;
   const weightValue = parseFloat(formData.weightValue) || 0;
   const weightUnit = WEIGHT_UNIT_MAP[formData.weightUnit] ?? "g";
@@ -424,6 +428,7 @@ export async function updateVendorProduct(
   if (weightValue > 0) fd.append("weight", String(weightValue));
   if (weightUnit) fd.append("weightUnit", weightUnit);
   if (categoryId) fd.append("primary_category_id", categoryId);
+  fd.append("compare_at_amount", originalPrice > 0 ? String(Math.round(originalPrice * 100)) : "");
 
   bulkPrices.forEach((bp, idx) => {
     fd.append(`bulkPrices[${idx}][minQty]`, String(bp.minQty));
@@ -507,8 +512,16 @@ function _transformProductListItem(raw: RawProductItem): Record<string, unknown>
     category: raw.category ?? "",
     subcategory: "",
     price: raw.price ?? 0,
-    originalPrice: undefined,
-    discountPercent: undefined,
+    originalPrice: raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
+      ? raw.compareAtAmount / 100
+      : (raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
+        ? raw.compareAtPrice
+        : undefined),
+    discountPercent: raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
+      ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
+      : (raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
+        ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
+        : undefined),
     stock: raw.stock ?? 0,
     sold: raw.sales ?? 0,
     rating: 0,
@@ -599,8 +612,16 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     publishedAt,
     photos,
     price: raw.price ?? 0,
-    originalPrice: undefined,
-    discountPercent: undefined,
+    originalPrice: raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
+      ? raw.compareAtAmount / 100
+      : (raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
+        ? raw.compareAtPrice
+        : undefined),
+    discountPercent: raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
+      ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
+      : (raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
+        ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
+        : undefined),
     marginEstimated: undefined,
     currency: raw.currency ?? "FCFA",
     rating: 0,
@@ -760,6 +781,7 @@ function _transformCreateProductRequest(
   categoryId?: string,
 ): CreateProductRequest {
   const price = parseFloat(formData.price) || 0;
+  const compareAtPrice = parseFloat(formData.originalPrice) || undefined;
   const stock = parseInt(formData.stock) || 0;
   const weightValue = parseFloat(formData.weightValue) || 0;
   const weightUnit = WEIGHT_UNIT_MAP[formData.weightUnit] ?? "g";
@@ -790,6 +812,7 @@ function _transformCreateProductRequest(
     name: formData.name,
     description: formData.description || undefined,
     price,
+    compareAtPrice,
     stock,
     primary_category_id: categoryId || undefined,
     status,

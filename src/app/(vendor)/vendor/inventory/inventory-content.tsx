@@ -1065,13 +1065,15 @@ function AddStockModal({
   const [selectedProductId, setSelectedProductId] = useState(product?.id ?? "");
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState("");
+  const [operationType, setOperationType] = useState<"add" | "reduce">("add");
 
   const selectedProduct = product ?? products.find((p) => p.id === selectedProductId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || quantity < 1) return;
-    onSubmit(selectedProductId, quantity, reason || undefined);
+    const finalQuantity = operationType === "add" ? quantity : -quantity;
+    onSubmit(selectedProductId, finalQuantity, reason || undefined);
   };
 
   return (
@@ -1088,10 +1090,10 @@ function AddStockModal({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Entrée de stock
+              {operationType === "add" ? "Entrée de stock" : "Sortie de stock"}
             </h3>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Ajouter des unités au stock
+              {operationType === "add" ? "Ajouter des unités au stock" : "Retirer des unités du stock"}
             </p>
           </div>
           <button
@@ -1099,6 +1101,34 @@ function AddStockModal({
             className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Operation Type Toggle */}
+        <div className="mt-4 flex rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+          <button
+            type="button"
+            onClick={() => setOperationType("add")}
+            className={cn(
+              "flex-1 rounded-lg py-2 text-center text-xs font-semibold transition-all",
+              operationType === "add"
+                ? "bg-white text-green-600 shadow-sm dark:bg-gray-750 dark:text-green-400"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+            )}
+          >
+            Entrée (+)
+          </button>
+          <button
+            type="button"
+            onClick={() => setOperationType("reduce")}
+            className={cn(
+              "flex-1 rounded-lg py-2 text-center text-xs font-semibold transition-all",
+              operationType === "reduce"
+                ? "bg-white text-red-600 shadow-sm dark:bg-gray-750 dark:text-red-400"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+            )}
+          >
+            Sortie (-)
           </button>
         </div>
 
@@ -1154,7 +1184,7 @@ function AddStockModal({
           {/* Quantity */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Quantité à ajouter
+              {operationType === "add" ? "Quantité à ajouter" : "Quantité à retirer"}
             </label>
             <div className="flex items-center gap-2">
               <button
@@ -1192,11 +1222,11 @@ function AddStockModal({
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
                   quantity === n
-                    ? "bg-sugu-500 text-white shadow-sm"
+                    ? (operationType === "add" ? "bg-sugu-500 text-white shadow-sm" : "bg-red-650 text-white shadow-sm")
                     : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800",
                 )}
               >
-                +{n}
+                {operationType === "add" ? `+${n}` : `-${n}`}
               </button>
             ))}
           </div>
@@ -1212,26 +1242,52 @@ function AddStockModal({
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 transition-all focus:border-sugu-300 focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
             >
               <option value="">Sélectionner une raison…</option>
-              <option value="purchase">Achat fournisseur</option>
-              <option value="return">Retour client</option>
-              <option value="production">Production</option>
-              <option value="adjustment">Ajustement inventaire</option>
-              <option value="transfer">Transfert entre magasins</option>
-              <option value="other">Autre</option>
+              {operationType === "add" ? (
+                <>
+                  <option value="purchase">Achat fournisseur</option>
+                  <option value="return">Retour client</option>
+                  <option value="production">Production</option>
+                  <option value="adjustment">Ajustement inventaire</option>
+                  <option value="transfer">Transfert entre magasins</option>
+                  <option value="other">Autre</option>
+                </>
+              ) : (
+                <>
+                  <option value="sale">Vente directe</option>
+                  <option value="damaged">Perte / Cassé / Endommagé</option>
+                  <option value="stolen">Vol / Perte</option>
+                  <option value="expired">Périmé</option>
+                  <option value="adjustment">Ajustement inventaire</option>
+                  <option value="other">Autre</option>
+                </>
+              )}
             </select>
           </div>
 
           {/* Preview total */}
           {selectedProduct && (
-            <div className="rounded-xl bg-green-50/50 p-3 dark:bg-green-950/10">
+            <div className={cn(
+              "rounded-xl p-3",
+              operationType === "add"
+                ? "bg-green-50/50 dark:bg-green-950/10"
+                : "bg-red-50/50 dark:bg-red-950/10"
+            )}>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">
                   Nouveau stock total:
                 </span>
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  {selectedProduct.stockCurrent + quantity} unités
+                <span className={cn(
+                  "font-bold",
+                  operationType === "add" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                )}>
+                  {selectedProduct.stockCurrent + (operationType === "add" ? quantity : -quantity)} unités
                 </span>
               </div>
+              {selectedProduct.stockCurrent - quantity < 0 && operationType === "reduce" && (
+                <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  Attention : Cette opération va rendre le stock négatif.
+                </p>
+              )}
             </div>
           )}
 
@@ -1247,17 +1303,22 @@ function AddStockModal({
             <button
               type="submit"
               disabled={isLoading || !selectedProductId || quantity < 1}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-sugu-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 disabled:opacity-50"
+              className={cn(
+                "flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50",
+                operationType === "add"
+                  ? "bg-sugu-500 hover:bg-sugu-600"
+                  : "bg-red-650 hover:bg-red-750"
+              )}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Ajout en cours…
+                  {operationType === "add" ? "Ajout en cours…" : "Retrait en cours…"}
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4" />
-                  Confirmer l&apos;entrée
+                  {operationType === "add" ? "Confirmer l'entrée" : "Confirmer la sortie"}
                 </>
               )}
             </button>
