@@ -630,7 +630,9 @@ function OrderDetailPanel({
           city: order.delivery.address.city,
           country: order.delivery.address.country,
         }
-      : (order as any).deliveryAddress;
+      : "deliveryAddress" in order
+      ? order.deliveryAddress
+      : { street: "", city: "", country: "" };
 
   return (
     <>
@@ -706,10 +708,10 @@ function OrderDetailPanel({
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                             {product.name}
-                            {(product as any).variant && (
+                            {"variant" in product && product.variant && (
                               <span className="font-normal text-gray-500 dark:text-gray-400">
                                 {" "}
-                                - {(product as any).variant}
+                                - {product.variant}
                               </span>
                             )}
                           </p>
@@ -718,7 +720,7 @@ function OrderDetailPanel({
                           </p>
                         </div>
                         <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                          {formatCurrency((product as any).price ?? (product as any).unitPrice ?? 0)} FCFA
+                          {formatCurrency("price" in product ? (product.price ?? 0) : product.unitPrice)} FCFA
                         </span>
                       </div>
                     ))}
