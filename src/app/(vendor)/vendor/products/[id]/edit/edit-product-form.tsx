@@ -621,7 +621,6 @@ export function EditProductForm({ id }: EditProductFormProps) {
         ? "publish"
         : "draft";
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData((prev) => ({
       ...prev,
       name: product.name ?? "",
