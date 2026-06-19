@@ -96,23 +96,35 @@ export const CATEGORIES: Record<string, string[]> = {
 };
 
 export const ORIGINS = [
-  { label: "Mali", flag: "🇲🇱" },
-  { label: "Sénégal", flag: "🇸🇳" },
-  { label: "Côte d'Ivoire", flag: "🇨🇮" },
-  { label: "Burkina Faso", flag: "🇧🇫" },
-  { label: "Ghana", flag: "🇬🇭" },
-  { label: "Guinée", flag: "🇬🇳" },
-  { label: "Niger", flag: "🇳🇪" },
-  { label: "Togo", flag: "🇹🇬" },
-  { label: "Bénin", flag: "🇧🇯" },
-  { label: "Cameroun", flag: "🇨🇲" },
-];
+  { label: "Mali", flag: "🇲🇱", code: "ML" },
+  { label: "Sénégal", flag: "🇸🇳", code: "SN" },
+  { label: "Côte d'Ivoire", flag: "🇨🇮", code: "CI" },
+  { label: "Burkina Faso", flag: "🇧🇫", code: "BF" },
+  { label: "Ghana", flag: "🇬🇭", code: "GH" },
+  { label: "Guinée", flag: "🇬🇳", code: "GN" },
+  { label: "Niger", flag: "🇳🇪", code: "NE" },
+  { label: "Togo", flag: "🇹🇬", code: "TG" },
+  { label: "Bénin", flag: "🇧🇯", code: "BJ" },
+  { label: "Cameroun", flag: "🇨🇲", code: "CM" },
+] as const;
+
+/** Map an origin label ("Mali") to its ISO 3166-1 alpha-2 code ("ML"). */
+export function originLabelToCode(label: string): string | undefined {
+  return ORIGINS.find((o) => o.label === label)?.code;
+}
+
+/** Map an ISO 3166-1 alpha-2 code ("ML") back to its origin label ("Mali"). */
+export function originCodeToLabel(code: string | null | undefined): string {
+  if (!code) return "";
+  return ORIGINS.find((o) => o.code === code.toUpperCase())?.label ?? "";
+}
 
 export const WEIGHT_UNITS = [
   "Gramme",
   "Kilogramme",
   "Litre",
   "Millilitre",
+  "Mètre",
   "Unité",
 ];
 

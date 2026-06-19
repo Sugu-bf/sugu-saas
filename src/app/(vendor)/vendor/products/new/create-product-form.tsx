@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronLeft, Rocket, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Rocket, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCreateProduct } from "@/features/vendor/hooks";
@@ -63,17 +63,27 @@ export function CreateProductForm() {
   }, []);
 
   // ── Validation ──
-  const validateForm = useCallback((): string | null => {
-    if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
-    if (!formData.price || parseFloat(formData.price) <= 0) return "Le prix de vente est obligatoire.";
-    if (!formData.categoryIds || formData.categoryIds.length === 0) return "Sélectionnez au moins une catégorie.";
-    return null;
-  }, [formData.name, formData.price, formData.categoryIds]);
+  // The API requires a price even for drafts at creation. The category is only
+  // enforced when actually publishing.
+  const validateForm = useCallback(
+    (mode: "publish" | "draft"): string | null => {
+      if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
+      if (!formData.price || parseFloat(formData.price) <= 0)
+        return "Le prix de vente est obligatoire.";
+      if (
+        mode === "publish" &&
+        (!formData.categoryIds || formData.categoryIds.length === 0)
+      )
+        return "Sélectionnez au moins une catégorie.";
+      return null;
+    },
+    [formData.name, formData.price, formData.categoryIds],
+  );
 
   // ── Submit handler (publish or draft) ──
   const handleSubmit = useCallback(
     (mode: "publish" | "draft") => {
-      const error = validateForm();
+      const error = validateForm(mode);
       if (error) {
         toast.error(error);
         return;
@@ -188,22 +198,8 @@ export function CreateProductForm() {
           </button>
         )}
 
-        {/* Right button(s) */}
+        {/* Right button — on the recap step it follows the Publication choice */}
         <div className="flex items-center gap-2">
-          {currentStep === STEPS.length && (
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit("draft")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/60 px-5 py-2.5 text-sm font-semibold text-gray-600 transition-all hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-400"
-            >
-              {isSubmitting && formData.publishMode === "draft" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
-              Sauvegarder brouillon
-            </button>
-          )}
-
           {currentStep < STEPS.length ? (
             <button
               type="button"
@@ -217,15 +213,19 @@ export function CreateProductForm() {
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => handleSubmit("publish")}
+              onClick={() => handleSubmit(formData.publishMode)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-sugu-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-sugu-600 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
             >
-              {isSubmitting && formData.publishMode === "publish" ? (
+              {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : formData.publishMode === "draft" ? (
+                <Save className="h-4 w-4" />
               ) : (
                 <Rocket className="h-4 w-4" />
               )}
-              Publier le produit
+              {formData.publishMode === "draft"
+                ? "Enregistrer le brouillon"
+                : "Publier le produit"}
             </button>
           )}
         </div>

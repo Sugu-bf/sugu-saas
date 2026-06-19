@@ -151,6 +151,7 @@ export function StepInformations({ data, onChange }: StepInformationsProps) {
             onChange={(e) => onChange("origin", e.target.value)}
             className={SELECT_CLASS}
           >
+            <option value="">— Non précisé —</option>
             {ORIGINS.map((o) => (
               <option key={o.label} value={o.label}>
                 {o.label} {o.flag}

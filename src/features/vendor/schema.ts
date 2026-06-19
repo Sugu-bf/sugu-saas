@@ -1513,6 +1513,7 @@ export const createProductRequestSchema = z.object({
   primary_category_id: z.string().optional(),
   category: z.array(z.string()).optional(),
   brand_id: z.string().optional(),
+  country_of_origin: z.string().length(2).optional(),
   status: z.enum(["published", "draft", "archived"]).default("draft"),
   weight: z.number().optional(),
   weightUnit: z.enum(["kg", "g", "lb"]).optional(),

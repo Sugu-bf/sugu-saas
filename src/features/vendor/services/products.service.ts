@@ -32,7 +32,7 @@ interface RawProductItem {
   brand_id?: string;
   image?: string;
   main_image?: string | null;
-  gallery?: Array<{ id: string | number; url: string; type?: string }>;
+  gallery?: Array<{ id: string | number; url: string; type?: string; is_main?: boolean }>;
   all_images?: Array<{ id: string | number; url: string }>;
   price?: number;
   compareAtAmount?: number | null;
@@ -48,6 +48,7 @@ interface RawProductItem {
   category?: string;
   primary_category_id?: string;
   category_ids?: string[];
+  country_of_origin?: string | null;
   weight?: number | null;
   dimensions?: { length?: number | null; width?: number | null; height?: number | null };
   bulkPrices?: Array<{ id: string; minQty: number; price: number; currency: string; isActive: boolean }>;
@@ -110,8 +111,27 @@ const WEIGHT_UNIT_MAP: Record<string, string> = {
   Kilogramme: "kg",
   Litre: "kg",
   Millilitre: "g",
+  Mètre: "g",
   Unité: "g",
 };
+
+// Origin label ↔ ISO 3166-1 alpha-2 code.
+// Keep in sync with ORIGINS in app/(vendor)/vendor/products/new/_components/types.ts
+const ORIGIN_LABEL_TO_CODE: Record<string, string> = {
+  Mali: "ML",
+  "Sénégal": "SN",
+  "Côte d'Ivoire": "CI",
+  "Burkina Faso": "BF",
+  Ghana: "GH",
+  "Guinée": "GN",
+  Niger: "NE",
+  Togo: "TG",
+  "Bénin": "BJ",
+  Cameroun: "CM",
+};
+const ORIGIN_CODE_TO_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(ORIGIN_LABEL_TO_CODE).map(([label, code]) => [code, label]),
+);
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -262,6 +282,7 @@ export async function createVendorProduct(
     stock: string;
     weightValue: string;
     weightUnit: string;
+    origin?: string;
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
@@ -297,6 +318,7 @@ export async function createVendorProduct(
       });
     }
     if (requestBody.brand_id) fd.append("brand_id", requestBody.brand_id);
+    if (requestBody.country_of_origin) fd.append("country_of_origin", requestBody.country_of_origin);
     fd.append("status", requestBody.status);
     if (requestBody.weight !== undefined) fd.append("weight", String(requestBody.weight));
     if (requestBody.weightUnit) fd.append("weightUnit", requestBody.weightUnit);
@@ -394,6 +416,7 @@ export async function updateVendorProduct(
     stock: string;
     weightValue: string;
     weightUnit: string;
+    origin?: string;
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
@@ -409,6 +432,8 @@ export async function updateVendorProduct(
   categoryIds?: string[],
   newImages?: File[],
   removeMediaIds?: (string | number)[],
+  previewIds?: string[],
+  mainMediaId?: string | number | null,
 ): Promise<CreateProductResponse> {
   const price = parseFloat(formData.price) || 0;
   const originalPrice = parseFloat(formData.originalPrice) || 0;
@@ -439,6 +464,9 @@ export async function updateVendorProduct(
       fd.append("category[]", id);
     });
   }
+  if (formData.origin && ORIGIN_LABEL_TO_CODE[formData.origin]) {
+    fd.append("country_of_origin", ORIGIN_LABEL_TO_CODE[formData.origin]);
+  }
   fd.append("compare_at_amount", originalPrice > 0 ? String(Math.round(originalPrice * 100)) : "");
 
   bulkPrices.forEach((bp, idx) => {
@@ -451,6 +479,12 @@ export async function updateVendorProduct(
   }
   if (removeMediaIds && removeMediaIds.length > 0) {
     removeMediaIds.forEach((mid) => { fd.append("remove_media_ids[]", String(mid)); });
+  }
+  if (previewIds && previewIds.length > 0) {
+    previewIds.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+  }
+  if (mainMediaId !== undefined && mainMediaId !== null && mainMediaId !== "") {
+    fd.append("main_media_id", String(mainMediaId));
   }
 
   // Append variant data
@@ -559,20 +593,34 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     photos.push({ id, url, alt, isPrimary });
   };
 
-  if (raw.main_image) addPhoto("main", raw.main_image, `${raw.name} - Image principale`, true);
+  // Primary source: the merged gallery (real media ids). The cover is flagged
+  // server-side via the media custom property is_main.
   if (raw.gallery && Array.isArray(raw.gallery)) {
     raw.gallery.forEach((img, idx) => {
-      addPhoto(String(img.id ?? `gallery-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, photos.length === 0);
+      addPhoto(String(img.id ?? `gallery-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, !!img.is_main);
     });
   }
   if (photos.length === 0 && raw.all_images && Array.isArray(raw.all_images)) {
     raw.all_images.forEach((img, idx) => {
-      addPhoto(String(img.id ?? `img-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, idx === 0);
+      addPhoto(String(img.id ?? `img-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, false);
     });
   }
+  if (photos.length === 0 && raw.main_image) addPhoto("main", raw.main_image, `${raw.name} - Image principale`, true);
   if (photos.length === 0 && raw.image) addPhoto("fallback", raw.image, raw.name ?? "Produit", true);
   if (photos.length === 0) {
     photos.push({ id: "fallback", url: "https://cdn.sugu.pro/s/theme/fallback-product.png", alt: raw.name ?? "Produit", isPrimary: true });
+  }
+
+  // Normalise to exactly one primary, then surface it first for display.
+  let primaryIdx = photos.findIndex((p) => p.isPrimary);
+  if (primaryIdx === -1) {
+    photos[0].isPrimary = true;
+    primaryIdx = 0;
+  }
+  photos.forEach((p, i) => { p.isPrimary = i === primaryIdx; });
+  if (primaryIdx > 0) {
+    const [primary] = photos.splice(primaryIdx, 1);
+    photos.unshift(primary);
   }
 
   const weightG = raw.weight;
@@ -643,7 +691,7 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     category_ids: raw.category_ids ?? [],
     weight: weightStr,
     packaging: "—",
-    origin: raw.brand ?? "—",
+    origin: ORIGIN_CODE_TO_LABEL[(raw.country_of_origin ?? "").toUpperCase()] ?? "",
     description: raw.description ?? raw.shortDescription ?? "",
     tags,
     kpis: {
@@ -779,6 +827,7 @@ function _transformCreateProductRequest(
     stock: string;
     weightValue: string;
     weightUnit: string;
+    origin?: string;
     publishMode: "publish" | "draft";
     hasBulkPricing: boolean;
     bulkTiers: Array<{ minQty: string; price: string }>;
@@ -829,6 +878,7 @@ function _transformCreateProductRequest(
     stock,
     primary_category_id: categoryIds && categoryIds.length > 0 ? categoryIds[0] : undefined,
     category: categoryIds || undefined,
+    country_of_origin: formData.origin ? ORIGIN_LABEL_TO_CODE[formData.origin] : undefined,
     status,
     weight,
     weightUnit: weightUnit as "kg" | "g" | "lb",

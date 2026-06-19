@@ -679,6 +679,7 @@ export function useCreateProduct() {
         stock: string;
         weightValue: string;
         weightUnit: string;
+        origin?: string;
         publishMode: "publish" | "draft";
         hasBulkPricing: boolean;
         bulkTiers: Array<{ minQty: string; price: string }>;
@@ -734,6 +735,7 @@ export function useUpdateProduct() {
         stock: string;
         weightValue: string;
         weightUnit: string;
+        origin?: string;
         publishMode: "publish" | "draft";
         hasBulkPricing: boolean;
         bulkTiers: Array<{ minQty: string; price: string }>;
@@ -749,6 +751,8 @@ export function useUpdateProduct() {
       categoryIds?: string[];
       newImages?: File[];
       removeMediaIds?: (string | number)[];
+      previewIds?: string[];
+      mainMediaId?: string | number | null;
     }) =>
       vendorService.updateVendorProduct(
         params.id,
@@ -756,6 +760,8 @@ export function useUpdateProduct() {
         params.categoryIds,
         params.newImages,
         params.removeMediaIds,
+        params.previewIds,
+        params.mainMediaId,
       ),
     onSuccess: (_data, variables) => {
       const productId = variables.id;
