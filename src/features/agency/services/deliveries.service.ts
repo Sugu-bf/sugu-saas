@@ -115,11 +115,23 @@ const backendStopSchema = z.object({
   is_completed: z.boolean().optional(),
 });
 
+const backendCanonicalStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: z.string().nullable().optional(),
+  actor_type: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
 const backendShipmentDetailSchema = backendShipmentSchema.extend({
   order: backendOrderDetailSchema,
   courier_phone: z.string().nullable().optional(),
   status_updated_at: z.string().nullable().optional(),
   tracking_events: z.array(backendTrackingEventSchema).optional().default([]),
+  // D3b — single canonical timeline projection (agency role: all boutiques).
+  canonical_timeline: z.array(backendCanonicalStepSchema).optional().default([]),
   notes: z.array(backendNoteSchema).optional().default([]),
   stops: z.array(backendStopSchema).optional().default([]),
   // 6C — agency decision state
@@ -311,6 +323,8 @@ function _transformShipmentDetail(
 
   return {
     ...base,
+    // D3b — agency detail consumes the single canonical projection (all boutiques).
+    canonicalTimeline: raw.canonical_timeline ?? [],
     shippingAmount: (raw.shipping_amount ?? 0) / 100,
     paymentMethod: order?.payment_method ?? null,
     orderDate: formatDateLong(order?.created_at ?? raw.created_at),

@@ -97,38 +97,17 @@ export function DeliveryDetailContent({
     );
   }
 
-  // ── Enriched timeline data ──
-  const trackingTimeMap: Record<string, string> = {};
-  if (detailRow.trackingEvents && detailRow.trackingEvents.length > 0) {
-    for (const te of detailRow.trackingEvents) {
-      const timeStr = new Date(te.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-      if (te.status === "assigned" || te.event_type === "assigned") trackingTimeMap["t2"] = timeStr;
-      if (te.status === "in_transit" || te.event_type === "picked_up") trackingTimeMap["t3"] = timeStr;
-      if (te.event_type === "departed" || te.event_type === "in_transit") trackingTimeMap["t4"] = timeStr;
-      if (te.status === "delivered" || te.event_type === "delivered") trackingTimeMap["t5"] = timeStr;
-    }
-  }
-
-  const enrichedTimeline = detailRow.timeline ? detailRow.timeline.map((step) => {
-    const extras: Record<string, { sub: string; time: string }> = {
-      t2: { sub: detailRow.driver?.name ?? "—", time: trackingTimeMap["t2"] ?? "—" },
-      t3: { sub: detailRow.itinerary.from, time: trackingTimeMap["t3"] ?? "—" },
-      t4: {
-        sub: `${detailRow.itinerary.to} — ETA ${detailRow.eta}`,
-        time: trackingTimeMap["t4"] ?? (detailRow.itinerary.fromTime || "—"),
-      },
-      t5: { sub: "", time: trackingTimeMap["t5"] ?? "—" },
-    };
-    return { ...step, ...(extras[step.id] ?? { sub: "", time: "—" }) };
-  }) : [];
+  // D3b — the agency timeline now comes from the single canonical projection
+  // (detailRow.canonicalTimeline). The legacy detailRow.timeline and the
+  // tracking_events-derived enrichment are no longer read on this page.
 
   // ── Computed values from real data ──
   const deliveryFee = detailRow.shippingAmount || 0;
   const orderSubtotal = detailRow.orderTotal || 0;
   const totalWithFees = orderSubtotal + deliveryFee;
 
-  const doneSteps = detailRow.timeline ? detailRow.timeline.filter((s) => s.done).length : 0;
-  const totalSteps = detailRow.timeline ? detailRow.timeline.length : 0;
+  const doneSteps = detailRow.canonicalTimeline.filter((s) => s.status === "done").length;
+  const totalSteps = detailRow.canonicalTimeline.length;
   const completionPercent = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
   /* eslint-disable react-hooks/purity */
@@ -171,7 +150,7 @@ export function DeliveryDetailContent({
         <DeliveryDetailDriverSection row={row} detailRow={detailRow} />
         <DeliveryDetailClientSection row={row} />
         <DeliveryDetailOrderSection row={row} detailRow={detailRow} orderSubtotal={orderSubtotal} deliveryFee={deliveryFee} totalWithFees={totalWithFees} />
-        <DeliveryDetailItinerarySection row={row} enrichedTimeline={enrichedTimeline} />
+        <DeliveryDetailItinerarySection row={row} canonicalTimeline={detailRow.canonicalTimeline} />
         <div className="space-y-4 lg:space-y-5">
           <DeliveryDetailAgencyDecisionSection shipmentId={shipmentId} detailRow={detailRow} />
           <DeliveryDetailReassignSection shipmentId={shipmentId} detailRow={detailRow} />

@@ -272,6 +272,17 @@ export const trackingEventSchema = z.object({
 });
 export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 
+/** D3b — canonical timeline step (single projection, agency role: all boutiques). */
+export const canonicalTimelineStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: z.string().nullable().optional(),
+  actor_type: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
 /** Stop (pickup or delivery point) in the itinerary */
 export const shipmentStopSchema = z.object({
   id: z.string(),
@@ -302,6 +313,8 @@ export const deliveryDetailRowSchema = deliveryRowSchema.extend({
   statusUpdatedAt: z.string().nullable(),
   orderItemsList: z.array(orderItemSchema),
   trackingEvents: z.array(trackingEventSchema),
+  // D3b — single canonical timeline projection (agency detail consumes this).
+  canonicalTimeline: z.array(canonicalTimelineStepSchema),
   notes: z.array(shipmentNoteSchema),
   stops: z.array(shipmentStopSchema).optional().default([]),
 

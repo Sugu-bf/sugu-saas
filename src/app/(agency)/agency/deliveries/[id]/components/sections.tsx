@@ -5,6 +5,7 @@ import type { SetStateAction } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
+import { CanonicalTimeline, type CanonicalTimelineStep } from "@/components/ui/canonical-timeline";
 import { MapPin, Navigation, Bike, Phone, MessageCircle, Star, UserCheck, User, StickyNote, Package, ExternalLink, CheckCircle2, Check, Zap, Loader2, AlertTriangle, XCircle, Clock, CheckCheck, Ban, RefreshCw, DollarSign, ShoppingBag } from "lucide-react";
 import type { DeliveryDetailRow, ShipmentStop } from "@/features/agency/schema";
 import { useAcceptShipment, useRefuseShipment, useAdjustPrice, useReassignCourier, useAvailableCouriers } from "@/features/agency/hooks";
@@ -347,10 +348,10 @@ export function DeliveryDetailOrderSection({
 
 export function DeliveryDetailItinerarySection({
   row,
-  enrichedTimeline,
+  canonicalTimeline,
 }: {
   row: DeliveryDetailRow;
-  enrichedTimeline: Array<{ id: string; label: string; sub?: string; time: string; done: boolean; current: boolean }>;
+  canonicalTimeline: CanonicalTimelineStep[];
 }) {
   return (
     <section
@@ -402,61 +403,9 @@ export function DeliveryDetailItinerarySection({
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        <ol aria-label="Étapes de livraison" className="space-y-0">
-          {enrichedTimeline.map((step, i) => {
-            const isLast = i === enrichedTimeline.length - 1;
-            return (
-              <li key={step.id} className="flex items-start gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="relative flex items-center justify-center">
-                    {step.done && !step.current ? (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                        <Check className="h-3 w-3 text-white" />
-                      </span>
-                    ) : step.current ? (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sugu-500 ring-2 ring-sugu-200 animate-pulse-dot">
-                        <span className="h-2 w-2 rounded-full bg-white" />
-                      </span>
-                    ) : (
-                      <span className="h-5 w-5 rounded-full bg-gray-200" />
-                    )}
-                  </div>
-                  {!isLast && (
-                    <span
-                      className={cn(
-                        "h-8 w-0.5 mt-0.5",
-                        step.done ? "bg-green-300" : "bg-gray-200"
-                      )}
-                    />
-                  )}
-                </div>
-
-                <div className="flex flex-1 items-start justify-between pb-2 min-w-0">
-                  <div className="min-w-0">
-                    <p
-                      className={cn(
-                        "text-xs",
-                        step.done && !step.current
-                          ? "font-medium text-gray-700"
-                          : step.current
-                            ? "font-bold text-sugu-600"
-                            : "text-gray-400"
-                      )}
-                    >
-                      {step.label}
-                    </p>
-                    {step.sub && (
-                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">{step.sub}</p>
-                    )}
-                  </div>
-                  <span className="flex-shrink-0 text-[10px] font-medium text-gray-400 ml-2">
-                    {step.time}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        {/* D3b — single canonical timeline projection (agency sees all
+            boutiques: accept/refuse A7 + vendor confirm/handoff per store). */}
+        <CanonicalTimeline steps={canonicalTimeline} />
       </div>
     </section>
   );
