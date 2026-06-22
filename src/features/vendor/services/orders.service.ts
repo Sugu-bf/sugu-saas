@@ -125,6 +125,16 @@ interface RawOrderDetail {
         timestamp?: string;
         status?: string;
       }>;
+      // D3b — single canonical timeline projection (vendor role, per-store scoped).
+      canonical_timeline?: Array<{
+        key: string;
+        label: string;
+        status: "done" | "current" | "upcoming";
+        timestamp: string | null;
+        store_id?: string | null;
+        actor_type?: string | null;
+        description?: string | null;
+      }>;
       cod_mixte?: {
         isCodMixte?: boolean;
         currentStep?: string;
@@ -393,26 +403,23 @@ function _transformOrderDetailResponse(
   const clientLocation = raw.parties?.client?.location ?? "";
   const locationParts = clientLocation.split(",").map((s) => s.trim());
 
-  const rawTimeline = raw.timeline ?? [];
-  const lastCompletedIdx = rawTimeline.reduce(
-    (lastIdx, ev, idx) => (ev.status === "completed" ? idx : lastIdx),
-    -1
-  );
-
-  const timeline = rawTimeline.map((event, idx) => {
-    let timelineStatus: "completed" | "current" | "pending" = "pending";
-    if (event.status === "completed") {
-      timelineStatus = idx === lastCompletedIdx ? "current" : "completed";
-    }
-    
-    return {
-      id: event.id ?? `tl-${idx}`,
-      label: event.title ?? "",
-      date: event.timestamp ? formatDateFr(event.timestamp) : "En attente",
-      description: event.description,
-      status: timelineStatus,
-    };
-  });
+  // D3b — the vendor view consumes the canonical projection. raw.timeline (the
+  // legacy field) is NO LONGER read here. The legacy-shaped `timeline` below is
+  // still produced for the orders LIST mini-view (out of scope this commit) but
+  // is now DERIVED from canonical_timeline — same single source.
+  const canonicalTimeline = raw.canonical_timeline ?? [];
+  const canonicalToLegacyStatus = {
+    done: "completed",
+    current: "current",
+    upcoming: "pending",
+  } as const;
+  const timeline = canonicalTimeline.map((step, idx) => ({
+    id: `${step.key}-${step.store_id ?? ""}-${idx}`,
+    label: step.label,
+    date: step.timestamp ? formatDateFr(step.timestamp) : "En attente",
+    description: step.description ?? undefined,
+    status: canonicalToLegacyStatus[step.status],
+  }));
 
   const finalTimeline =
     timeline.length > 0
@@ -490,6 +497,7 @@ function _transformOrderDetailResponse(
       },
     },
     timeline: finalTimeline,
+    canonicalTimeline,
     codMixte: raw.cod_mixte ? {
       isCodMixte: Boolean(raw.cod_mixte.isCodMixte),
       currentStep: raw.cod_mixte.currentStep ?? "awaiting_delivery_payment",

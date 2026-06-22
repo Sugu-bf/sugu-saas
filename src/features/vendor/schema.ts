@@ -227,6 +227,17 @@ export const orderDetailTimelineSchema = z.object({
 
 export type OrderDetailTimeline = z.infer<typeof orderDetailTimelineSchema>;
 
+/** D3b — canonical timeline step (single projection, per-store scoped for vendor). */
+export const canonicalTimelineStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: z.string().nullable().optional(),
+  actor_type: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
 /** Full order detail (single order page) */
 export const orderDetailSchema = z.object({
   id: z.string(),
@@ -269,6 +280,8 @@ export const orderDetailSchema = z.object({
     clientNote: z.string().optional(),
   }),
   timeline: z.array(orderDetailTimelineSchema),
+  // D3b — single canonical timeline projection (vendor detail consumes this).
+  canonicalTimeline: z.array(canonicalTimelineStepSchema),
 
   // COD Mixte split-payment data (optional — only for COD orders)
   codMixte: z.object({

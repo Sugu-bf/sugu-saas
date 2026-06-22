@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
+import { CanonicalTimeline } from "@/components/ui/canonical-timeline";
 import {
   ArrowLeft,
   Printer,
@@ -300,59 +301,13 @@ export function OrderDetailContent({ data }: OrderDetailContentProps) {
               </h2>
             </div>
 
-            <div className="mt-3 space-y-0 lg:mt-4">
-              {data.timeline.map((event, i) => {
-                const isCompleted = event.status === "completed";
-                const isCurrent = event.status === "current";
-                const isPending = event.status === "pending";
-                const isLast = i === data.timeline.length - 1;
-
-                return (
-                  <div key={event.id} className="flex gap-3">
-                    {/* Dot + Line */}
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={cn(
-                          "mt-1 h-3.5 w-3.5 rounded-full border-2 flex-shrink-0",
-                          isCompleted && "border-green-500 bg-green-500",
-                          isCurrent && "border-sugu-500 bg-sugu-500 animate-pulse-dot",
-                          isPending && "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900",
-                        )}
-                      />
-                      {!isLast && (
-                        <div
-                          className={cn(
-                            "my-0.5 w-0.5 flex-1 min-h-[20px]",
-                            isCompleted ? "bg-green-200 dark:bg-green-800" :
-                            isCurrent ? "bg-sugu-200 dark:bg-sugu-800" :
-                            "bg-gray-200 dark:bg-gray-700",
-                          )}
-                        />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="pb-4 min-w-0">
-                      <p className={cn(
-                        "text-xs font-semibold lg:text-sm",
-                        isCompleted && "text-gray-900 dark:text-white",
-                        isCurrent && "text-sugu-600 dark:text-sugu-400",
-                        isPending && "text-gray-400 dark:text-gray-500",
-                      )}>
-                        {isCurrent && "● "}
-                        {event.label}
-                        {" "}
-                        <span className="font-normal text-gray-400">— {event.date}</span>
-                      </p>
-                      {event.description && (
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          {event.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            {/* D3b — single canonical timeline projection. Replaces the legacy
+                data.timeline render; the vendor mapper no longer reads raw.timeline.
+                Superset: every prior step (placed/confirmed/preparing/shipped/
+                delivered + the 2 COD payments) is covered, plus vendor_confirmed /
+                handoff per boutique (V4). */}
+            <div className="mt-3 lg:mt-4">
+              <CanonicalTimeline steps={data.canonicalTimeline} />
             </div>
           </section>
           {/* ── Code de collecte (visible after courier assigned) ── */}

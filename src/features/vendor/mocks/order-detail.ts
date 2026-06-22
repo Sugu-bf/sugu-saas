@@ -129,4 +129,12 @@ export const mockOrderDetail: OrderDetail = {
       status: "pending",
     },
   ],
+  // D3b — canonical timeline projection (vendor role).
+  canonicalTimeline: [
+    { key: "placed", label: "Commande reçue", status: "done", timestamp: "2026-02-24T08:15:00Z", store_id: null, actor_type: null, description: null },
+    { key: "vendor_confirmed", label: "Stock confirmé", status: "done", timestamp: "2026-02-24T08:20:00Z", store_id: null, actor_type: "seller", description: null },
+    { key: "preparing", label: "En préparation", status: "current", timestamp: "2026-02-24T08:45:00Z", store_id: null, actor_type: null, description: null },
+    { key: "in_transit", label: "En livraison", status: "upcoming", timestamp: null, store_id: null, actor_type: null, description: null },
+    { key: "delivered", label: "Livrée", status: "upcoming", timestamp: null, store_id: null, actor_type: null, description: null },
+  ],
 };
