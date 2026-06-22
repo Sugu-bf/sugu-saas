@@ -807,6 +807,16 @@ interface RawDeliveryDetailResponse {
     done: boolean;
     current: boolean;
   }>;
+  // D3b — single canonical timeline projection (driver role).
+  canonical_timeline?: Array<{
+    key: string;
+    label: string;
+    status: "done" | "current" | "upcoming";
+    timestamp: string | null;
+    store_id?: string | null;
+    actor_type?: string | null;
+    description?: string | null;
+  }>;
   accepted_at: string | null;
   completed_at: string | null;
   cod_mixte?: RawCodMixte | null;
@@ -858,6 +868,9 @@ function _transformDeliveryDetailResponse(raw: Record<string, unknown>): unknown
       isRegular: d.client.is_regular,
     },
     timeline: d.timeline,
+    // D3b — driver detail consumes this; the legacy 4-step `timeline` is no
+    // longer the timeline source on the driver detail page.
+    canonicalTimeline: d.canonical_timeline ?? [],
     acceptedAt: d.accepted_at,
     completedAt: d.completed_at,
     codMixte: _mapCodMixte(d.cod_mixte),
@@ -973,6 +986,13 @@ export const _MOCK_DELIVERY_DETAIL: DriverDeliveryDetail = {
     { id: "tl-4", label: "En route vers le client", subtitle: "Prévenez le client de votre arrivée", time: null, done: false, current: false },
     { id: "tl-5", label: "Arrivé chez le client", subtitle: null, time: null, done: false, current: false },
     { id: "tl-6", label: "Livré", subtitle: "Validation client requise", time: null, done: false, current: false },
+  ],
+  // D3b — canonical timeline projection (driver role).
+  canonicalTimeline: [
+    { key: "courier_assigned", label: "Livreur assigné", status: "done", timestamp: "2026-03-08T13:45:00Z", store_id: null, actor_type: null, description: null },
+    { key: "collected", label: "Collecté", status: "current", timestamp: "2026-03-08T14:00:00Z", store_id: null, actor_type: null, description: null },
+    { key: "in_transit", label: "En livraison", status: "upcoming", timestamp: null, store_id: null, actor_type: null, description: null },
+    { key: "delivered", label: "Livrée", status: "upcoming", timestamp: null, store_id: null, actor_type: null, description: null },
   ],
   acceptedAt: "2026-03-08T13:45:00",
   completedAt: null,

@@ -276,6 +276,17 @@ export const detailTimelineStepSchema = z.object({
 
 export type DetailTimelineStep = z.infer<typeof detailTimelineStepSchema>;
 
+/** D3b — canonical timeline step (single projection, driver role). */
+export const canonicalTimelineStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: z.string().nullable().optional(),
+  actor_type: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
 /** Full delivery detail response */
 export const driverDeliveryDetailSchema = z.object({
   // Identity
@@ -314,6 +325,8 @@ export const driverDeliveryDetailSchema = z.object({
 
   // Timeline (6 steps)
   timeline: z.array(detailTimelineStepSchema),
+  // D3b — single canonical timeline projection (driver detail consumes this).
+  canonicalTimeline: z.array(canonicalTimelineStepSchema),
 
   // Timestamps
   acceptedAt: z.string().nullable(),

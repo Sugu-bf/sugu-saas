@@ -39,11 +39,11 @@ import {
   useRefuseDelivery,
 } from "@/features/driver/hooks";
 import { useStartCourierConversation } from "@/features/driver/messaging/hooks";
+import { CanonicalTimeline, type CanonicalTimelineStep } from "@/components/ui/canonical-timeline";
 import type {
   DriverDeliveryDetail,
   PickupStop,
   PickupProduct,
-  DetailTimelineStep,
 } from "@/features/driver/schema";
 import type { DriverDeliveryStatus } from "@/features/driver/schema";
 import { toast } from "sonner";
@@ -815,7 +815,7 @@ function ItineraryCard({
 // TrackingTimeline
 // ────────────────────────────────────────────────────────────
 
-function TrackingTimeline({ steps }: { steps: DetailTimelineStep[] }) {
+function TrackingTimeline({ steps }: { steps: CanonicalTimelineStep[] }) {
   return (
     <div
       className="glass-card rounded-2xl p-5 animate-card-enter"
@@ -833,61 +833,11 @@ function TrackingTimeline({ steps }: { steps: DetailTimelineStep[] }) {
         </span>
       </div>
 
-      <ol className="space-y-0">
-        {steps.map((step, i) => {
-          const isLast = i === steps.length - 1;
-          return (
-            <li key={step.id} className="flex items-start gap-3">
-              <div className="flex flex-col items-center">
-                {step.done && !step.current ? (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                    <Check className="h-3 w-3 text-white" />
-                  </span>
-                ) : step.current ? (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sugu-500 ring-4 ring-sugu-200/50 animate-pulse-dot">
-                    <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                  </span>
-                ) : (
-                  <span className="h-6 w-6 rounded-full bg-gray-200" />
-                )}
-                {!isLast && (
-                  <span
-                    className={cn(
-                      "h-8 w-0.5 mt-0.5",
-                      step.done ? "bg-green-300" : "bg-gray-200",
-                    )}
-                  />
-                )}
-              </div>
-
-              <div className="flex flex-1 items-start justify-between pb-2 min-w-0">
-                <div className="min-w-0">
-                  <p
-                    className={cn(
-                      "text-xs",
-                      step.done && !step.current
-                        ? "font-medium text-gray-700"
-                        : step.current
-                          ? "font-bold text-sugu-600"
-                          : "text-gray-400",
-                    )}
-                  >
-                    {step.label}
-                  </p>
-                  {step.subtitle && (
-                    <p className="mt-0.5 text-[10px] text-gray-400 truncate">
-                      {step.subtitle}
-                    </p>
-                  )}
-                </div>
-                <span className="flex-shrink-0 text-[10px] font-medium text-gray-400 ml-2">
-                  {step.time ?? "—"}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      {/* D3b — single canonical timeline projection. Replaces the legacy 4-step
+          render; the driver page no longer reads detail.timeline (buildTimeline).
+          Superset: reçu/accepté/collecté/livré conserved + COD/inspection (K7) +
+          collecte PER BOUTIQUE (N "collected" steps by store, not one picked_at). */}
+      <CanonicalTimeline steps={steps} />
     </div>
   );
 }
@@ -1431,7 +1381,7 @@ export function DriverDeliveryDetailContent({
         />
 
         {/* COL 2: Timeline */}
-        <TrackingTimeline steps={detail.timeline} />
+        <TrackingTimeline steps={detail.canonicalTimeline} />
 
         {/* COL 3: Client + Actions */}
         <div className="space-y-4">
