@@ -645,6 +645,9 @@ function ItineraryCard({
   const confirmMutation = useConfirmCollection();
   const startConvMutation = useStartCourierConversation();
   const router = useRouter();
+  // MÉCANISME-A — the courier enters each boutique's pickup code (one boutique per
+  // stop). The code is verified server-side; collection is recorded only if it matches.
+  const [pickupCodes, setPickupCodes] = useState<Record<string, string>>({});
   const pickupStops = stops.filter((s) => s.type === "pickup");
   const deliveryStop = stops.find((s) => s.type === "delivery");
 
@@ -703,31 +706,63 @@ function ItineraryCard({
                   ))}
                 </div>
 
-                {/* Confirm all button for this stop (if not completed) */}
+                {/* Confirm collection (if not completed) — MÉCANISME-A: the courier
+                    enters the vendor's pickup code; it is verified server-side. */}
                 {!stop.isCompleted &&
                   status !== "delivered" &&
                   status !== "failed" && (
-                    <button
-                      onClick={() => {
-                        // Confirm all products in this stop
-                        stop.products
-                          .filter((p) => !p.collected)
-                          .forEach((p) => {
-                            confirmMutation.mutate({
-                              deliveryId,
-                              productId: p.id,
-                            });
-                          });
-                        toast.success(`Collecte confirmée — ${stop.name}`);
-                      }}
-                      disabled={confirmMutation.isPending}
-                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg
-                                 border border-green-200 bg-green-50/60 py-2 text-xs font-semibold
-                                 text-green-700 transition-colors hover:bg-green-100 disabled:opacity-60"
-                    >
-                      <Check className="h-3 w-3" />
-                      Confirmer la collecte
-                    </button>
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="text"
+                        inputMode="text"
+                        autoComplete="off"
+                        value={pickupCodes[stop.id] ?? ""}
+                        onChange={(e) =>
+                          setPickupCodes((prev) => ({
+                            ...prev,
+                            [stop.id]: e.target.value.toUpperCase().trim(),
+                          }))
+                        }
+                        placeholder="Code de collecte du vendeur"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs
+                                   font-mono tracking-widest text-gray-900 placeholder:font-sans
+                                   placeholder:tracking-normal placeholder:text-gray-400
+                                   focus:border-sugu-400 focus:outline-none focus:ring-1 focus:ring-sugu-300
+                                   dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                      />
+                      <button
+                        onClick={async () => {
+                          const code = (pickupCodes[stop.id] ?? "").trim();
+                          if (!code) {
+                            toast.error("Saisissez le code de collecte du vendeur.");
+                            return;
+                          }
+                          try {
+                            // One boutique per stop → the first product collects the
+                            // boutique's StorePickup (code-verified); the rest are
+                            // server-side no-ops (already collected).
+                            for (const p of stop.products.filter((p) => !p.collected)) {
+                              await confirmMutation.mutateAsync({
+                                deliveryId,
+                                productId: p.id,
+                                pickupCode: code,
+                              });
+                            }
+                            toast.success(`Collecte confirmée — ${stop.name}`);
+                            setPickupCodes((prev) => ({ ...prev, [stop.id]: "" }));
+                          } catch (err) {
+                            toast.error(mapSuguErrorMessage(err));
+                          }
+                        }}
+                        disabled={confirmMutation.isPending}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg
+                                   border border-green-200 bg-green-50/60 py-2 text-xs font-semibold
+                                   text-green-700 transition-colors hover:bg-green-100 disabled:opacity-60"
+                      >
+                        <Check className="h-3 w-3" />
+                        Confirmer la collecte
+                      </button>
+                    </div>
                   )}
 
                 {stop.isCompleted && (

@@ -136,8 +136,8 @@ export function useDriverDeliveryDetail(deliveryId: string) {
 export function useConfirmCollection() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ deliveryId, productId }: { deliveryId: string; productId: string }) =>
-      driverService.confirmCollection(deliveryId, productId),
+    mutationFn: ({ deliveryId, productId, pickupCode }: { deliveryId: string; productId: string; pickupCode?: string }) =>
+      driverService.confirmCollection(deliveryId, productId, pickupCode),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.driver.deliveryDetail(variables.deliveryId) });
     },

@@ -891,9 +891,13 @@ export async function getDriverDeliveryDetail(
 export async function confirmCollection(
   deliveryId: string,
   productId: string,
+  pickupCode?: string,
 ): Promise<void> {
+  // MÉCANISME-A — the boutique's pickup code is verified server-side before the
+  // collection is recorded. The courier enters the code the vendor communicates.
   await api.post(
     `courier/deliveries/${deliveryId}/confirm-collection/${productId}`,
+    { pickup_code: pickupCode },
   );
 }
 
