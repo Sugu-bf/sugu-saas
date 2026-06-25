@@ -117,7 +117,7 @@ export function DeliveryDetailDriverSection({
                 </span>
                 <span className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  {row.driver.rating}
+                  {row.driver.rating ?? "Non noté"}
                 </span>
               </div>
             </div>
@@ -129,10 +129,24 @@ export function DeliveryDetailDriverSection({
           </p>
 
           <div className="flex gap-2">
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50">
-              <Phone className="h-3.5 w-3.5" />
-              Appeler
-            </button>
+            {/* A8-res — Appeler now actually calls the assigned driver via tel: */}
+            {(row.driver.phone ?? detailRow.driverPhone) ? (
+              <a
+                href={`tel:${row.driver.phone ?? detailRow.driverPhone}`}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Appeler
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-400"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Appeler
+              </button>
+            )}
             <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-green-600">
               <MessageCircle className="h-3.5 w-3.5" />
               WhatsApp

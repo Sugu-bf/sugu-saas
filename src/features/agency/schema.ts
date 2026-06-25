@@ -179,9 +179,13 @@ export const deliveryDriverSchema = z.object({
   name: z.string(),
   initials: z.string(),
   avatarColor: z.string(),
+  // A8-res — phone is live delivery data (the assigned courier), so the agency can
+  // call. vehicle/rating/online come from the global profile and are nullable: null
+  // = « non renseigné » (the backend no longer fakes moto/0/false on an empty profile).
+  phone: z.string().nullable(),
   vehicle: z.string(),
-  rating: z.number(),
-  online: z.boolean(),
+  rating: z.number().nullable(),
+  online: z.boolean().nullable(),
 });
 
 export type DeliveryDriver = z.infer<typeof deliveryDriverSchema>;

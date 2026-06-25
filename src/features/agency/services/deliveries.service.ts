@@ -33,6 +33,7 @@ const backendOrderSchema = z.object({
 const backendCourierDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
+  phone: z.string().nullable().optional(),
   vehicle_type: z.string().nullable().optional(),
   average_rating: z.number().nullable().optional(),
   is_available: z.boolean().nullable().optional(),
@@ -289,9 +290,13 @@ function _transformShipment(raw: z.infer<typeof backendShipmentSchema>): Deliver
           name: courier.name,
           initials: getInitials(courier.name),
           avatarColor: getAvatarColor(String(courier.id)),
-          vehicle: courier.vehicle_type ?? "moto",
-          rating: courier.average_rating ?? 0,
-          online: courier.is_available ?? false,
+          // A8-res — phone threaded so the agency can call the assigned driver.
+          phone: courier.phone ?? null,
+          // vehicle/rating/online: profile data — null = « non renseigné », never a
+          // fabricated moto/0/false.
+          vehicle: courier.vehicle_type ?? "Non renseigné",
+          rating: courier.average_rating ?? null,
+          online: courier.is_available ?? null,
         }
       : null,
     itinerary: {

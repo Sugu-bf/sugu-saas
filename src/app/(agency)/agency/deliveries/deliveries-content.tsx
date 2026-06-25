@@ -343,13 +343,13 @@ function DeliveryDetailPanel({
                       : "bg-gray-100 text-gray-500 dark:bg-gray-800",
                   )}
                 >
-                  {row.driver.online ? "● ligne" : "hors ligne"}
+                  {row.driver.online == null ? "statut inconnu" : row.driver.online ? "● ligne" : "hors ligne"}
                 </span>
               </div>
               <div className="mt-2 flex items-center gap-1.5">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                 <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">
-                  {row.driver.rating} (ret)
+                  {row.driver.rating != null ? `${row.driver.rating} (ret)` : "Non noté"}
                 </span>
               </div>
               <div className="mt-2.5 flex gap-2">
