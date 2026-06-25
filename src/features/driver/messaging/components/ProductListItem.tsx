@@ -1,7 +1,7 @@
 "use client";
 
 import type { RecommendedProduct } from "../../services/messaging.service";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import Image from "next/image";
 import { Share2 } from "lucide-react";
 
@@ -36,7 +36,7 @@ export function ProductListItem({ product, onShare }: ProductListItemProps) {
           {product.name}
         </p>
         <p className="text-xs font-semibold text-sugu-500">
-          {formatCurrency(product.price)} FCFA
+          {formatCentsToXof(product.price)}
         </p>
       </div>
 

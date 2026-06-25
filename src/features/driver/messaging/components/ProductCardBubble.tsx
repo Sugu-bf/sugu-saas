@@ -1,7 +1,7 @@
 "use client";
 
 import type { Message, ProductCardMetadata } from "@/lib/messaging/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
 
@@ -32,11 +32,11 @@ export function ProductCardBubble({ message }: ProductCardBubbleProps) {
             {meta.product_name}
           </p>
           <p className="text-sm font-bold text-sugu-500">
-            {formatCurrency(meta.price)} {meta.currency}
+            {formatCentsToXof(meta.price)}
           </p>
           {meta.compare_price && meta.compare_price > meta.price && (
             <p className="text-xs text-gray-400 line-through">
-              {formatCurrency(meta.compare_price)} {meta.currency}
+              {formatCentsToXof(meta.compare_price)}
             </p>
           )}
         </div>

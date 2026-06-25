@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Search, X, Package } from "lucide-react";
 import { useRecommendedProducts, useSendCourierProductCard } from "../hooks";
-import { formatCurrency } from "@/lib/utils";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -130,7 +130,7 @@ export function ShareProductDialog({
                       {product.name}
                     </p>
                     <p className="text-xs font-semibold text-sugu-500">
-                      {formatCurrency(product.price)} {product.currency}
+                      {formatCentsToXof(product.price)}
                     </p>
                   </div>
                 </button>

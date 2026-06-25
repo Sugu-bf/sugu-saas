@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useDriverDashboard } from "@/features/driver/hooks";
+import { formatCentsToXof } from "@/lib/utils/format-cents";
 import {
   Package,
   CheckCircle,
@@ -513,7 +514,7 @@ function EarningsChart({
         <div>
           <p className="text-[10px] font-medium text-gray-400">Total semaine</p>
           <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
-            {total.toLocaleString("fr-FR")} FCFA
+            {formatCentsToXof(total)}
           </p>
         </div>
         <div className="text-right">
