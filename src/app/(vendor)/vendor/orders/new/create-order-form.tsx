@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -44,7 +45,7 @@ interface OrderItem {
   id: string;
   name: string;
   sku: string;
-  emoji: string;
+  imageUrl?: string;
   price: number;
   quantity: number;
   stock: number;
@@ -167,7 +168,7 @@ export function CreateOrderForm() {
         id: result.id,
         name: result.name,
         sku: result.sku,
-        emoji: result.emoji,
+        imageUrl: result.imageUrl,
         price: result.price,
         quantity: 1,
         stock: result.stock,
@@ -387,7 +388,13 @@ export function CreateOrderForm() {
                         disabled={result.stock === 0}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 first:rounded-t-xl last:rounded-b-xl disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <span className="text-xl">{result.emoji}</span>
+                        <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                          {result.imageUrl ? (
+                            <Image src={result.imageUrl} alt={result.name} fill className="object-cover" />
+                          ) : (
+                            <Package className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                             {result.name}
@@ -422,7 +429,13 @@ export function CreateOrderForm() {
                     key={item.id}
                     className="flex items-center gap-3 rounded-xl bg-white/40 px-3 py-3 dark:bg-white/5"
                   >
-                    <span className="text-xl lg:text-2xl">{item.emoji}</span>
+                    <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
+                      {item.imageUrl ? (
+                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                      ) : (
+                        <Package className="h-5 w-5 text-gray-400" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-900 dark:text-white truncate lg:text-sm">
                         {item.name}
