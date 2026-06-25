@@ -15,8 +15,8 @@ const envSchema = z.object({
     .default("false"),
 
   // ─── Reverb WebSocket ───────────────────────────────────────────
-  NEXT_PUBLIC_REVERB_APP_KEY: z.string().min(1),
-  NEXT_PUBLIC_REVERB_HOST: z.string().min(1),
+  NEXT_PUBLIC_REVERB_APP_KEY: z.string().min(1).default("sugu-reverb-key"),
+  NEXT_PUBLIC_REVERB_HOST: z.string().min(1).default("localhost"),
   NEXT_PUBLIC_REVERB_PORT: z.coerce.number().default(8080),
   NEXT_PUBLIC_REVERB_SCHEME: z.enum(["http", "https"]).default("https"),
 });
