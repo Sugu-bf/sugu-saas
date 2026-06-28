@@ -44,6 +44,10 @@ export {
   getProductBrands,
   getVariantOptions,
   previewProductImage,
+  getImageProcessingCapabilities,
+  previewProductBackgroundRemoval,
+  acceptProductBackgroundRemoval,
+  cancelProductBackgroundRemoval,
   createVendorProduct,
   updateVendorProduct,
   // Clients

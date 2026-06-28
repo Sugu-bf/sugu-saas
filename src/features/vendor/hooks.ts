@@ -659,6 +659,42 @@ export function usePreviewImage() {
   });
 }
 
+export function useImageProcessingCapabilities() {
+  return useQuery({
+    queryKey: queryKeys.vendor.imageProcessingCapabilities(),
+    queryFn: () => vendorService.getImageProcessingCapabilities(),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useBackgroundRemovalPreview() {
+  return useMutation({
+    mutationFn: (params: {
+      file?: File;
+      productId?: string;
+      mediaId?: string | number;
+      storeId?: string;
+    }) => vendorService.previewProductBackgroundRemoval(params),
+    retry: 0,
+  });
+}
+
+export function useAcceptBackgroundRemovalPreview() {
+  return useMutation({
+    mutationFn: (params: { previewId: string; productId: string; makeMain?: boolean }) =>
+      vendorService.acceptProductBackgroundRemoval(params),
+    retry: 0,
+  });
+}
+
+export function useCancelBackgroundRemovalPreview() {
+  return useMutation({
+    mutationFn: (previewId: string) => vendorService.cancelProductBackgroundRemoval(previewId),
+    retry: 0,
+  });
+}
+
 /**
  * Hook: Create a new product from the vendor dashboard.
  * On success, invalidates products + dashboard caches and redirects to the new product.
@@ -695,7 +731,16 @@ export function useCreateProduct() {
       categoryIds?: string[];
       images?: File[];
       previewIds?: string[];
-    }) => vendorService.createVendorProduct(params.formData, params.categoryIds, params.images, params.previewIds),
+      backgroundRemovalPreviewIds?: string[];
+      backgroundRemovalMainPreviewId?: string;
+    }) => vendorService.createVendorProduct(
+      params.formData,
+      params.categoryIds,
+      params.images,
+      params.previewIds,
+      params.backgroundRemovalPreviewIds,
+      params.backgroundRemovalMainPreviewId,
+    ),
     onSuccess: (data) => {
       // Invalidate product list, stats, and dashboard
       queryClient.invalidateQueries({ queryKey: queryKeys.vendor.products() });
@@ -753,6 +798,8 @@ export function useUpdateProduct() {
       removeMediaIds?: (string | number)[];
       previewIds?: string[];
       mainMediaId?: string | number | null;
+      backgroundRemovalPreviewIds?: string[];
+      backgroundRemovalMainPreviewId?: string;
     }) =>
       vendorService.updateVendorProduct(
         params.id,
@@ -762,6 +809,8 @@ export function useUpdateProduct() {
         params.removeMediaIds,
         params.previewIds,
         params.mainMediaId,
+        params.backgroundRemovalPreviewIds,
+        params.backgroundRemovalMainPreviewId,
       ),
     onSuccess: (_data, variables) => {
       const productId = variables.id;

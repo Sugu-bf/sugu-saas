@@ -41,9 +41,12 @@ export interface ProductPhoto {
   id: string;
   file: File;                      // Original file
   previewUrl: string;              // Display URL (local blob OR Cloudinary URL from server)
+  originalPreviewUrl?: string;     // Local original preview retained for comparison/revert
   isMain: boolean;
   // Detourage workflow fields:
   previewUuid?: string;            // UUID returned by backend after detourage
+  backgroundRemovalPreviewId?: string;
+  isBackgroundRemovalAccepted?: boolean;
   isProcessing?: boolean;          // true during the API call for detourage
   processingError?: string | null; // Error message if detourage failed
   isDetoured?: boolean;            // true if the image was successfully detoured

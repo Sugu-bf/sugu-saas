@@ -35,6 +35,8 @@ export const queryKeys = {
       [...queryKeys.vendor.all, "products", "brands"] as const,
     variantOptions: () =>
       [...queryKeys.vendor.all, "products", "variantOptions"] as const,
+    imageProcessingCapabilities: () =>
+      [...queryKeys.vendor.all, "products", "imageProcessingCapabilities"] as const,
     clients: (filters?: Record<string, unknown>) =>
       [...queryKeys.vendor.all, "clients", filters] as const,
     clientStats: () =>

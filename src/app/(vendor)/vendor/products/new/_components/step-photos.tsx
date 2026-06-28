@@ -1,11 +1,15 @@
 "use client";
 
-import { useRef, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useRef, useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Camera, X, Star, Plus, ImagePlus, Loader2, AlertTriangle, CheckCircle2, Wand2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type ProductFormData, type ProductPhoto } from "./types";
-import { usePreviewImage } from "@/features/vendor/hooks";
+import {
+  useBackgroundRemovalPreview,
+  useCancelBackgroundRemovalPreview,
+  useImageProcessingCapabilities,
+} from "@/features/vendor/hooks";
 
 const MAX_PHOTOS = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -20,7 +24,11 @@ interface StepPhotosProps {
 export function StepPhotos({ data, setFormData }: StepPhotosProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
-  const previewMutation = usePreviewImage();
+  const previewMutation = useBackgroundRemovalPreview();
+  const cancelMutation = useCancelBackgroundRemovalPreview();
+  const { data: capabilities } = useImageProcessingCapabilities();
+  const [comparePhotoId, setComparePhotoId] = useState<string | null>(null);
+  const canDetour = capabilities?.enabled ?? false;
   // Track abort controllers for in-flight detourage requests
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
@@ -54,7 +62,7 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
       }));
 
       try {
-        const result = await previewMutation.mutateAsync(file);
+        const result = await previewMutation.mutateAsync({ file });
 
         // Check if aborted (photo removed during processing)
         if (controller.signal.aborted) return;
@@ -66,15 +74,19 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
             p.id === photoId
               ? {
                   ...p,
+                  originalPreviewUrl: p.originalPreviewUrl ?? p.previewUrl,
                   previewUrl: result.preview_url,
-                  previewUuid: result.uuid,
+                  previewUuid: undefined,
+                  backgroundRemovalPreviewId: result.preview_id,
                   isProcessing: false,
                   isDetoured: true,
+                  isBackgroundRemovalAccepted: false,
                   processingError: null,
                 }
               : p,
           ),
         }));
+        setComparePhotoId(photoId);
 
         toast.success("Image détourée avec succès !");
       } catch (error) {
@@ -105,6 +117,49 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
       }
     },
     [previewMutation, setFormData],
+  );
+
+  const acceptDetourage = useCallback(
+    (photoId: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        photos: prev.photos.map((p) =>
+          p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p,
+        ),
+      }));
+      setComparePhotoId(null);
+      toast.success("Version detouree selectionnee.");
+    },
+    [setFormData],
+  );
+
+  const rejectDetourage = useCallback(
+    async (photoId: string) => {
+      const photo = data.photos.find((p) => p.id === photoId);
+      if (photo?.backgroundRemovalPreviewId) {
+        await cancelMutation.mutateAsync(photo.backgroundRemovalPreviewId).catch(() => undefined);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        photos: prev.photos.map((p) =>
+          p.id === photoId
+            ? {
+                ...p,
+                previewUrl: p.originalPreviewUrl ?? p.previewUrl,
+                originalPreviewUrl: undefined,
+                backgroundRemovalPreviewId: undefined,
+                isDetoured: false,
+                isBackgroundRemovalAccepted: false,
+                processingError: null,
+              }
+            : p,
+        ),
+      }));
+      setComparePhotoId(null);
+      toast.info("Image originale conservee.");
+    },
+    [cancelMutation, data.photos, setFormData],
   );
 
   const addFiles = useCallback(
@@ -164,6 +219,12 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
 
       // Revoke blob URL if it's a local blob
       const photo = data.photos.find((p) => p.id === id);
+      if (photo?.backgroundRemovalPreviewId) {
+        void cancelMutation
+          .mutateAsync(photo.backgroundRemovalPreviewId)
+          .catch(() => undefined);
+      }
+
       if (photo && photo.previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(photo.previewUrl);
       }
@@ -177,7 +238,7 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
         return { ...prev, photos: updated };
       });
     },
-    [data.photos, setFormData],
+    [cancelMutation, data.photos, setFormData],
   );
 
   const setMainPhoto = useCallback(
@@ -270,6 +331,9 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
               onSetMain={setMainPhoto}
               onRemove={removePhoto}
               onDetour={triggerDetourage}
+              onAccept={acceptDetourage}
+              onReject={rejectDetourage}
+              canDetour={canDetour}
             />
           ))}
 
@@ -318,6 +382,14 @@ export function StepPhotos({ data, setFormData }: StepPhotosProps) {
           ? `${data.photos.length} photo${data.photos.length > 1 ? "s" : ""} ajoutée${data.photos.length > 1 ? "s" : ""}`
           : "Aucune photo ajoutée"}
       </p>
+      {comparePhotoId && (
+        <CompareModal
+          photo={data.photos.find((p) => p.id === comparePhotoId)}
+          onAccept={() => acceptDetourage(comparePhotoId)}
+          onReject={() => rejectDetourage(comparePhotoId)}
+          onClose={() => setComparePhotoId(null)}
+        />
+      )}
     </section>
   );
 }
@@ -331,9 +403,12 @@ interface PhotoCardProps {
   onSetMain: (id: string) => void;
   onRemove: (id: string) => void;
   onDetour: (photoId: string, file: File) => void;
+  onAccept: (photoId: string) => void;
+  onReject: (photoId: string) => void;
+  canDetour: boolean;
 }
 
-function PhotoCard({ photo, onSetMain, onRemove, onDetour }: PhotoCardProps) {
+function PhotoCard({ photo, onSetMain, onRemove, onDetour, onAccept, onReject, canDetour }: PhotoCardProps) {
   return (
     <div className="group relative">
       {/* Image container */}
@@ -415,7 +490,25 @@ function PhotoCard({ photo, onSetMain, onRemove, onDetour }: PhotoCardProps) {
 
       {/* ── Action bar below the image ── */}
       <div className="mt-1.5 flex items-center justify-center">
-        {photo.isDetoured ? (
+        {photo.isDetoured && !photo.isBackgroundRemovalAccepted ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onAccept(photo.id)}
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-white"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Utiliser
+            </button>
+            <button
+              type="button"
+              onClick={() => onReject(photo.id)}
+              className="text-[10px] font-medium text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline"
+            >
+              Original
+            </button>
+          </div>
+        ) : photo.isDetoured ? (
           // Already detoured — show static label
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />
@@ -427,7 +520,7 @@ function PhotoCard({ photo, onSetMain, onRemove, onDetour }: PhotoCardProps) {
             <Loader2 className="h-3 w-3 animate-spin" />
             Traitement...
           </span>
-        ) : (
+        ) : canDetour ? (
           // Not detoured — show "Détourer" button
           <button
             type="button"
@@ -437,7 +530,84 @@ function PhotoCard({ photo, onSetMain, onRemove, onDetour }: PhotoCardProps) {
             <Wand2 className="h-3 w-3" />
             Détourer
           </button>
+        ) : (
+          <span className="text-[10px] font-medium text-gray-400">Detourage indisponible</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CompareModal({
+  photo,
+  onAccept,
+  onReject,
+  onClose,
+}: {
+  photo?: ProductPhoto;
+  onAccept: () => void;
+  onReject: () => void;
+  onClose: () => void;
+}) {
+  if (!photo) return null;
+
+  const originalUrl = photo.originalPreviewUrl ?? photo.previewUrl;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-3xl rounded-xl bg-white p-4 shadow-xl dark:bg-gray-950">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Comparer les versions
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-200"
+            aria-label="Fermer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-xs font-medium text-gray-500">Original</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={originalUrl}
+              alt="Original"
+              className="aspect-square w-full rounded-lg border border-gray-200 object-cover dark:border-gray-800"
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-gray-500">Fond blanc</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo.previewUrl}
+              alt="Fond blanc"
+              className="aspect-square w-full rounded-lg border border-gray-200 object-cover dark:border-gray-800"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onReject}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-900"
+          >
+            Garder l&apos;original
+          </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Utiliser cette version
+          </button>
+        </div>
       </div>
     </div>
   );

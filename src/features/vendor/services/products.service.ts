@@ -10,6 +10,9 @@ import {
   variantOptionItemSchema,
   createProductResponseSchema,
   imagePreviewResponseSchema,
+  imageProcessingCapabilitiesSchema,
+  backgroundRemovalPreviewResponseSchema,
+  backgroundRemovalAcceptResponseSchema,
   type VendorProductsResponse,
   type VendorProductDetail,
   type ProductCategory,
@@ -18,6 +21,9 @@ import {
   type CreateProductResponse,
   type VariantOptionItem,
   type ImagePreviewResponse,
+  type ImageProcessingCapabilities,
+  type BackgroundRemovalPreviewResponse,
+  type BackgroundRemovalAcceptResponse,
 } from "../schema";
 import { api } from "@/lib/http/client";
 import { deriveEmoji } from "./_shared";
@@ -272,6 +278,105 @@ export async function previewProductImage(file: File): Promise<ImagePreviewRespo
   return imagePreviewResponseSchema.parse(res.data);
 }
 
+export async function getImageProcessingCapabilities(): Promise<ImageProcessingCapabilities> {
+  const response = await fetch("/api/vendor/products/background-removal/capabilities", {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+    const { ApiError } = await import("@/lib/http/api-error");
+    throw new ApiError({
+      message: errorJson.message ?? `HTTP ${response.status}`,
+      status: response.status,
+      code: errorJson.code ?? `HTTP_${response.status}`,
+    });
+  }
+
+  const res = await response.json();
+  return imageProcessingCapabilitiesSchema.parse(res.data);
+}
+
+export async function previewProductBackgroundRemoval(params: {
+  file?: File;
+  productId?: string;
+  mediaId?: string | number;
+  storeId?: string;
+}): Promise<BackgroundRemovalPreviewResponse> {
+  const fd = new FormData();
+  if (params.file) fd.append("image", params.file);
+  if (params.productId) fd.append("product_id", params.productId);
+  if (params.mediaId !== undefined && params.mediaId !== null) fd.append("media_id", String(params.mediaId));
+  if (params.storeId) fd.append("store_id", params.storeId);
+
+  const response = await fetch("/api/vendor/products/background-removal/preview", {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+    const { ApiError } = await import("@/lib/http/api-error");
+    throw new ApiError({
+      message: errorJson.message ?? `HTTP ${response.status}`,
+      status: response.status,
+      code: errorJson.code ?? `HTTP_${response.status}`,
+      errors: errorJson.errors,
+    });
+  }
+
+  const res = await response.json();
+  return backgroundRemovalPreviewResponseSchema.parse(res.data);
+}
+
+export async function acceptProductBackgroundRemoval(params: {
+  previewId: string;
+  productId: string;
+  makeMain?: boolean;
+}): Promise<BackgroundRemovalAcceptResponse> {
+  const response = await fetch(`/api/vendor/products/background-removal/previews/${params.previewId}/accept`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      product_id: params.productId,
+      make_main: params.makeMain ?? false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+    const { ApiError } = await import("@/lib/http/api-error");
+    throw new ApiError({
+      message: errorJson.message ?? `HTTP ${response.status}`,
+      status: response.status,
+      code: errorJson.code ?? `HTTP_${response.status}`,
+    });
+  }
+
+  const res = await response.json();
+  return backgroundRemovalAcceptResponseSchema.parse(res.data);
+}
+
+export async function cancelProductBackgroundRemoval(previewId: string): Promise<void> {
+  const response = await fetch(`/api/vendor/products/background-removal/previews/${previewId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+    const { ApiError } = await import("@/lib/http/api-error");
+    throw new ApiError({
+      message: errorJson.message ?? `HTTP ${response.status}`,
+      status: response.status,
+      code: errorJson.code ?? `HTTP_${response.status}`,
+    });
+  }
+}
+
 /** Create a new product via the vendor dashboard */
 export async function createVendorProduct(
   formData: {
@@ -298,13 +403,16 @@ export async function createVendorProduct(
   categoryIds?: string[],
   images?: File[],
   previewIds?: string[],
+  backgroundRemovalPreviewIds?: string[],
+  backgroundRemovalMainPreviewId?: string,
 ): Promise<CreateProductResponse> {
   const requestBody = _transformCreateProductRequest(formData, categoryIds);
 
   const hasImages = images && images.length > 0;
   const hasPreviewIds = previewIds && previewIds.length > 0;
+  const hasBackgroundRemovalPreviewIds = backgroundRemovalPreviewIds && backgroundRemovalPreviewIds.length > 0;
 
-  if (hasImages || hasPreviewIds) {
+  if (hasImages || hasPreviewIds || hasBackgroundRemovalPreviewIds) {
     const fd = new FormData();
     fd.append("name", requestBody.name);
     if (requestBody.description) fd.append("description", requestBody.description);
@@ -336,6 +444,12 @@ export async function createVendorProduct(
     }
     if (hasPreviewIds) {
       previewIds!.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+    }
+    if (hasBackgroundRemovalPreviewIds) {
+      backgroundRemovalPreviewIds!.forEach((id) => { fd.append("background_removal_preview_ids[]", id); });
+    }
+    if (backgroundRemovalMainPreviewId) {
+      fd.append("background_removal_main_preview_id", backgroundRemovalMainPreviewId);
     }
 
     // Append variant data
@@ -434,6 +548,8 @@ export async function updateVendorProduct(
   removeMediaIds?: (string | number)[],
   previewIds?: string[],
   mainMediaId?: string | number | null,
+  backgroundRemovalPreviewIds?: string[],
+  backgroundRemovalMainPreviewId?: string,
 ): Promise<CreateProductResponse> {
   const price = parseFloat(formData.price) || 0;
   const originalPrice = parseFloat(formData.originalPrice) || 0;
@@ -482,6 +598,12 @@ export async function updateVendorProduct(
   }
   if (previewIds && previewIds.length > 0) {
     previewIds.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+  }
+  if (backgroundRemovalPreviewIds && backgroundRemovalPreviewIds.length > 0) {
+    backgroundRemovalPreviewIds.forEach((id) => { fd.append("background_removal_preview_ids[]", id); });
+  }
+  if (backgroundRemovalMainPreviewId) {
+    fd.append("background_removal_main_preview_id", backgroundRemovalMainPreviewId);
   }
   if (mainMediaId !== undefined && mainMediaId !== null && mainMediaId !== "") {
     fd.append("main_media_id", String(mainMediaId));

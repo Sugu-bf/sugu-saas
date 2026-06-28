@@ -1575,6 +1575,38 @@ export const imagePreviewResponseSchema = z.object({
 
 export type ImagePreviewResponse = z.infer<typeof imagePreviewResponseSchema>;
 
+export const imageProcessingCapabilitiesSchema = z.object({
+  enabled: z.boolean(),
+  provider: z.string().nullable(),
+  accepted_mimes: z.array(z.string()),
+  max_file_size_kb: z.number(),
+  max_width: z.number(),
+  max_height: z.number(),
+  temporarily_unavailable: z.boolean(),
+});
+
+export type ImageProcessingCapabilities = z.infer<typeof imageProcessingCapabilitiesSchema>;
+
+export const backgroundRemovalPreviewResponseSchema = z.object({
+  preview_id: z.string(),
+  provider: z.string(),
+  preview_url: z.string(),
+  expires_at: z.string(),
+});
+
+export type BackgroundRemovalPreviewResponse = z.infer<typeof backgroundRemovalPreviewResponseSchema>;
+
+export const backgroundRemovalAcceptResponseSchema = z.object({
+  media: z.object({
+    id: z.union([z.string(), z.number()]),
+    url: z.string().url(),
+    type: z.string().nullable().optional(),
+    is_main: z.boolean().optional(),
+  }),
+});
+
+export type BackgroundRemovalAcceptResponse = z.infer<typeof backgroundRemovalAcceptResponseSchema>;
+
 // ────────────────────────────────────────────────────────────
 // Wallet Schemas
 // ────────────────────────────────────────────────────────────

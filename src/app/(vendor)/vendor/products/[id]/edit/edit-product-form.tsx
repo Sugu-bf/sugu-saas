@@ -25,7 +25,9 @@ import {
   useUpdateProduct,
   useProductCategories,
   useVendorProductDetail,
-  usePreviewImage,
+  useBackgroundRemovalPreview,
+  useCancelBackgroundRemovalPreview,
+  useImageProcessingCapabilities,
 } from "@/features/vendor/hooks";
 import { StepIndicator } from "../../new/_components/step-indicator";
 import { StepInformations } from "../../new/_components/step-informations";
@@ -49,6 +51,8 @@ interface ExistingPhoto {
   // Re-detourage workflow (Approach A: refetch the stored image → preview endpoint):
   originalUrl?: string;             // kept so the user can revert the detourage
   detouredUuid?: string;            // Cloudinary preview uuid once detoured
+  backgroundRemovalPreviewId?: string;
+  isBackgroundRemovalAccepted?: boolean;
   isProcessing?: boolean;           // true during the detourage API call
   isDetoured?: boolean;             // true if successfully detoured
   processingError?: string | null;  // error message if detourage failed
@@ -59,19 +63,14 @@ interface NewPhotoPreview {
   file: File;
   previewUrl: string;
   // Detourage workflow fields (mirrors create wizard's ProductPhoto):
+  originalPreviewUrl?: string;
   previewUuid?: string;             // UUID returned by backend after detourage
+  backgroundRemovalPreviewId?: string;
+  isBackgroundRemovalAccepted?: boolean;
   isProcessing?: boolean;           // true during the detourage API call
   isDetoured?: boolean;             // true if successfully detoured
   processingError?: string | null;  // error message if detourage failed
 }
-
-// Map a blob mime type to a file extension for the re-uploaded preview file.
-const MIME_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
 
 // ── Helper: derive weight value + unit from raw string ──────
 function parseWeightString(raw: string): { value: string; unit: string } {
@@ -161,9 +160,14 @@ interface EditStepPhotosProps {
   onAddPhotos: (files: File[]) => void;
   onRemoveNew: (id: string) => void;
   onDetour: (id: string, file: File) => void;
-  onDetourExisting: (id: string | number, url: string) => void;
+  onDetourExisting: (id: string | number) => void;
+  onAcceptExisting: (id: string | number) => void;
+  onRejectExisting: (id: string | number) => void;
+  onAcceptNew: (id: string) => void;
+  onRejectNew: (id: string) => void;
   onRevertExisting: (id: string | number) => void;
   onSetPrimary: (id: string | number) => void;
+  canDetour: boolean;
 }
 
 function EditStepPhotos({
@@ -174,8 +178,13 @@ function EditStepPhotos({
   onRemoveNew,
   onDetour,
   onDetourExisting,
+  onAcceptExisting,
+  onRejectExisting,
+  onAcceptNew,
+  onRejectNew,
   onRevertExisting,
   onSetPrimary,
+  canDetour,
 }: EditStepPhotosProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,8 +217,11 @@ function EditStepPhotos({
                 photo={photo}
                 onToggleRemove={onToggleRemove}
                 onDetour={onDetourExisting}
+                onAccept={onAcceptExisting}
+                onReject={onRejectExisting}
                 onRevert={onRevertExisting}
                 onSetPrimary={onSetPrimary}
+                canDetour={canDetour}
               />
             ))}
           </div>
@@ -237,6 +249,9 @@ function EditStepPhotos({
                 photo={photo}
                 onRemove={onRemoveNew}
                 onDetour={onDetour}
+                onAccept={onAcceptNew}
+                onReject={onRejectNew}
+                canDetour={canDetour}
               />
             ))}
           </div>
@@ -287,17 +302,23 @@ function EditStepPhotos({
 interface ExistingPhotoCardProps {
   photo: ExistingPhoto;
   onToggleRemove: (id: string | number) => void;
-  onDetour: (id: string | number, url: string) => void;
+  onDetour: (id: string | number) => void;
+  onAccept: (id: string | number) => void;
+  onReject: (id: string | number) => void;
   onRevert: (id: string | number) => void;
   onSetPrimary: (id: string | number) => void;
+  canDetour: boolean;
 }
 
 function ExistingPhotoCard({
   photo,
   onToggleRemove,
   onDetour,
+  onAccept,
+  onReject,
   onRevert,
   onSetPrimary,
+  canDetour,
 }: ExistingPhotoCardProps) {
   return (
     <div className="group relative">
@@ -367,7 +388,25 @@ function ExistingPhotoCard({
       {/* Action bar below the image — hidden when the photo is being removed */}
       {!photo.markedForRemoval && (
         <div className="mt-1.5 flex items-center justify-center">
-          {photo.isDetoured ? (
+          {photo.isDetoured && !photo.isBackgroundRemovalAccepted ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onAccept(photo.id)}
+                className="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-white"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Utiliser
+              </button>
+              <button
+                type="button"
+                onClick={() => onReject(photo.id)}
+                className="text-[10px] font-medium text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline dark:hover:text-gray-200"
+              >
+                Original
+              </button>
+            </div>
+          ) : photo.isDetoured ? (
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" />
@@ -386,15 +425,19 @@ function ExistingPhotoCard({
               <Loader2 className="h-3 w-3 animate-spin" />
               Traitement…
             </span>
-          ) : (
+          ) : canDetour ? (
             <button
               type="button"
-              onClick={() => onDetour(photo.id, photo.url)}
+              onClick={() => onDetour(photo.id)}
               className="inline-flex items-center gap-1 rounded-md bg-violet-500 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-violet-600 active:scale-95"
             >
               <Wand2 className="h-3 w-3" />
               Détourer
             </button>
+          ) : (
+            <span className="text-[10px] font-medium text-gray-400">
+              Detourage indisponible
+            </span>
           )}
         </div>
       )}
@@ -440,9 +483,12 @@ interface NewPhotoCardProps {
   photo: NewPhotoPreview;
   onRemove: (id: string) => void;
   onDetour: (id: string, file: File) => void;
+  onAccept: (id: string) => void;
+  onReject: (id: string) => void;
+  canDetour: boolean;
 }
 
-function NewPhotoCard({ photo, onRemove, onDetour }: NewPhotoCardProps) {
+function NewPhotoCard({ photo, onRemove, onDetour, onAccept, onReject, canDetour }: NewPhotoCardProps) {
   return (
     <div className="group relative">
       {/* Image container */}
@@ -497,7 +543,25 @@ function NewPhotoCard({ photo, onRemove, onDetour }: NewPhotoCardProps) {
 
       {/* Action bar below the image */}
       <div className="mt-1.5 flex items-center justify-center">
-        {photo.isDetoured ? (
+        {photo.isDetoured && !photo.isBackgroundRemovalAccepted ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onAccept(photo.id)}
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-white"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Utiliser
+            </button>
+            <button
+              type="button"
+              onClick={() => onReject(photo.id)}
+              className="text-[10px] font-medium text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline dark:hover:text-gray-200"
+            >
+              Original
+            </button>
+          </div>
+        ) : photo.isDetoured ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />
             Fond blanc appliqué
@@ -507,7 +571,7 @@ function NewPhotoCard({ photo, onRemove, onDetour }: NewPhotoCardProps) {
             <Loader2 className="h-3 w-3 animate-spin" />
             Traitement…
           </span>
-        ) : (
+        ) : canDetour ? (
           <button
             type="button"
             onClick={() => onDetour(photo.id, photo.file)}
@@ -516,6 +580,10 @@ function NewPhotoCard({ photo, onRemove, onDetour }: NewPhotoCardProps) {
             <Wand2 className="h-3 w-3" />
             Détourer
           </button>
+        ) : (
+          <span className="text-[10px] font-medium text-gray-400">
+            Detourage indisponible
+          </span>
         )}
       </div>
 
@@ -579,7 +647,10 @@ export function EditProductForm({ id }: EditProductFormProps) {
   const { data: product, isLoading, isError } = useVendorProductDetail(id);
   const { data: categories } = useProductCategories();
   const updateProduct = useUpdateProduct();
-  const previewMutation = usePreviewImage();
+  const previewMutation = useBackgroundRemovalPreview();
+  const cancelPreviewMutation = useCancelBackgroundRemovalPreview();
+  const { data: capabilities } = useImageProcessingCapabilities();
+  const canDetour = capabilities?.enabled ?? false;
 
   // Track abort controllers for in-flight detourage requests
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
@@ -711,6 +782,13 @@ export function EditProductForm({ id }: EditProductFormProps) {
       abortControllersRef.current.delete(photoId);
     }
 
+    const photo = newPhotos.find((p) => p.id === photoId);
+    if (photo?.backgroundRemovalPreviewId) {
+      void cancelPreviewMutation
+        .mutateAsync(photo.backgroundRemovalPreviewId)
+        .catch(() => undefined);
+    }
+
     setNewPhotos((prev) => {
       const found = prev.find((p) => p.id === photoId);
       if (found && found.previewUrl.startsWith("blob:")) {
@@ -718,7 +796,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       }
       return prev.filter((p) => p.id !== photoId);
     });
-  }, []);
+  }, [cancelPreviewMutation, newPhotos]);
 
   /** Trigger background removal for a single new photo (on-demand). */
   const triggerDetourage = useCallback(
@@ -736,19 +814,22 @@ export function EditProductForm({ id }: EditProductFormProps) {
       );
 
       try {
-        const result = await previewMutation.mutateAsync(file);
+        const result = await previewMutation.mutateAsync({ file });
         if (controller.signal.aborted) return;
 
-        // Success — swap preview to the detoured Cloudinary URL + keep its UUID
+        // Success: swap to the opaque preview URL and keep the server preview id.
         setNewPhotos((prev) =>
           prev.map((p) =>
             p.id === photoId
               ? {
                   ...p,
+                  originalPreviewUrl: p.originalPreviewUrl ?? p.previewUrl,
                   previewUrl: result.preview_url,
-                  previewUuid: result.uuid,
+                  previewUuid: undefined,
+                  backgroundRemovalPreviewId: result.preview_id,
                   isProcessing: false,
                   isDetoured: true,
+                  isBackgroundRemovalAccepted: false,
                   processingError: null,
                 }
               : p,
@@ -784,13 +865,44 @@ export function EditProductForm({ id }: EditProductFormProps) {
     [previewMutation],
   );
 
-  /**
-   * Re-detoure an EXISTING (stored) photo.
-   * Approach A: refetch the image from the CDN (CORS-enabled), wrap it as a File,
-   * and run it through the same preview endpoint as new photos.
-   */
+  const acceptNewDetourage = useCallback((photoId: string) => {
+    setNewPhotos((prev) =>
+      prev.map((p) =>
+        p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p,
+      ),
+    );
+  }, []);
+
+  const rejectNewDetourage = useCallback(
+    async (photoId: string) => {
+      const photo = newPhotos.find((p) => p.id === photoId);
+      if (photo?.backgroundRemovalPreviewId) {
+        await cancelPreviewMutation
+          .mutateAsync(photo.backgroundRemovalPreviewId)
+          .catch(() => undefined);
+      }
+
+      setNewPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId
+            ? {
+                ...p,
+                previewUrl: p.originalPreviewUrl ?? p.previewUrl,
+                originalPreviewUrl: undefined,
+                backgroundRemovalPreviewId: undefined,
+                isBackgroundRemovalAccepted: false,
+                isDetoured: false,
+                processingError: null,
+              }
+            : p,
+        ),
+      );
+    },
+    [cancelPreviewMutation, newPhotos],
+  );
+
   const triggerDetourageExisting = useCallback(
-    async (photoId: string | number, url: string) => {
+    async (photoId: string | number) => {
       const key = `existing:${photoId}`;
       const controller = new AbortController();
       abortControllersRef.current.set(key, controller);
@@ -805,24 +917,13 @@ export function EditProductForm({ id }: EditProductFormProps) {
       );
 
       try {
-        const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) {
-          throw new Error(
-            `Téléchargement de l'image impossible (HTTP ${response.status})`,
-          );
-        }
-        const blob = await response.blob();
-        if (controller.signal.aborted) return;
-
-        const ext = MIME_EXT[blob.type] ?? "jpg";
-        const file = new File([blob], `photo-${photoId}.${ext}`, {
-          type: blob.type || "image/jpeg",
+        const result = await previewMutation.mutateAsync({
+          productId: id,
+          mediaId: photoId,
         });
-
-        const result = await previewMutation.mutateAsync(file);
         if (controller.signal.aborted) return;
 
-        // Success — display the detoured preview, keep its UUID + the original URL
+        // Success: display the preview while keeping the original URL for revert.
         setExistingPhotos((prev) =>
           prev.map((p) =>
             p.id === photoId
@@ -830,9 +931,11 @@ export function EditProductForm({ id }: EditProductFormProps) {
                   ...p,
                   originalUrl: p.originalUrl ?? p.url,
                   url: result.preview_url,
-                  detouredUuid: result.uuid,
+                  detouredUuid: undefined,
+                  backgroundRemovalPreviewId: result.preview_id,
                   isProcessing: false,
                   isDetoured: true,
+                  isBackgroundRemovalAccepted: false,
                   processingError: null,
                 }
               : p,
@@ -864,26 +967,46 @@ export function EditProductForm({ id }: EditProductFormProps) {
         abortControllersRef.current.delete(key);
       }
     },
-    [previewMutation],
+    [id, previewMutation],
   );
 
-  /** Revert a detoured existing photo back to its original (before saving). */
-  const revertDetourageExisting = useCallback((photoId: string | number) => {
+  const acceptExistingDetourage = useCallback((photoId: string | number) => {
     setExistingPhotos((prev) =>
       prev.map((p) =>
-        p.id === photoId && p.isDetoured
-          ? {
-              ...p,
-              url: p.originalUrl ?? p.url,
-              originalUrl: undefined,
-              detouredUuid: undefined,
-              isDetoured: false,
-              processingError: null,
-            }
-          : p,
+        p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p,
       ),
     );
   }, []);
+
+  /** Revert a detoured existing photo back to its original (before saving). */
+  const revertDetourageExisting = useCallback(
+    async (photoId: string | number) => {
+      const photo = existingPhotos.find((p) => p.id === photoId);
+      if (photo?.backgroundRemovalPreviewId) {
+        await cancelPreviewMutation
+          .mutateAsync(photo.backgroundRemovalPreviewId)
+          .catch(() => undefined);
+      }
+
+      setExistingPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId && p.isDetoured
+            ? {
+                ...p,
+                url: p.originalUrl ?? p.url,
+                originalUrl: undefined,
+                detouredUuid: undefined,
+                backgroundRemovalPreviewId: undefined,
+                isBackgroundRemovalAccepted: false,
+                isDetoured: false,
+                processingError: null,
+              }
+            : p,
+        ),
+      );
+    },
+    [cancelPreviewMutation, existingPhotos],
+  );
 
   // ── Validation ──
   // Drafts can be saved incomplete — only the name is required. Price and
@@ -913,34 +1036,49 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
       const categoryIds = formData.categoryIds;
 
-      // Existing photos that were re-detoured: replace original (remove old media +
-      // attach detoured preview). Skip any also flagged for removal.
-      const detouredExisting = existingPhotos.filter(
-        (p) => p.isDetoured && p.detouredUuid && !p.markedForRemoval,
+      const removeMediaIds = existingPhotos
+        .filter((p) => p.markedForRemoval)
+        .map((p) => p.id);
+
+      const acceptedBackgroundRemovalExisting = existingPhotos.filter(
+        (p) =>
+          p.isBackgroundRemovalAccepted &&
+          p.backgroundRemovalPreviewId &&
+          !p.markedForRemoval,
       );
 
-      const removeMediaIds = [
-        ...existingPhotos.filter((p) => p.markedForRemoval).map((p) => p.id),
-        ...detouredExisting.map((p) => p.id), // remove the original being replaced
+      const acceptedBackgroundRemovalNew = newPhotos.filter(
+        (p) => p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId,
+      );
+
+      const backgroundRemovalPreviewIds = [
+        ...acceptedBackgroundRemovalNew.map((p) => p.backgroundRemovalPreviewId!),
+        ...acceptedBackgroundRemovalExisting.map((p) => p.backgroundRemovalPreviewId!),
       ];
 
-      // previewIds = detoured new photos + detoured existing photos
-      const previewIds = [
-        ...newPhotos
-          .filter((p) => p.isDetoured && p.previewUuid)
-          .map((p) => p.previewUuid!),
-        ...detouredExisting.map((p) => p.detouredUuid!),
-      ];
+      const backgroundRemovalMainPreviewId = acceptedBackgroundRemovalExisting.find(
+        (p) => p.isPrimary,
+      )?.backgroundRemovalPreviewId;
 
-      // Only non-detoured new photos are uploaded as raw files
+      const previewIds = newPhotos
+        .filter((p) => p.isDetoured && p.previewUuid)
+        .map((p) => p.previewUuid!);
+
       const newImageFiles = newPhotos
-        .filter((p) => !p.isDetoured)
+        .filter(
+          (p) =>
+            !(p.isDetoured && p.previewUuid) &&
+            !(p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId),
+        )
         .map((p) => p.file);
 
       // Cover/main image: only send when the user explicitly changed it, and only
-      // for a stable existing photo (real media id, not removed/detoured).
+      // for a stable existing photo (real media id, not removed/finalized by preview).
       const primaryPhoto = existingPhotos.find(
-        (p) => p.isPrimary && !p.markedForRemoval && !p.isDetoured,
+        (p) =>
+          p.isPrimary &&
+          !p.markedForRemoval &&
+          !(p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId),
       );
       const mainMediaId =
         mainPhotoChanged && primaryPhoto && /^\d+$/.test(String(primaryPhoto.id))
@@ -956,6 +1094,9 @@ export function EditProductForm({ id }: EditProductFormProps) {
           previewIds: previewIds.length > 0 ? previewIds : undefined,
           removeMediaIds: removeMediaIds.length > 0 ? removeMediaIds : undefined,
           mainMediaId,
+          backgroundRemovalPreviewIds:
+            backgroundRemovalPreviewIds.length > 0 ? backgroundRemovalPreviewIds : undefined,
+          backgroundRemovalMainPreviewId,
         },
         {
           onSuccess: () => {
@@ -1078,8 +1219,13 @@ export function EditProductForm({ id }: EditProductFormProps) {
             onRemoveNew={removeNewPhoto}
             onDetour={triggerDetourage}
             onDetourExisting={triggerDetourageExisting}
+            onAcceptExisting={acceptExistingDetourage}
+            onRejectExisting={revertDetourageExisting}
+            onAcceptNew={acceptNewDetourage}
+            onRejectNew={rejectNewDetourage}
             onRevertExisting={revertDetourageExisting}
             onSetPrimary={setPrimaryExisting}
+            canDetour={canDetour}
           />
         )}
 

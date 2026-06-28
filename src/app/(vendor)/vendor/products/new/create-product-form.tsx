@@ -94,13 +94,25 @@ export function CreateProductForm() {
         publishMode: mode,
       };
 
-      // Split photos: detoured (Cloudinary preview IDs) vs raw (File objects)
+      // Split photos: legacy Cloudinary previews, accepted background-removal previews, and raw files.
       const previewIds = formData.photos
         .filter((p) => p.isDetoured && p.previewUuid)
         .map((p) => p.previewUuid!);
 
+      const backgroundRemovalPreviewIds = formData.photos
+        .filter((p) => p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId)
+        .map((p) => p.backgroundRemovalPreviewId!);
+
+      const backgroundRemovalMainPreviewId = formData.photos.find(
+        (p) => p.isMain && p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId,
+      )?.backgroundRemovalPreviewId;
+
       const rawImageFiles = formData.photos
-        .filter((p) => !p.isDetoured)
+        .filter(
+          (p) =>
+            !(p.isDetoured && p.previewUuid) &&
+            !(p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId),
+        )
         .map((p) => p.file);
 
       createProduct.mutate(
@@ -109,6 +121,9 @@ export function CreateProductForm() {
           categoryIds: formData.categoryIds,
           images: rawImageFiles.length > 0 ? rawImageFiles : undefined,
           previewIds: previewIds.length > 0 ? previewIds : undefined,
+          backgroundRemovalPreviewIds:
+            backgroundRemovalPreviewIds.length > 0 ? backgroundRemovalPreviewIds : undefined,
+          backgroundRemovalMainPreviewId,
         },
         {
           onSuccess: (data) => {

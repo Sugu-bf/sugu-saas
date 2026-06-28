@@ -30,6 +30,10 @@ export {
   getProductBrands,
   getVariantOptions,
   previewProductImage,
+  getImageProcessingCapabilities,
+  previewProductBackgroundRemoval,
+  acceptProductBackgroundRemoval,
+  cancelProductBackgroundRemoval,
   createVendorProduct,
   updateVendorProduct,
 } from "./products.service";
