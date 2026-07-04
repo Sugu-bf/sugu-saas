@@ -172,6 +172,10 @@ const backendShipmentsResponseSchema = z.object({
 
 // ── Shipment transformer: Backend → Frontend DeliveryRow ───
 
+function centsToXof(cents: number | null | undefined): number {
+  return (cents ?? 0) / 100;
+}
+
 function _buildTimeline(
   backendStatus: string, 
   pickedAt?: string | null,
@@ -312,7 +316,7 @@ function _transformShipment(raw: z.infer<typeof backendShipmentSchema>): Deliver
     vendor: store?.name ?? "Vendeur",
     vendorUrl: store?.slug ? `https://sugu.pro/store/${store.slug}` : "#",
     orderItems: raw.items_count ?? order?.items_count ?? 0,
-    orderTotal: (order?.total ?? 0) / 100,
+    orderTotal: centsToXof(order?.total),
     orderPayment: order?.payment_status === "paid" ? "paid" : "pending",
     timeline: _buildTimeline(raw.status, raw.picked_at, raw.cod_mixte),
   };
@@ -330,7 +334,7 @@ function _transformShipmentDetail(
     ...base,
     // D3b — agency detail consumes the single canonical projection (all boutiques).
     canonicalTimeline: raw.canonical_timeline ?? [],
-    shippingAmount: (raw.shipping_amount ?? 0) / 100,
+    shippingAmount: centsToXof(raw.shipping_amount),
     paymentMethod: order?.payment_method ?? null,
     orderDate: formatDateLong(order?.created_at ?? raw.created_at),
     driverPhone: raw.courier_phone ?? null,
@@ -381,8 +385,8 @@ function _transformShipmentDetail(
       currentStep: raw.cod_mixte.currentStep ?? "awaiting_delivery_payment",
       deliveryFeePaid: Boolean(raw.cod_mixte.deliveryFeePaid),
       productFeePaid: Boolean(raw.cod_mixte.productFeePaid),
-      deliveryFeeAmount: raw.cod_mixte.deliveryFeeAmount ?? 0,
-      productFeeAmount: raw.cod_mixte.productFeeAmount ?? 0,
+      deliveryFeeAmount: centsToXof(raw.cod_mixte.deliveryFeeAmount),
+      productFeeAmount: centsToXof(raw.cod_mixte.productFeeAmount),
       deliveryFeePaidAt: raw.cod_mixte.deliveryFeePaidAt ?? null,
       productFeePaidAt: raw.cod_mixte.productFeePaidAt ?? null,
     } : undefined,

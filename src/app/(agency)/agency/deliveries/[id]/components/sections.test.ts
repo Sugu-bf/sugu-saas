@@ -22,8 +22,8 @@ const mixte = {
   currentStep: "awaiting_product_payment",
   deliveryFeePaid: true,
   productFeePaid: false,
-  deliveryFeeAmount: 200000,
-  productFeeAmount: 300000,
+  deliveryFeeAmount: 2000,
+  productFeeAmount: 3000,
   deliveryFeePaidAt: null,
   productFeePaidAt: null,
 } satisfies NonNullable<DeliveryDetailRow["codMixte"]>;

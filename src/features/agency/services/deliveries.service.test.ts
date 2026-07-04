@@ -14,13 +14,75 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+const getMock = vi.fn();
 const postMock = vi.fn();
 vi.mock("@/lib/http/client", () => ({
-  api: { get: vi.fn(), post: (...args: unknown[]) => postMock(...args) },
+  api: {
+    get: (...args: unknown[]) => getMock(...args),
+    post: (...args: unknown[]) => postMock(...args),
+  },
   apiRequest: vi.fn(),
 }));
 
-import { bulkStatus } from "./deliveries.service";
+import { bulkStatus, getDeliveryDetail } from "./deliveries.service";
+
+describe("getDeliveryDetail — COD Mixte money mapping", () => {
+  beforeEach(() => {
+    getMock.mockReset();
+  });
+
+  it("converts COD Mixte fee centimes to FCFA display units", async () => {
+    getMock.mockResolvedValue({
+      success: true,
+      data: {
+        id: "shipment_1",
+        order: {
+          id: "order_1",
+          order_number: "CMD-1",
+          items_count: 1,
+          total: 500000,
+          payment_status: "pending",
+          shipping_address: {
+            name: "Client",
+            phone: "",
+            line1: "Rue 1",
+            city: "Ouaga",
+          },
+          store: {
+            id: "store_1",
+            name: "Boutique",
+            slug: "boutique",
+            address_line1: "Rue A",
+          },
+          created_at: "2026-07-04T10:00:00.000Z",
+          items: [],
+        },
+        courier: null,
+        status: "pending",
+        shipping_amount: 250000,
+        items_count: 1,
+        created_at: "2026-07-04T10:00:00.000Z",
+        cod_mixte: {
+          isCodMixte: true,
+          currentStep: "awaiting_product_payment",
+          deliveryFeePaid: true,
+          productFeePaid: false,
+          deliveryFeeAmount: 200000,
+          productFeeAmount: 300000,
+          deliveryFeePaidAt: null,
+          productFeePaidAt: null,
+        },
+      },
+    });
+
+    const detail = await getDeliveryDetail("agency_1", "shipment_1");
+
+    expect(detail.orderTotal).toBe(5000);
+    expect(detail.shippingAmount).toBe(2500);
+    expect(detail.codMixte?.deliveryFeeAmount).toBe(2000);
+    expect(detail.codMixte?.productFeeAmount).toBe(3000);
+  });
+});
 
 describe("bulkStatus — structured partial-rejects parsing (Chantier 4)", () => {
   beforeEach(() => postMock.mockReset());

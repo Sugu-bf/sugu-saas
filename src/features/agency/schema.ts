@@ -328,6 +328,7 @@ export const deliveryDetailRowSchema = deliveryRowSchema.extend({
   agencyRefusalReason: z.string().nullable().optional(),
 
   // COD Mixte split-payment data (optional — only for COD orders)
+  // Amounts are frontend display units (FCFA), converted from backend centimes.
   codMixte: z.object({
     isCodMixte: z.boolean(),
     currentStep: z.string(),
