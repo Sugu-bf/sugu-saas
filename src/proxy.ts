@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *  - Check for sugu_token cookie presence
  *  - The actual token validation happens server-side in the API
  */
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/offline"];
 const PUBLIC_PREFIXES = ["/api/", "/_next/", "/favicon", "/signup/"];
 const PUBLIC_FILE = /\.[^/]+$/;
 

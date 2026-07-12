@@ -15,6 +15,8 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https: http: https://res.cloudinary.com",
       "connect-src 'self' http://localhost:8000 https://api.mysugu.com https://*.mysugu.com https://pro.sugu.pro https://*.sugu.pro https://res.cloudinary.com https://*.cloudinary.com",
+      "worker-src 'self'",
+      "manifest-src 'self'",
     ].join("; "),
   },
 ];
@@ -38,6 +40,10 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
       },
     ];
   },
