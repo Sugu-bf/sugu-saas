@@ -246,7 +246,7 @@ function _transformDashboardResponse(raw: Record<string, unknown>): unknown {
     {
       id: "today-earnings",
       label: "Gains aujourd'hui",
-      value: data.kpis.today_earnings.toLocaleString("fr-FR"),
+      value: centsToXofValue(data.kpis.today_earnings),
       subValue: "FCFA",
       icon: "banknote",
       gradient: "from-amber-50 via-yellow-50/60 to-orange-50/40",
@@ -1812,15 +1812,36 @@ interface RawEarningsResponse {
 // ── Internal Transformers ───────────────────────────────────
 
 /** @internal Transform API earnings → DriverEarningsData shape */
+/**
+ * Every monetary field of the courier earnings API is in CENTIMES.
+ *
+ * The KPI cards used to print the raw value next to a hard-coded "FCFA",
+ * showing every courier a balance 100× larger than reality.
+ */
+const XOF_DISPLAY = new Intl.NumberFormat("fr-FR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function centsToXofValue(cents: number): string {
+  const safe = Number.isFinite(cents) ? cents : 0;
+  return XOF_DISPLAY.format(safe / 100);
+}
+
+/** XOF entered by the courier → centimes for the API. */
+export function xofToCents(xof: number): number {
+  return Math.round((Number.isFinite(xof) ? xof : 0) * 100);
+}
+
 function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
   const data = raw as unknown as RawEarningsResponse;
 
-  // Build 4 display-ready KPI cards from raw numbers
+  // Build 4 display-ready KPI cards from raw numbers (centimes → XOF)
   const kpis = [
     {
       id: "available-balance", // ⚠️ CRITICAL: withdraw wizard depends on this ID
       label: "Solde disponible",
-      value: data.kpis.available_balance.toLocaleString("fr-FR"),
+      value: centsToXofValue(data.kpis.available_balance),
       subValue: "FCFA",
       badge:
         data.kpis.available_balance_change_percent > 0
@@ -1837,7 +1858,7 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
     {
       id: "pending",
       label: "En attente",
-      value: data.kpis.pending_amount.toLocaleString("fr-FR"),
+      value: centsToXofValue(data.kpis.pending_amount),
       subValue: "FCFA",
       icon: "clock",
       gradient: "from-amber-50/50 to-white",
@@ -1846,7 +1867,7 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
     {
       id: "total-withdrawn",
       label: "Total retiré",
-      value: data.kpis.total_withdrawn.toLocaleString("fr-FR"),
+      value: centsToXofValue(data.kpis.total_withdrawn),
       subValue: "FCFA",
       icon: "arrow-down-to-line",
       gradient: "from-blue-50/50 to-white",
@@ -1855,7 +1876,7 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
     {
       id: "today-earnings",
       label: "Gains aujourd'hui",
-      value: data.kpis.today_earnings.toLocaleString("fr-FR"),
+      value: centsToXofValue(data.kpis.today_earnings),
       subValue: "FCFA",
       badge:
         data.kpis.today_earnings_change_percent > 0
@@ -1873,9 +1894,14 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
 
   return {
     kpis,
-    revenueChart: data.revenue_chart,
+    // Chart values are wallet credits in centimes → XOF for the axis.
+    revenueChart: data.revenue_chart.map((p) => ({
+      ...p,
+      value: Math.round(p.value / 100),
+    })),
     nextPayout: {
-      amount: data.next_payout.amount,
+      // The wizard works in XOF.
+      amount: Math.floor(data.next_payout.amount / 100),
       scheduledDate: data.next_payout.scheduled_date,
       method: data.next_payout.method
         ? {
@@ -1884,7 +1910,7 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
             accountMasked: data.next_payout.method.account_masked,
           }
         : null,
-      minThreshold: data.next_payout.min_threshold,
+      minThreshold: Math.floor(data.next_payout.min_threshold / 100),
     },
     transactions: data.transactions.map((t) => ({
       id: t.id,
@@ -1892,7 +1918,7 @@ function _transformEarningsResponse(raw: Record<string, unknown>): unknown {
       description: t.description,
       type: t.type,
       referenceType: t.reference_type,
-      amount: t.amount,
+      amount: Math.round(t.amount / 100),
       status: t.status,
     })),
   };
@@ -1914,16 +1940,18 @@ function _transformPayoutSettings(
   }));
 }
 
-/** @internal Transform withdrawal response */
+/** @internal Transform withdrawal response (centimes → XOF for display) */
 function _transformWithdrawalResponse(
   raw: Record<string, unknown>,
 ): unknown {
+  const toXof = (v: unknown) => Math.round(Number(v ?? 0)) / 100;
+
   return {
     id: raw.id,
     payoutNumber: raw.payout_number,
-    amount: raw.amount,
-    feeAmount: raw.fee_amount,
-    netAmount: raw.net_amount,
+    amount: toXof(raw.amount),
+    feeAmount: toXof(raw.fee_amount),
+    netAmount: toXof(raw.net_amount),
     status: raw.status,
     estimatedDate: raw.estimated_date,
   };
@@ -1952,20 +1980,28 @@ export async function getDriverPayoutSettings(): Promise<
   return transformed.map((ps) => driverPayoutSettingSchema.parse(ps));
 }
 
-/** POST submit withdrawal request */
+/**
+ * POST submit withdrawal request.
+ *
+ * @param data.amount XOF, as typed by the courier — converted to centimes here.
+ * @param data.idempotencyKey MUST be stable across retries of the same
+ *        submission. Minting it inside this function (as it used to) gave every
+ *        retry a fresh key, so a double-submit created a second real payout.
+ *
+ * The `pin` field is gone: the API validated its format and never checked it —
+ * users.pin_hash is a dead column (OTP-only auth since 2026-05-17).
+ */
 export async function submitDriverWithdrawal(data: {
   amount: number;
   payoutSettingId: string;
-  pin?: string;
+  idempotencyKey?: string;
 }): Promise<DriverWithdrawalResponse> {
-  const idempotencyKey = crypto.randomUUID();
   const response = await api.post<
     ApiSuccessResponse<Record<string, unknown>>
   >("courier/withdrawals", {
-    amount: data.amount,
+    amount: xofToCents(data.amount),
     payout_setting_id: data.payoutSettingId,
-    pin: data.pin,
-    idempotency_key: idempotencyKey,
+    idempotency_key: data.idempotencyKey,
   });
   return driverWithdrawalResponseSchema.parse(
     _transformWithdrawalResponse(response.data),

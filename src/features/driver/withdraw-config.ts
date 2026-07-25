@@ -13,14 +13,22 @@ export const DRIVER_WITHDRAW_CONFIG = {
   minWithdrawalAmount: 5_000,
   quickAmounts: [5_000, 10_000, 25_000],
 
-  // PIN
-  requiresPin: true,
+  // PIN — disabled.
+  //
+  // The wizard collected a 4-digit PIN and the API validated its FORMAT, but
+  // nothing ever verified it: `users.pin_hash` is a dead column (OTP-only auth
+  // since 2026-05-17). Asking for a credential nobody checks is worse than not
+  // asking — it advertises a protection that does not exist. Re-enable this
+  // only once a real PIN verification exists server-side.
+  requiresPin: false,
 
-  // Submit payload
+  // Matches PayoutPolicies::courier() server-side.
+  feeRate: 0.01,
+
+  // Submit payload — `amount` is in XOF; the service converts to centimes.
   submitPayload: (data: WithdrawFormData) => ({
     amount: parseFloat(data.amount),
     payoutSettingId: data.selectedPayoutSettingId,
-    pin: data.pin,
   }),
 
   // Step indicator

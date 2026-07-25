@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
+import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 import * as driverService from "./service";
 import type { DriverDeliveryFilters, DriverHistoryFilters } from "./service";
 import type { DriverProfile, DriverVehicle, DriverNotifications } from "./schema";
@@ -382,12 +383,22 @@ export function useDriverPayoutSettings() {
   });
 }
 
-/** Mutation: Submit withdrawal */
+/**
+ * Mutation: Submit withdrawal.
+ *
+ * The idempotency key is minted ONCE per mounted wizard, so a retry after a
+ * timeout replays the same request instead of creating a second real payout.
+ */
 export function useSubmitDriverWithdrawal() {
   const qc = useQueryClient();
+  const idempotencyKey = useIdempotencyKey();
+
   return useMutation({
-    mutationFn: (data: { amount: number; payoutSettingId: string; pin?: string }) =>
-      driverService.submitDriverWithdrawal(data),
+    mutationFn: (data: { amount: number; payoutSettingId: string }) =>
+      driverService.submitDriverWithdrawal({
+        ...data,
+        idempotencyKey: idempotencyKey(),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.driver.earnings() });
       toast.success("Demande de retrait envoyée avec succès !");

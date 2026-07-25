@@ -94,6 +94,53 @@ interface RawPayoutResponse {
   estimated_date?: string;
 }
 
+// ── Owner-type matching ───────────────────────────────────
+
+/**
+ * The backend stores `owner_type` as the Laravel morph ALIAS, which is the
+ * PLURAL table name: `"stores"` (see Relation::enforceMorphMap and
+ * WalletController::index, which filters on the literal `'stores'`).
+ *
+ * This module used to look for `"store"` (singular). It never matched, so
+ * `getVendorWallet()` always fell through to `_buildEmptyWalletData()` and
+ * `getPayoutSettings()` always returned `[]`: every vendor saw a 0 FCFA
+ * balance, no transactions, and an empty withdrawal wizard — the withdrawal
+ * was impossible from the UI even though the API worked.
+ *
+ * The singular form is accepted as a defensive fallback for any legacy row.
+ */
+const STORE_OWNER_TYPES = ["stores", "store"] as const;
+
+function isStoreWallet(w: RawWallet): boolean {
+  return (STORE_OWNER_TYPES as readonly string[]).includes(w.owner_type);
+}
+
+// ── Units ─────────────────────────────────────────────────
+
+/**
+ * Every monetary field the API returns is in CENTIMES (minor units).
+ *
+ * The KPI cards used to render `balance_amount.toLocaleString()` next to a
+ * hard-coded "FCFA" label, i.e. they displayed centimes as if they were francs
+ * — a 100× overstatement of every balance on the vendor dashboard.
+ *
+ * Returns the number only; the card supplies the "FCFA" suffix separately.
+ */
+const XOF_DISPLAY = new Intl.NumberFormat("fr-FR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function centsToXofValue(cents: number): string {
+  const safe = Number.isFinite(cents) ? cents : 0;
+  return XOF_DISPLAY.format(safe / 100);
+}
+
+/** XOF entered by the user → centimes for the API. */
+export function xofToCents(xof: number): number {
+  return Math.round((Number.isFinite(xof) ? xof : 0) * 100);
+}
+
 // ── Public API ────────────────────────────────────────────
 
 /**
@@ -109,9 +156,7 @@ interface RawPayoutResponse {
 export async function getVendorWallet(): Promise<VendorWalletData> {
   // 1. Fetch all wallets, find the store wallet
   const walletsRes = await api.get<RawWalletsResponse>("wallets");
-  const storeWallet = walletsRes.data.wallets.find(
-    (w) => w.owner_type === "store",
-  );
+  const storeWallet = walletsRes.data.wallets.find(isStoreWallet);
   if (!storeWallet) return _buildEmptyWalletData();
 
   // 2. Fetch wallet detail with entries
@@ -163,17 +208,19 @@ export async function requestPayout(
 export async function getPayoutSettings(): Promise<PayoutSetting[]> {
   // Get store wallet to find storeId
   const walletsRes = await api.get<RawWalletsResponse>("wallets");
-  const storeWallet = walletsRes.data.wallets.find(
-    (w) => w.owner_type === "store",
-  );
+  const storeWallet = walletsRes.data.wallets.find(isStoreWallet);
   if (!storeWallet) return [];
 
   const res = await api.get<RawPayoutSettingsResponse>(
     `stores/${storeWallet.owner_id}/payout-settings`,
   );
 
+  // Only destinations that can actually receive money: active AND verified.
+  // The backend refuses a withdrawal on an unverified destination
+  // (StorePayoutSetting::scopePayable), so offering one in the picker would
+  // only produce a 422 the vendor cannot act on.
   return (res.data.payout_settings ?? [])
-    .filter((s) => s.status === 1) // Only active settings
+    .filter((s) => s.status === 1 && s.verified_at !== null)
     .map(_transformPayoutSetting);
 }
 
@@ -182,28 +229,32 @@ export async function getPayoutSettings(): Promise<PayoutSetting[]> {
  * Real API: POST /v1/sellers/wallet/request-payout
  */
 export async function submitWithdrawal(data: {
-  amount: number;
+  amount: number; // XOF, as typed by the vendor
   payoutSettingId: string;
+  idempotencyKey?: string;
 }): Promise<WithdrawalResponse> {
   const res = await api.post<{
     success: boolean;
     data: { payout: RawPayoutResponse };
   }>("sellers/wallet/request-payout", {
-    amount: data.amount,
+    // The API works in centimes. Sending the raw figure meant a vendor typing
+    // "10000" (ten thousand francs) actually withdrew 10 000 centimes = 100 FCFA.
+    amount: xofToCents(data.amount),
     payout_setting_id: data.payoutSettingId,
+    // Stable across retries of the SAME submission — see useSubmitWithdrawal.
+    idempotency_key: data.idempotencyKey,
   });
 
+  const payout = res.data.payout;
+
   return withdrawalResponseSchema.parse({
-    id: res.data.payout.id,
-    amount: res.data.payout.amount,
-    fee:
-      res.data.payout.fee_amount ??
-      Math.round(res.data.payout.amount * 0.01),
-    netAmount:
-      res.data.payout.net_amount ??
-      res.data.payout.amount - (res.data.payout.fee_amount ?? 0),
-    status: res.data.payout.status,
-    estimatedDate: res.data.payout.estimated_date ?? "24 à 48h ouvrées",
+    id: payout.id,
+    // Back to XOF for display.
+    amount: payout.amount / 100,
+    fee: (payout.fee_amount ?? 0) / 100,
+    netAmount: (payout.net_amount ?? payout.amount - (payout.fee_amount ?? 0)) / 100,
+    status: payout.status,
+    estimatedDate: payout.estimated_date ?? "24 à 48h ouvrées",
   });
 }
 
@@ -286,12 +337,12 @@ function _transformWalletData(
     .filter((e) => e.reason === "payout_hold")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  // Build KPIs
+  // Build KPIs — API amounts are centimes, cards display XOF.
   const kpis: WalletKpi[] = [
     {
       id: "available-balance",
       label: "Solde disponible",
-      value: wallet.balance_amount.toLocaleString("fr-FR"),
+      value: centsToXofValue(wallet.balance_amount),
       subValue: "FCFA",
       icon: "wallet",
       gradient: "from-emerald-50 via-green-50/60 to-teal-50/40",
@@ -301,7 +352,7 @@ function _transformWalletData(
     {
       id: "pending-amount",
       label: "En attente",
-      value: pendingHolds.toLocaleString("fr-FR"),
+      value: centsToXofValue(pendingHolds),
       subValue: "FCFA",
       badge: pendingHolds > 0 ? "En cours" : undefined,
       badgeColor:
@@ -314,7 +365,7 @@ function _transformWalletData(
     {
       id: "total-withdrawn",
       label: "Total retiré",
-      value: totalDebits.toLocaleString("fr-FR"),
+      value: centsToXofValue(totalDebits),
       subValue: "FCFA",
       icon: "arrow-down-to-line",
       gradient: "from-blue-50 via-indigo-50/60 to-violet-50/40",
@@ -324,7 +375,7 @@ function _transformWalletData(
     {
       id: "total-revenue",
       label: "Revenus total",
-      value: totalCredits.toLocaleString("fr-FR"),
+      value: centsToXofValue(totalCredits),
       subValue: "FCFA",
       icon: "trending-up",
       gradient: "from-sugu-50 via-sugu-100/60 to-sugu-200/40",
@@ -336,11 +387,12 @@ function _transformWalletData(
   const revenueChart: WalletRevenuePoint[] =
     _aggregateRevenueChart(credits);
 
-  // Transform entries to WalletEntry[]
+  // Transform entries to WalletEntry[].
+  // Amounts arrive in CENTIMES; the transaction list renders francs.
   const transactions: WalletEntry[] = entries.map((e) => ({
     id: e.id,
     type: e.type,
-    amount: e.amount,
+    amount: Math.round(e.amount / 100),
     description: _buildEntryDescription(e),
     referenceType: e.reference_type,
     referenceId: e.reference_id,
@@ -362,15 +414,22 @@ function _transformWalletData(
     kpis,
     revenueChart,
     nextPayout: {
-      amount: wallet.balance_amount,
+      // XOF — the withdrawal wizard works in francs, the API in centimes.
+      amount: Math.floor(wallet.balance_amount / 100),
       scheduledDate: "—",
       method: defaultMethod,
-      minThreshold: 10000,
+      minThreshold: VENDOR_MIN_WITHDRAWAL_XOF,
     },
     transactions,
     payoutMethods,
   };
 }
+
+/**
+ * Vendor withdrawal floor, in XOF. Mirrors RequestPayoutRequest::limits()
+ * (minXof: 5_000) on the backend.
+ */
+export const VENDOR_MIN_WITHDRAWAL_XOF = 5_000;
 
 /**
  * Aggregate credit entries into revenue chart points (last 7 unique days).
@@ -387,7 +446,8 @@ function _aggregateRevenueChart(
       day: "2-digit",
       month: "short",
     }).format(date);
-    dayMap.set(dayLabel, (dayMap.get(dayLabel) ?? 0) + entry.amount);
+    // Centimes → XOF: the chart axis is in francs like every other figure.
+    dayMap.set(dayLabel, (dayMap.get(dayLabel) ?? 0) + Math.round(entry.amount / 100));
   }
 
   return Array.from(dayMap.entries())

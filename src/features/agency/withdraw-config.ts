@@ -16,6 +16,9 @@ export const AGENCY_WITHDRAW_CONFIG = {
   // PIN
   requiresPin: false,
 
+  // Matches PayoutPolicies::agency() server-side.
+  feeRate: 0.01,
+
   // Submit payload
   submitPayload: (data: WithdrawFormData) => ({
     amount: parseFloat(data.amount),

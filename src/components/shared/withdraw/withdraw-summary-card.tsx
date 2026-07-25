@@ -13,6 +13,8 @@ interface WithdrawSummaryCardProps {
   amount: number;
   fee: number;
   netAmount: number;
+  /** Fee rate actually applied by the server for this profile (0.01 = 1 %). */
+  feeRate?: number;
   /** "full" shows Lucide icons on each row (driver confirmation) */
   variant?: "compact" | "full";
   /** Show remaining balance row */
@@ -27,6 +29,7 @@ export function WithdrawSummaryCard({
   amount,
   fee,
   netAmount,
+  feeRate = WITHDRAWAL_FEE_PERCENT,
   variant = "compact",
   remaining,
   title,
@@ -53,7 +56,7 @@ export function WithdrawSummaryCard({
           <div className="flex items-center gap-2.5">
             <Receipt className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-500">
-              Frais ({WITHDRAWAL_FEE_PERCENT * 100}%)
+              Frais ({+(feeRate * 100).toFixed(2)}%)
             </span>
           </div>
           <span className="text-sm font-medium text-gray-500">
@@ -112,7 +115,7 @@ export function WithdrawSummaryCard({
       {/* Fee */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-500">
-          Frais de transfert ({WITHDRAWAL_FEE_PERCENT * 100}%)
+          Frais de transfert ({+(feeRate * 100).toFixed(2)}%)
         </span>
         <span className="text-sm font-bold text-red-500">
           -{formatCurrency(fee)} FCFA

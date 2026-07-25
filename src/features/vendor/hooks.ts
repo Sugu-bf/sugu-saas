@@ -12,6 +12,7 @@ import { useSession } from "@/features/auth/hooks";
 import type { VendorOrdersResponse } from "./schema";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 
 // ────────────────────────────────────────────────────────────
 // Dashboard
@@ -1904,13 +1905,24 @@ export function usePayoutSettings() {
   });
 }
 
-/** Hook: Submit withdrawal request. Invalidates wallet cache on success. */
+/**
+ * Hook: Submit withdrawal request. Invalidates wallet cache on success.
+ *
+ * The idempotency key is minted ONCE per mounted wizard, not per call. Minting
+ * it inside the request function (as the driver and agency services did) gives
+ * every retry a fresh key, which makes the whole mechanism decorative: a
+ * double-submit or a retry after a timeout would create a second real payout.
+ */
 export function useSubmitWithdrawal() {
   const qc = useQueryClient();
+  const idempotencyKey = useIdempotencyKey();
 
   return useMutation({
     mutationFn: (data: { amount: number; payoutSettingId: string }) =>
-      vendorService.submitWithdrawal(data),
+      vendorService.submitWithdrawal({
+        ...data,
+        idempotencyKey: idempotencyKey(),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.vendor.wallet() });
     },

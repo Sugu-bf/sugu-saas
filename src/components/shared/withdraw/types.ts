@@ -42,6 +42,15 @@ export const WITHDRAW_STEPS = [
 
 // ── Fee ─────────────────────────────────────────────────────
 
+/**
+ * @deprecated Per-profile fee. The vendor rate is 0 % (covered by the sales
+ * commission), agencies and couriers pay 1 %. This single global constant made
+ * every wizard advertise 1 % to everyone, including vendors who are not charged
+ * — the summary card showed a deduction the server never applies.
+ *
+ * Use `config.feeRate` instead; this is kept only as the fallback for any
+ * caller not yet passing one.
+ */
 export const WITHDRAWAL_FEE_PERCENT = 0.01; // 1%
 
 // ── Provider config ─────────────────────────────────────────
@@ -77,6 +86,8 @@ export interface WithdrawConfig<P = Record<string, unknown>> {
 
   // PIN
   requiresPin: boolean;
+  /** Withdrawal fee rate applied by the server for this profile (0.01 = 1 %). */
+  feeRate: number;
 
   // Submit payload builder
   submitPayload: (data: WithdrawFormData) => P;

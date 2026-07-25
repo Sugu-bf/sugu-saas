@@ -48,7 +48,8 @@ function StepConfirmationRich({
   config,
 }: StepConfirmationProps) {
   const amount = parseFloat(data.amount) || 0;
-  const fee = Math.round(amount * WITHDRAWAL_FEE_PERCENT);
+  const feeRate = config.feeRate ?? WITHDRAWAL_FEE_PERCENT;
+  const fee = Math.round(amount * feeRate);
   const netAmount = amount - fee;
   const remaining = availableBalance - amount;
 
@@ -119,6 +120,7 @@ function StepConfirmationRich({
             <WithdrawSummaryCard
               amount={amount}
               fee={fee}
+              feeRate={feeRate}
               netAmount={netAmount}
               remaining={Math.max(remaining, 0)}
               variant="full"
@@ -229,6 +231,7 @@ function StepConfirmationRich({
             <WithdrawSummaryCard
               amount={amount}
               fee={fee}
+              feeRate={feeRate}
               netAmount={netAmount}
             />
 
@@ -291,7 +294,8 @@ function StepConfirmationSimple({
   config,
 }: StepConfirmationProps) {
   const amount = parseFloat(data.amount) || 0;
-  const fee = Math.round(amount * WITHDRAWAL_FEE_PERCENT);
+  const feeRate = config.feeRate ?? WITHDRAWAL_FEE_PERCENT;
+  const fee = Math.round(amount * feeRate);
   const netAmount = amount - fee;
 
   const providerKey = selectedMethod
@@ -327,6 +331,7 @@ function StepConfirmationSimple({
           <WithdrawSummaryCard
             amount={amount}
             fee={fee}
+              feeRate={feeRate}
             netAmount={netAmount}
             netColorClass="text-green-600"
           />

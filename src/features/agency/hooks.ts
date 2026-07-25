@@ -7,6 +7,7 @@ import * as agencyService from "./service";
 import type { DeliveryFilters, DriverFilters, UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./service";
 import type { AgencySettingsResponse } from "./schema";
 import { useEffect } from "react";
+import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 
 /**
  * Hook: Agency dashboard stats.
@@ -723,9 +724,15 @@ export function useSubmitAgencyWithdrawal() {
   const { data: user } = useSession();
   const agencyId = user?.delivery_partner_id ?? undefined;
 
+  // Stable across retries of the same submission — see finance.service.
+  const idempotencyKey = useIdempotencyKey();
+
   return useMutation({
     mutationFn: (data: { amount: number; payoutSettingId: string; note?: string }) =>
-      agencyService.submitAgencyWithdrawal(agencyId!, data),
+      agencyService.submitAgencyWithdrawal(agencyId!, {
+        ...data,
+        idempotencyKey: idempotencyKey(),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.agency.earnings() });
     },

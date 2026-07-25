@@ -10,7 +10,8 @@ export const VENDOR_WITHDRAW_CONFIG = {
   maxWidth: "max-w-3xl",
 
   // Amounts
-  minWithdrawalAmount: 10_000,
+  // XOF. Mirrors RequestPayoutRequest::limits() (minXof: 5_000) server-side.
+  minWithdrawalAmount: 5_000,
   quickPercents: [
     { label: "25%", value: 0.25 },
     { label: "50%", value: 0.5 },
@@ -20,6 +21,10 @@ export const VENDOR_WITHDRAW_CONFIG = {
 
   // PIN
   requiresPin: false,
+
+  // Server-side fee for vendors: 0 % — the cost is already covered by the
+  // sales commission taken at settlement (PayoutPolicies::store).
+  feeRate: 0,
 
   // Submit payload
   submitPayload: (data: WithdrawFormData) => ({

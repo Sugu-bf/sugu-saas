@@ -31,7 +31,8 @@ function StepMontantRich({
   config,
 }: StepMontantProps) {
   const amount = parseFloat(data.amount) || 0;
-  const fee = Math.round(amount * WITHDRAWAL_FEE_PERCENT);
+  const feeRate = config.feeRate ?? WITHDRAWAL_FEE_PERCENT;
+  const fee = Math.round(amount * feeRate);
   const netAmount = amount - fee;
   const remaining = availableBalance - amount;
   const withdrawPercent =
@@ -197,6 +198,7 @@ function StepMontantRich({
           <WithdrawSummaryCard
             amount={amount}
             fee={fee}
+              feeRate={feeRate}
             netAmount={Math.max(netAmount, 0)}
             remaining={Math.max(remaining, 0)}
           />
@@ -308,7 +310,8 @@ function StepMontantSimple({
   config,
 }: StepMontantProps) {
   const amount = parseFloat(data.amount) || 0;
-  const fee = Math.round(amount * WITHDRAWAL_FEE_PERCENT);
+  const feeRate = config.feeRate ?? WITHDRAWAL_FEE_PERCENT;
+  const fee = Math.round(amount * feeRate);
   const netAmount = amount - fee;
   const quickPercents = config.quickPercents ?? [];
 

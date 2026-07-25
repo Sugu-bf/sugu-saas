@@ -21,7 +21,8 @@ export function StepMethode({
   config,
 }: StepMethodeProps) {
   const amount = parseFloat(data.amount) || 0;
-  const fee = Math.round(amount * WITHDRAWAL_FEE_PERCENT);
+  const feeRate = config.feeRate ?? WITHDRAWAL_FEE_PERCENT;
+  const fee = Math.round(amount * feeRate);
   const netAmount = amount - fee;
 
   const isDriver = config.stepMethodeVariant === "driver";
@@ -264,6 +265,7 @@ export function StepMethode({
             <WithdrawSummaryCard
               amount={amount}
               fee={fee}
+              feeRate={feeRate}
               netAmount={netAmount}
               netColorClass={isDriver ? "text-sugu-600" : "text-green-600"}
             />
