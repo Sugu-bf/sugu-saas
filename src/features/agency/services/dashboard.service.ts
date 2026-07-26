@@ -136,32 +136,10 @@ function transformDashboard(raw: BackendDashboardData): AgencyDashboardData {
       severity:
         c.priority === "high" || c.priority === "urgent" ? "urgent" : "normal",
     })),
-    mapPins: raw.activeDeliveries.map((d) => {
-      let hash = 0;
-      for (let c = 0; c < d.id.length; c++) {
-        hash = ((hash << 5) - hash + d.id.charCodeAt(c)) | 0;
-      }
-      const latOffset = ((hash % 100) / 100) * 0.08 - 0.04;
-      const lngOffset = (((hash >> 8) % 100) / 100) * 0.08 - 0.04;
-
-      return {
-        id: d.id,
-        lat: 12.3714 + latOffset,
-        lng: -1.5197 + lngOffset,
-        status: mapShipmentStatus(d.status),
-      };
-    }),
-    earningsChart: [
-      { day: "LUN", value: 125000 },
-      { day: "MAR", value: 142000 },
-      { day: "MER", value: 138000 },
-      { day: "JEU", value: 165000 },
-      { day: "VEN", value: 154000 },
-      { day: "SAM", value: 182000 },
-      { day: "DIM", value: Math.round(kpis.revenueToday / 100) },
-    ],
-    earningsTotal: 1045000 + Math.round(kpis.revenueToday / 100),
-    earningsPrevious: 1012000,
+    mapPins: [],
+    earningsChart: [],
+    earningsTotal: kpis.revenueToday,
+    earningsPrevious: 0,
   };
 }
 

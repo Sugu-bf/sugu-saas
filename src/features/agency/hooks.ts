@@ -423,6 +423,31 @@ export function useVerifyCourierKyc() {
 }
 
 /**
+ * Hook: Update courier details.
+ *
+ * Invalidates driver detail and drivers list on success.
+ */
+export function useUpdateCourier() {
+  const queryClient = useQueryClient();
+  const { data: user } = useSession();
+  const agencyId = user?.delivery_partner_id ?? "";
+
+  return useMutation({
+    mutationFn: ({
+      courierId,
+      data,
+    }: {
+      courierId: string;
+      data: Parameters<typeof agencyService.updateCourier>[2];
+    }) => agencyService.updateCourier(agencyId, courierId, data),
+    onSuccess: (_, { courierId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.drivers() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agency.driverDetail(courierId) });
+    },
+  });
+}
+
+/**
  * Hook: Add a new courier.
  *
  * Invalidates all agency queries on success.
@@ -818,6 +843,17 @@ export function useDeleteAgencyZone() {
       queryClient.invalidateQueries({ queryKey: [...queryKeys.agency.all, "zones"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.agency.settings() });
     },
+  });
+}
+
+/**
+ * Hook: Search/list vendors from DB for manual delivery creation.
+ */
+export function useVendorsList(query?: string) {
+  return useQuery({
+    queryKey: [...queryKeys.agency.all, "vendors", query ?? ""],
+    queryFn: () => agencyService.getVendorsList(query),
+    staleTime: 30 * 1000,
   });
 }
 

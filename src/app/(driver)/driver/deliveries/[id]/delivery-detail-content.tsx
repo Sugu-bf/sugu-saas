@@ -488,6 +488,28 @@ function SecurityCodeCard({
     );
   }
 
+  const isCodeAvailable = code && code.trim() !== "" && code.trim().toUpperCase() !== "N/A";
+
+  if (!isCodeAvailable && !isPickupPhase) {
+    return (
+      <div
+        className="glass-card rounded-2xl p-5 flex flex-col items-center text-center animate-card-enter"
+        style={{ animationDelay: "60ms" }}
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+          <ShieldCheck className="h-5 w-5 text-gray-400" />
+        </div>
+        <p className="mt-3 text-xs font-semibold text-gray-500 dark:text-gray-400">Code de sécurité client</p>
+        <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+          Non requis pour cette livraison
+        </span>
+        <p className="mt-3 max-w-[260px] text-[10px] italic leading-relaxed text-gray-400">
+          Aucune vérification par code OTP n&apos;est nécessaire pour remettre cette commande.
+        </p>
+      </div>
+    );
+  }
+
   // Delivery phase (default): show delivery security code
   return (
     <div
@@ -503,15 +525,15 @@ function SecurityCodeCard({
       <p className="mt-3 text-xs text-gray-500">Votre code de sécurité :</p>
 
       {/* CODE — very prominent */}
-      <p className="mt-1 font-mono text-3xl font-extrabold tracking-widest text-gray-900">
+      <p className="mt-1 font-mono text-3xl font-extrabold tracking-widest text-gray-900 dark:text-white">
         {code}
       </p>
 
       {/* Copy button */}
       <button
         onClick={onCopy}
-        className="mt-3 flex items-center gap-1.5 rounded-xl border border-sugu-200 bg-sugu-50/60
-                   px-4 py-2 text-xs font-semibold text-sugu-600 transition-colors hover:bg-sugu-100"
+        className="mt-3 flex min-h-[44px] items-center gap-1.5 rounded-xl border border-sugu-200 bg-sugu-50/60
+                   px-4 py-2 text-xs font-semibold text-sugu-600 transition-colors hover:bg-sugu-100 active:scale-95"
       >
         <Copy className="h-3.5 w-3.5" />
         {copied ? "Copié !" : "Copier le code"}
@@ -597,34 +619,45 @@ function ProductCard({
   product: PickupProduct;
 }) {
   return (
-    <div className="rounded-xl bg-gray-50/80 p-3 flex items-center gap-3">
-      {/* Product image placeholder */}
-      <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gray-200 flex items-center justify-center">
-        <Package className="h-5 w-5 text-gray-400" />
+    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white/90 p-3 shadow-2xs dark:border-gray-800 dark:bg-gray-900/60">
+      {/* Product image */}
+      <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 border border-gray-200/60 dark:border-gray-700 dark:bg-gray-800 flex items-center justify-center">
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Package className="h-5 w-5 text-gray-400" />
+        )}
       </div>
 
       {/* Product info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">
+        <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
           {product.name}
         </p>
         {product.variant && (
-          <p className="text-[10px] text-gray-400">{product.variant}</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{product.variant}</p>
         )}
-        <p className="text-xs font-semibold text-gray-900">
-          {formatCentsToXof(product.price)}
-        </p>
+        <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-extrabold text-sugu-600 dark:text-sugu-400">
+            {formatCentsToXof(product.price)}
+          </span>
+          <span className="text-[10px] font-semibold text-gray-400">
+            Qté: {product.quantity}
+          </span>
+        </div>
       </div>
 
-      {/* Quantity + collected status */}
-      <div className="flex-shrink-0 text-right">
-        <span className="text-[10px] text-gray-500">
-          Qté: {product.quantity}
+      {/* Single collected status badge */}
+      {product.collected && (
+        <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600 border border-emerald-200/60 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-400">
+          <Check className="h-3 w-3" /> Collecté
         </span>
-        {product.collected && (
-          <p className="flex items-center gap-0.5 text-[10px] font-medium text-green-600"><Check className="h-2.5 w-2.5" /> Collecté</p>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -696,8 +729,8 @@ function ItineraryCard({
                 </p>
                 <p className="text-xs text-gray-500">{stop.address}</p>
 
-                {/* Products grid */}
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Products list */}
+                <div className="mt-3 flex flex-col gap-2">
                   {stop.products.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -764,12 +797,6 @@ function ItineraryCard({
                       </button>
                     </div>
                   )}
-
-                {stop.isCompleted && (
-                  <p className="mt-2 flex items-center gap-1 text-xs font-medium text-green-600">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Collecté
-                  </p>
-                )}
 
                 {stop.storeId && (
                   <button

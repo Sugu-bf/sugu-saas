@@ -87,11 +87,19 @@ export async function getSellerConversations(params?: {
   per_page?: number;
   page?: number;
 }): Promise<{ data: Conversation[]; has_more: boolean; next_cursor: string | null }> {
-  const res = await api.get<PaginatedConversationsResponse>("seller/conversations", {
+  const res = await api.get<PaginatedConversationsResponse | Record<string, unknown>>("seller/conversations", {
     params: params as Record<string, string | number | boolean | undefined>,
   });
+
+  const rawData = res.data as Record<string, unknown> | Conversation[];
+  const items: Conversation[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as { data?: Conversation[] })?.data)
+    ? (rawData as { data: Conversation[] }).data
+    : [];
+
   return {
-    data: res.data.data,
+    data: items,
     has_more: res.meta?.has_more ?? false,
     next_cursor: res.meta?.next_cursor ?? null,
   };

@@ -20,7 +20,6 @@ import {
   Pencil,
   Ban,
   UserMinus,
-  CircleDot,
   Wifi,
   WifiOff,
   Loader2,
@@ -271,7 +270,6 @@ function DriverDetailPanel({
     );
   }
   const statusCfg = DRIVER_STATUS_CFG[detail.status];
-  const progressBarWidth = Math.min(detail.monthlyProgress, 100);
 
   return (
     <aside
@@ -329,26 +327,31 @@ function DriverDetailPanel({
           >
             Informations
           </h3>
-          <div className="grid grid-cols-4 gap-2 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
-            {[
-              { label: "Age", value: detail.age },
-              { label: "Quartier", value: detail.quartier },
-              { label: "Véhicule", value: detail.vehicle.charAt(0).toUpperCase() + detail.vehicle.slice(1) },
-              { label: "Joined", value: detail.vehicleId },
-              { label: "Permis", value: detail.permis },
-              { label: "Joined date", value: detail.joinedDate },
-              {
-                label: "Vérifié",
-                value: detail.verified ? "CNI OK" : "Non",
-              },
-            ].map((item) => (
-              <div key={item.label} className="text-center">
-                <p className="text-[10px] font-medium text-gray-400">{item.label}</p>
-                <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                  {item.value}
-                </p>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
+            <div className="text-left">
+              <p className="text-[10px] font-medium text-gray-400">Véhicule</p>
+              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                {detail.vehicle.charAt(0).toUpperCase() + detail.vehicle.slice(1)}
+              </p>
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] font-medium text-gray-400">Plaque d&apos;immatriculation</p>
+              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                {detail.vehicleId || "—"}
+              </p>
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] font-medium text-gray-400">Statut KYC</p>
+              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                {detail.verified ? "Vérifié (CNI OK)" : "En attente"}
+              </p>
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] font-medium text-gray-400">Date d&apos;embauche</p>
+              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                {detail.joinedDate}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -358,154 +361,29 @@ function DriverDetailPanel({
             id="detail-perf-heading"
             className="mb-2 text-xs font-bold text-gray-900 dark:text-white"
           >
-            Performance
+            Performance globale
           </h3>
           <div className="rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
                 <p className="text-lg font-extrabold text-gray-900 dark:text-white">
                   {detail.totalDeliveries}
                 </p>
-                <p className="text-[9px] text-gray-400">Total</p>
+                <p className="text-[9px] text-gray-400">Livraisons</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-extrabold text-green-600">
                   {detail.successRate}%
                 </p>
-                <p className="text-[9px] text-gray-400">Taux réussite</p>
+                <p className="text-[9px] text-gray-400">Réussite</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-extrabold text-gray-900 dark:text-white">
                   {detail.rating}
                 </p>
-                <p className="text-[9px] text-gray-400">Note</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-extrabold text-gray-900 dark:text-white">
-                  {detail.avgTime}
-                </p>
-                <p className="text-[9px] text-gray-400">Temps moyen</p>
+                <p className="text-[9px] text-gray-400">Note clients</p>
               </div>
             </div>
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[9px] text-gray-400">
-                <span>Menthul progress</span>
-                <span>{progressBarWidth}%</span>
-              </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40">
-                <div
-                  className="h-full rounded-full bg-sugu-500 transition-all duration-700"
-                  style={{ width: `${progressBarWidth}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Activité aujourd'hui ── */}
-        <section aria-labelledby="detail-activity-heading">
-          <h3
-            id="detail-activity-heading"
-            className="mb-2 text-xs font-bold text-gray-900 dark:text-white"
-          >
-            Activité aujourd&apos;hui
-          </h3>
-          <div className="rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {detail.todayDeliveries} livraisons
-              </span>
-              <div className="flex items-center gap-2 text-[10px]">
-                <span className="text-green-600 font-semibold">
-                  {detail.todayCompleted} complètes
-                </span>
-                <span className="text-gray-300">·</span>
-                <span className="text-red-500 font-semibold">
-                  {detail.todayFailed} failes
-                </span>
-              </div>
-            </div>
-            {/* Mini progress bar */}
-            <div className="h-1.5 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40">
-              <div className="flex h-full">
-                <div
-                  className="bg-green-500 rounded-l-full"
-                  style={{
-                    width: detail.todayDeliveries > 0
-                      ? `${(detail.todayCompleted / detail.todayDeliveries) * 100}%`
-                      : "0%",
-                  }}
-                />
-                <div
-                  className="bg-red-500 rounded-r-full"
-                  style={{
-                    width: detail.todayDeliveries > 0
-                      ? `${(detail.todayFailed / detail.todayDeliveries) * 100}%`
-                      : "0%",
-                  }}
-                />
-              </div>
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">
-                  {detail.todayRevenue}
-                </p>
-                <p className="text-[9px] text-gray-400">Revenus</p>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">
-                  {detail.todayHours}
-                </p>
-                <p className="text-[9px] text-gray-400">Heures travaillées</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Dernières livraisons ── */}
-        <section aria-labelledby="detail-recent-heading">
-          <div className="mb-2 flex items-center justify-between">
-            <h3
-              id="detail-recent-heading"
-              className="text-xs font-bold text-gray-900 dark:text-white"
-            >
-              Dernières livraisons
-            </h3>
-            <button className="text-[10px] font-semibold text-sugu-500 hover:text-sugu-600">
-              Voir tout →
-            </button>
-          </div>
-          <div className="space-y-1.5">
-            {detail.recentDeliveries.map((del) => (
-              <div
-                key={del.id}
-                className="flex items-center gap-2 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-gray-900/60"
-              >
-                <CircleDot className="h-3 w-3 flex-shrink-0 text-sugu-400" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                      {del.orderId}
-                    </span>
-                    <span className="truncate text-[10px] text-gray-400">
-                      {del.route}
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[9px] font-bold",
-                    del.statusColor,
-                  )}
-                >
-                  {del.status}
-                </span>
-                <span className="text-[10px] font-medium text-gray-400">
-                  {del.time}
-                </span>
-              </div>
-            ))}
           </div>
         </section>
       </div>
@@ -549,7 +427,7 @@ function DriverDetailPanel({
             </button>
           )}
           <Link
-            href={`/agency/drivers/${detail.id}`}
+            href={`/agency/drivers/${detail.id}/edit`}
             className="flex items-center justify-center gap-1 rounded-xl border border-gray-200 bg-white py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
             <Pencil className="h-3 w-3" />

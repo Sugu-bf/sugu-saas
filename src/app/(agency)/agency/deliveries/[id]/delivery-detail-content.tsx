@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MoreHorizontal, XCircle, Package } from "lucide-react";
+import { ArrowLeft, XCircle, Package } from "lucide-react";
 import type { DeliveryDetailRow } from "@/features/agency/schema";
 import {
   useDeliveryDetail,
   useUpdateDeliveryStatus,
   useAddShipmentNote,
 } from "@/features/agency/hooks";
+
+import { AssignCourierModal } from "../assign-courier-modal";
 
 import { AgencyCodMixteBadge, StatusBadge, PriorityBadge } from "./components/badges";
 import { DetailSkeleton } from "./components/skeletons";
@@ -47,6 +49,7 @@ export function DeliveryDetailContent({
   const isMutating = updateStatus.isPending || addNote.isPending;
 
   const [internalNote, setInternalNote] = useState("");
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
   // ── Loading state ──
   if (isLoading) {
@@ -124,30 +127,37 @@ export function DeliveryDetailContent({
 
   return (
     <div className="animate-fade-in space-y-4 lg:space-y-5">
-      {/* HEADER BAR */}
-      <div className="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-card-enter" style={{ animationDelay: "0ms" }}>
+      {/* MOBILE NATIVE PWA HEADER BAR */}
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-gray-100/80 bg-white/90 p-4 backdrop-blur-xl dark:border-gray-800/80 dark:bg-gray-900/90 sm:static sm:z-auto sm:m-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="flex items-center gap-3">
-          <Link href="/agency/deliveries" className="flex items-center gap-1.5 text-sm font-medium text-sugu-500 hover:text-sugu-600 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Retour aux livraisons
+          <Link
+            href="/agency/deliveries"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-700 transition-all hover:bg-gray-200 active:scale-95 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            aria-label="Retour aux livraisons"
+          >
+            <ArrowLeft className="h-5 w-5" />
           </Link>
+          <div>
+            <h1 className="font-mono text-base font-black tracking-tight text-gray-900 dark:text-white sm:text-xl">
+              {row.orderId}
+            </h1>
+            <p className="text-[11px] font-semibold text-gray-400 sm:hidden">
+              Détails de la livraison
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-lg font-bold text-gray-900">{row.orderId}</span>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <StatusBadge status={row.status} label={row.statusLabel} />
           <PriorityBadge priority={row.priority} />
           {detailRow.codMixte?.isCodMixte && <AgencyCodMixteBadge codMixte={detailRow.codMixte} />}
-          <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 transition-colors" aria-label="Plus d'options">
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
       {/* MAIN GRID */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
         <DeliveryDetailTrackingSection row={row} detailRow={detailRow} completionPercent={completionPercent} statusUpdateLabel={statusUpdateLabel} />
-        <DeliveryDetailDriverSection row={row} detailRow={detailRow} />
+        <DeliveryDetailDriverSection row={row} detailRow={detailRow} onOpenAssign={() => setIsAssignModalOpen(true)} />
         <DeliveryDetailClientSection row={row} />
         <DeliveryDetailOrderSection row={row} detailRow={detailRow} orderSubtotal={orderSubtotal} deliveryFee={deliveryFee} totalWithFees={totalWithFees} />
         <DeliveryDetailItinerarySection row={row} canonicalTimeline={detailRow.canonicalTimeline} />
@@ -161,6 +171,12 @@ export function DeliveryDetailContent({
           <DeliveryDetailStopsSection stops={detailRow.stops} />
         )}
       </div>
+
+      <AssignCourierModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        shipmentIds={[shipmentId]}
+      />
     </div>
   );
 }

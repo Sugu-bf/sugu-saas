@@ -118,10 +118,20 @@ export default function DriverDashboardClient() {
           {data.currentDelivery ? (
             <CurrentDeliveryCard delivery={data.currentDelivery} />
           ) : (
-            <div className="glass-card flex h-56 items-center justify-center rounded-2xl lg:rounded-3xl">
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                Aucune livraison en cours
+            <div className="glass-card flex min-h-[220px] h-full flex-col items-center justify-center p-6 text-center rounded-2xl lg:rounded-3xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sugu-50 text-sugu-500 dark:bg-sugu-950/30 mb-3">
+                <Bike className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Aucune livraison en cours</h3>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+                Vous êtes en ligne. Dès qu&apos;une livraison vous sera attribuée, ses détails s&apos;afficheront ici.
               </p>
+              <Link
+                href="/driver/deliveries"
+                className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-sugu-500 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-sugu-500/20 transition-all hover:bg-sugu-600 active:scale-95"
+              >
+                Consulter mes livraisons
+              </Link>
             </div>
           )}
         </div>
@@ -312,35 +322,43 @@ function DeliveryQueueCard({
 
       {/* Queue list */}
       <div className="mt-3 flex-1 space-y-2">
-        {deliveries.map((d) => (
-          <div
-            key={d.id}
-            className="rounded-xl bg-white/40 p-3 transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                {d.orderId}
-              </span>
-              <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                  d.priority === "urgent"
-                    ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-                    : "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                }`}
-              >
-                {d.priority === "urgent" ? "Urgent" : "Normal"}
-              </span>
-            </div>
-            <p className="mt-1 truncate text-xs font-medium text-gray-600 dark:text-gray-400">
-              {d.route}
-            </p>
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
-              <span className="flex items-center gap-1"><Package className="h-3 w-3" /> {d.itemCount} colis</span>
-              <span>·</span>
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {d.timeSlot}</span>
-            </div>
+        {deliveries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle className="h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Aucune livraison en attente</p>
+            <p className="text-[11px] text-gray-400">Toutes vos livraisons assignées sont traitées.</p>
           </div>
-        ))}
+        ) : (
+          deliveries.map((d) => (
+            <div
+              key={d.id}
+              className="rounded-xl bg-white/40 p-3 transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {d.orderId}
+                </span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                    d.priority === "urgent"
+                      ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+                      : "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                  }`}
+                >
+                  {d.priority === "urgent" ? "Urgent" : "Normal"}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs font-medium text-gray-600 dark:text-gray-400">
+                {d.route}
+              </p>
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+                <span className="flex items-center gap-1"><Package className="h-3 w-3" /> {d.itemCount} colis</span>
+                <span>·</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {d.timeSlot}</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Footer link */}
@@ -552,36 +570,44 @@ function ActivityTimeline({ events }: { events: ActivityEvent[] }) {
       </h2>
 
       <div className="mt-4 space-y-0">
-        {events.map((event, i) => (
-          <div key={event.id} className="flex gap-3 py-2.5">
-            {/* Timeline dot + vertical line */}
-            <div className="flex flex-col items-center">
-              <div
-                className={`mt-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${event.dotColor} bg-opacity-20`}
-              >
-                {EVENT_ICONS[event.type] ?? (
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full ${event.dotColor}`}
-                  />
+        {events.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <ClipboardList className="h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Aucune activité récente</p>
+            <p className="text-[11px] text-gray-400">Les événements de vos courses apparaîtront ici.</p>
+          </div>
+        ) : (
+          events.map((event, i) => (
+            <div key={event.id} className="flex gap-3 py-2.5">
+              {/* Timeline dot + vertical line */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={`mt-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${event.dotColor} bg-opacity-20`}
+                >
+                  {EVENT_ICONS[event.type] ?? (
+                    <div
+                      className={`h-2.5 w-2.5 rounded-full ${event.dotColor}`}
+                    />
+                  )}
+                </div>
+                {i < events.length - 1 && (
+                  <div className="w-px flex-1 bg-gray-200 dark:bg-gray-700" />
                 )}
               </div>
-              {i < events.length - 1 && (
-                <div className="w-px flex-1 bg-gray-200 dark:bg-gray-700" />
-              )}
-            </div>
 
-            {/* Content */}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-                {event.title}
-              </p>
-              <p className="truncate text-xs text-gray-400">
-                {event.subtitle}
-              </p>
-              <p className="mt-0.5 text-[11px] text-gray-400">{event.time}</p>
+              {/* Content */}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {event.title}
+                </p>
+                <p className="truncate text-xs text-gray-400">
+                  {event.subtitle}
+                </p>
+                <p className="mt-0.5 text-[11px] text-gray-400">{event.time}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </section>
   );

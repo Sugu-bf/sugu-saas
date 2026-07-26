@@ -9,7 +9,6 @@ import { CanonicalTimeline, type CanonicalTimelineStep } from "@/components/ui/c
 import { MapPin, Navigation, Bike, Phone, MessageCircle, Star, UserCheck, User, StickyNote, Package, ExternalLink, CheckCircle2, Check, Zap, Loader2, AlertTriangle, XCircle, Clock, CheckCheck, Ban, RefreshCw, DollarSign, ShoppingBag } from "lucide-react";
 import type { DeliveryDetailRow, ShipmentStop } from "@/features/agency/schema";
 import { useAcceptShipment, useRefuseShipment, useAdjustPrice, useReassignCourier, useAvailableCouriers } from "@/features/agency/hooks";
-import { MapPlaceholder } from "./skeletons";
 import { AgencyCodMixtePaymentCard } from "./badges";
 
 /**
@@ -38,28 +37,39 @@ export function DeliveryDetailTrackingSection({
 }) {
   return (
     <section
-      className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter"
+      className="glass-card rounded-2xl p-4 lg:p-5 animate-card-enter space-y-3.5"
       style={{ animationDelay: "60ms" }}
       aria-labelledby="detail-tracking-heading"
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-500" />
-          <h2 id="detail-tracking-heading" className="text-sm font-bold text-gray-900">
-            Suivi en temps réel
+          <MapPin className="h-4 w-4 text-sugu-500" />
+          <h2 id="detail-tracking-heading" className="text-sm font-bold text-gray-900 dark:text-white">
+            Suivi de la livraison
           </h2>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse-dot" />
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full dark:bg-emerald-950/30 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Mise à jour {statusUpdateLabel}
         </div>
       </div>
 
-      <MapPlaceholder row={row} />
-
-      <p className="mt-3 text-xs text-gray-500">
-        {detailRow.itinerary.distanceKm} km — {completionPercent}% complété
-      </p>
+      <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/40 space-y-3">
+        <div className="flex items-center justify-between text-xs font-bold">
+          <span className="text-gray-600 dark:text-gray-300">Progression</span>
+          <span className="text-sugu-600 font-extrabold">{completionPercent}% complété</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-gray-200/80 dark:bg-gray-800">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-sugu-500 to-amber-500 transition-all duration-700 shadow-xs"
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-gray-500">
+          <span>Distance : <strong className="text-gray-800 dark:text-gray-200">{detailRow.itinerary.distanceKm || "—"} km</strong></span>
+          <span>ETA : <strong className="text-gray-800 dark:text-gray-200">{row.eta === "N/A" ? "—" : row.eta}</strong></span>
+        </div>
+      </div>
     </section>
   );
 }
@@ -67,9 +77,11 @@ export function DeliveryDetailTrackingSection({
 export function DeliveryDetailDriverSection({
   row,
   detailRow,
+  onOpenAssign,
 }: {
   row: DeliveryDetailRow;
   detailRow: DeliveryDetailRow;
+  onOpenAssign?: () => void;
 }) {
   return (
     <section
@@ -128,29 +140,43 @@ export function DeliveryDetailDriverSection({
             {detailRow.driverPhone || "N/A"}
           </p>
 
-          <div className="flex gap-2">
-            {/* A8-res — Appeler now actually calls the assigned driver via tel: */}
+          <div className="flex gap-2.5">
             {(row.driver.phone ?? detailRow.driverPhone) ? (
               <a
                 href={`tel:${row.driver.phone ?? detailRow.driverPhone}`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white py-2.5 text-xs font-bold text-gray-800 shadow-2xs transition-all hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
-                <Phone className="h-3.5 w-3.5" />
+                <Phone className="h-4 w-4 text-sugu-500" />
                 Appeler
               </a>
             ) : (
               <button
                 disabled
-                className="flex flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-400"
+                className="flex flex-1 min-h-[44px] cursor-not-allowed items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-gray-50 py-2.5 text-xs font-semibold text-gray-400 dark:border-gray-800 dark:bg-gray-900"
               >
-                <Phone className="h-3.5 w-3.5" />
+                <Phone className="h-4 w-4" />
                 Appeler
               </button>
             )}
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-green-600">
-              <MessageCircle className="h-3.5 w-3.5" />
-              WhatsApp
-            </button>
+            {Boolean(row.driver.phone ?? detailRow.driverPhone) ? (
+              <a
+                href={`https://wa.me/${String(row.driver.phone ?? detailRow.driverPhone ?? "").replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-emerald-500 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-600 active:scale-95"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex flex-1 min-h-[44px] cursor-not-allowed items-center justify-center gap-1.5 rounded-2xl bg-emerald-500/50 py-2.5 text-xs font-bold text-white opacity-60"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </button>
+            )}
           </div>
 
           <Link
@@ -162,10 +188,13 @@ export function DeliveryDetailDriverSection({
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-xl bg-gray-50/80 p-6 text-center">
-          <UserCheck className="h-10 w-10 text-gray-300" />
-          <p className="text-xs text-gray-400">Aucun livreur assigné</p>
-          <button className="rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white hover:bg-sugu-600 transition-colors">
+        <div className="flex flex-col items-center gap-3 rounded-2xl bg-gray-50/80 p-6 text-center dark:bg-gray-900/40">
+          <UserCheck className="h-10 w-10 text-gray-300 dark:text-gray-600" />
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Aucun livreur assigné</p>
+          <button
+            onClick={onOpenAssign}
+            className="rounded-2xl bg-gradient-to-r from-sugu-500 to-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-sugu-500/20 transition-all hover:from-sugu-600 hover:to-orange-700 active:scale-95"
+          >
             + Assigner
           </button>
         </div>
@@ -202,16 +231,29 @@ export function DeliveryDetailClientSection({ row }: { row: DeliveryDetailRow })
         </div>
 
         {row.client.note && (
-          <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2.5 text-xs italic text-amber-700">
+          <div className="flex items-start gap-1.5 rounded-xl bg-amber-50/80 p-2.5 text-xs italic text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
             <StickyNote className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
             {row.client.note}
           </div>
         )}
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 mt-2">
-          <Phone className="h-3.5 w-3.5" />
-          Appeler le client
-        </button>
+        {row.client.phone ? (
+          <a
+            href={`tel:${row.client.phone}`}
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-2.5 text-xs font-bold text-gray-800 shadow-2xs transition-all hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            <Phone className="h-4 w-4 text-sugu-500" />
+            Appeler le client
+          </a>
+        ) : (
+          <button
+            disabled
+            className="flex min-h-[44px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 py-2.5 text-xs font-semibold text-gray-400 dark:border-gray-800 dark:bg-gray-900"
+          >
+            <Phone className="h-4 w-4" />
+            Appeler le client
+          </button>
+        )}
       </div>
     </section>
   );

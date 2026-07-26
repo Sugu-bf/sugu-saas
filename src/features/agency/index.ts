@@ -22,6 +22,7 @@ export {
   addShipmentNote,
   createDelivery,
   registerCourier,
+  updateCourier,
 } from "./service";
 
 export type {
@@ -30,6 +31,7 @@ export type {
   DriverFilters,
   AddCourierPayload,
   RegisterCourierPayload,
+  UpdateCourierPayload,
   UpdateAgencySettingsPayload,
   UpdatePasswordPayload,
 } from "./service";

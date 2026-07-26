@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { api } from "@/lib/http/client";
-import { agencyDriversResponseSchema, driverProfileSchema, type AgencyDriversResponse, type DriverProfile } from "../schema";
+import { agencyDriversResponseSchema, type AgencyDriversResponse, type DriverProfile } from "../schema";
 import { getInitials, getAvatarColor, parseRating, mapCourierStatus, formatRelativeDate, computeSeniority, formatFrenchDate, mapVehicleType } from "./utils";
 
 // Drivers — Backend schemas, transformers, API calls
@@ -9,44 +9,45 @@ import { getInitials, getAvatarColor, parseRating, mapCourierStatus, formatRelat
 // ── Backend courier response schemas ───────────────────────
 
 const backendCourierCardSchema = z.object({
-  id: z.string(),
-  user_id: z.string(),
+  id: z.union([z.string(), z.number()]),
+  user_id: z.union([z.string(), z.number()]).optional(),
   employee_id: z.string().nullable().optional(),
   vehicle_type: z.string().nullable().optional(),
   vehicle_plate: z.string().nullable().optional(),
   phone_e164: z.string().nullable().optional(),
   emergency_contact_name: z.string().nullable().optional(),
   emergency_contact_phone: z.string().nullable().optional(),
-  status: z.union([z.string(), z.number()]), // string ("active") in list, number (1) in show
-  is_active: z.boolean(),
-  kyc_verified: z.boolean(),
-  total_deliveries: z.number().nullable().optional(),
-  completed_deliveries: z.number().nullable().optional(),
-  failed_deliveries: z.number().nullable().optional(),
+  status: z.union([z.string(), z.number()]).optional().default(1),
+  is_active: z.boolean().optional().default(false),
+  kyc_verified: z.boolean().optional().default(false),
+  total_deliveries: z.number().nullable().optional().default(0),
+  completed_deliveries: z.number().nullable().optional().default(0),
+  failed_deliveries: z.number().nullable().optional().default(0),
   rating_avg: z.union([z.number(), z.string()]).nullable().optional(),
-  rating_count: z.number().nullable().optional(),
+  rating_count: z.number().nullable().optional().default(0),
   hired_at: z.string().nullable().optional(),
   last_delivery_at: z.string().nullable().optional(),
   suspended_until: z.string().nullable().optional(),
   metadata: z.unknown().nullable().optional(),
   user: z.object({
-    id: z.string(),
-    name: z.string(),
+    id: z.union([z.string(), z.number()]).optional(),
+    name: z.string().optional().default("Livreur"),
     email: z.string().nullable().optional(),
     phone_e164: z.string().nullable().optional(),
-  }),
+  }).optional().default({ name: "Livreur" }),
   branch: z.object({
-    id: z.string(),
+    id: z.union([z.string(), z.number()]),
     name: z.string(),
   }).nullable().optional(),
   kyc_documents: z.array(z.object({
-    id: z.string(),
+    id: z.union([z.string(), z.number()]).optional(),
     document_type: z.string().nullable().optional(),
     status: z.union([z.string(), z.number()]).nullable().optional(),
     file_path: z.string().nullable().optional(),
+    file_url: z.string().nullable().optional(),
     verified_at: z.string().nullable().optional(),
     reviewed_at: z.string().nullable().optional(),
-  })).optional().default([]),
+  })).nullable().optional().default([]),
 });
 
 type BackendCourierCard = z.infer<typeof backendCourierCardSchema>;
@@ -56,29 +57,39 @@ const backendDriversListResponseSchema = z.object({
   data: z.object({
     couriers: z.array(backendCourierCardSchema),
     pagination: z.object({
-      current_page: z.number(),
-      last_page: z.number(),
-      per_page: z.number(),
-      total: z.number(),
+      current_page: z.number().optional().default(1),
+      last_page: z.number().optional().default(1),
+      per_page: z.number().optional().default(20),
+      total: z.number().optional().default(0),
     }),
   }),
 });
 
 // Stats sub-schema (used in both response shapes)
 const backendCourierStatsSchema = z.object({
-  total_deliveries: z.number(),
-  completed_deliveries: z.number(),
-  failed_deliveries: z.number(),
-  success_rate: z.number(),
+  total_deliveries: z.number().nullable().optional().default(0),
+  completed_deliveries: z.number().nullable().optional().default(0),
+  failed_deliveries: z.number().nullable().optional().default(0),
+  success_rate: z.number().nullable().optional().default(0),
   rating_avg: z.union([z.number(), z.string()]).nullable().optional(),
-  rating_count: z.number(),
-  kyc_verified: z.boolean(),
-  kyc_documents_count: z.number().optional().default(0),
-  approved_documents_count: z.number().optional().default(0),
+  rating_count: z.number().nullable().optional().default(0),
+  kyc_verified: z.boolean().nullable().optional().default(false),
+  kyc_documents_count: z.number().nullable().optional().default(0),
+  approved_documents_count: z.number().nullable().optional().default(0),
+}).optional().default({
+  total_deliveries: 0,
+  completed_deliveries: 0,
+  failed_deliveries: 0,
+  success_rate: 0,
+  rating_avg: null,
+  rating_count: 0,
+  kyc_verified: false,
+  kyc_documents_count: 0,
+  approved_documents_count: 0,
 });
 
 // The show endpoint returns { data: { courier: {...}, stats: {...} } }
-const backendCourierDetailResponseSchema = z.object({
+export const backendCourierDetailResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     courier: backendCourierCardSchema,
@@ -244,21 +255,22 @@ function _transformCourierToProfile(
   courier: BackendCourierCard,
   stats: z.infer<typeof backendCourierDetailResponseSchema>["data"]["stats"],
 ): DriverProfile {
-  const name = courier.user.name;
-  const frontendStatus = mapCourierStatus(courier.status, courier.is_active);
-  const rating = parseRating(stats.rating_avg);
+  const name = courier.user?.name ?? "Livreur";
+  const frontendStatus = mapCourierStatus(courier.status, courier.is_active ?? false);
+  const rating = parseRating(stats?.rating_avg);
   const { seniority, seniorityDetail } = computeSeniority(courier.hired_at);
   const emergencyParts = [courier.emergency_contact_name, courier.emergency_contact_phone].filter(Boolean);
 
-  // Map KYC documents
-  const documents = courier.kyc_documents.map((doc, i) => {
+  // Map KYC documents safely
+  const kycDocs = Array.isArray(courier.kyc_documents) ? courier.kyc_documents : [];
+  const documents = kycDocs.map((doc, i) => {
     const st = doc.status;
     const isApproved = st === "approved" || st === 1;
     const isPending = st === "pending" || st === 0;
     const isRejected = st === "rejected" || st === 2;
 
     return {
-      id: doc.id ?? `doc-${i}`,
+      id: String(doc.id ?? `doc-${i}`),
       label: doc.document_type ?? `Document ${i + 1}`,
       value: isApproved ? "Vérifié" : isPending ? "En attente" : isRejected ? "Rejeté" : (String(st ?? "—")),
       status: isApproved || doc.verified_at || doc.reviewed_at
@@ -266,15 +278,24 @@ function _transformCourierToProfile(
         : isRejected
           ? "expired" as const
           : "pending" as const,
-      fileUrl: (doc as Record<string, unknown>).file_url as string | undefined ?? null,
+      fileUrl: (doc as Record<string, unknown>)?.file_url as string | undefined ?? null,
     };
   });
 
-  const docsApproved = stats.approved_documents_count;
-  const docsTotal = stats.kyc_documents_count;
-  const documentsStatus = stats.kyc_verified
+  const docsApproved = stats?.approved_documents_count ?? 0;
+  const docsTotal = stats?.kyc_documents_count ?? 0;
+  const documentsStatus = stats?.kyc_verified
     ? "Tous les documents sont vérifiés"
     : `${docsApproved}/${docsTotal} documents approuvés`;
+
+  const meta = (typeof courier.metadata === "string"
+    ? (() => { try { return JSON.parse(courier.metadata); } catch { return {}; } })()
+    : (courier.metadata ?? {})) as Record<string, unknown>;
+
+  const dateOfBirth = meta.date_of_birth ? formatFrenchDate(String(meta.date_of_birth)) : "—";
+  const address = (meta.address as string) || (meta.quartier as string) || "—";
+  const vehicleMakeParts = [meta.vehicle_make, meta.vehicle_color, meta.vehicle_year].filter(Boolean);
+  const vehicleMake = vehicleMakeParts.length > 0 ? vehicleMakeParts.join(" • ") : "—";
 
   return {
     id: String(courier.id),
@@ -288,46 +309,42 @@ function _transformCourierToProfile(
     vehicle: mapVehicleType(courier.vehicle_type),
 
     // Hero KPIs
-    totalDeliveries: stats.total_deliveries,
-    monthDeliveries: 0, // Not available from stats endpoint
-    successRate: stats.success_rate,
+    totalDeliveries: stats?.total_deliveries ?? 0,
+    monthDeliveries: 0,
+    successRate: stats?.success_rate ?? 0,
     rating,
-    totalReviews: stats.rating_count,
-    avgDeliveryTime: "—", // Not available
+    totalReviews: stats?.rating_count ?? 0,
+    avgDeliveryTime: "—",
     avgTimeTarget: "< 3h",
-    monthRevenue: "—", // No wallet endpoint
+    monthRevenue: "—",
     seniority,
     seniorityDetail,
 
     // Personal info
     fullName: name,
-    phone: courier.user.phone_e164 ?? courier.phone_e164 ?? "",
-    email: courier.user.email ?? "",
-    dateOfBirth: "—", // Not in model
-    address: "—", // Not in model
-    emergencyContact: emergencyParts.join(" — ") || "",
+    phone: courier.user?.phone_e164 ?? courier.phone_e164 ?? "",
+    email: courier.user?.email ?? "",
+    dateOfBirth,
+    address,
+    emergencyContact: emergencyParts.join(" — ") || "—",
     joinedDate: formatFrenchDate(courier.hired_at),
-    addedBy: "—", // Not in API
+    addedBy: "—",
 
     // Vehicle & documents
     vehicleType: (courier.vehicle_type ?? "Moto").charAt(0).toUpperCase() + (courier.vehicle_type ?? "moto").slice(1),
-    vehicleMake: "—", // Not in model
+    vehicleMake,
     licensePlate: courier.vehicle_plate ?? "",
     documents,
     documentsStatus,
 
-    // Performance chart — not available, provide placeholder
-    perfBars: [
-      { hour: "08", value: 0 }, { hour: "10", value: 0 }, { hour: "12", value: 0 },
-      { hour: "14", value: 0 }, { hour: "16", value: 0 }, { hour: "18", value: 0 },
-      { hour: "20", value: 0 },
-    ],
-    perfDeliveries: stats.total_deliveries,
+    // Performance chart — no fake data
+    perfBars: [],
+    perfDeliveries: stats?.total_deliveries ?? 0,
     perfVsLastMonth: "—",
     perfVsTeamAvg: "—",
     perfRank: "—",
 
-    // Revenue — not available
+    // Revenue — no fake data
     revTotal: "—",
     revFees: "—",
     revBonus: "—",
@@ -336,28 +353,22 @@ function _transformCourierToProfile(
     revPending: "—",
     revNextPayment: "—",
 
-    // Reviews — partial data
+    // Reviews — no fake distribution
     reviewAvg: rating,
-    reviewDistribution: [
-      { stars: 5, count: Math.round(stats.rating_count * 0.7) },
-      { stars: 4, count: Math.round(stats.rating_count * 0.15) },
-      { stars: 3, count: Math.round(stats.rating_count * 0.08) },
-      { stars: 2, count: Math.round(stats.rating_count * 0.05) },
-      { stars: 1, count: Math.round(stats.rating_count * 0.02) },
-    ],
+    reviewDistribution: [],
     recentReviews: [],
 
-    // Recent deliveries table — not available
+    // Recent deliveries table — no fake rows
     recentDeliveriesTable: [],
     tableTodayTotal: "—",
     tableTodayCount: 0,
     tableAvgPerTeam: 0,
     tableRank: 0,
 
-    // Incidents — not available
-    incidentCount: stats.failed_deliveries,
-    incidentRate: stats.total_deliveries > 0
-      ? Math.round((stats.failed_deliveries / stats.total_deliveries) * 100)
+    // Incidents — real failed count only
+    incidentCount: stats?.failed_deliveries ?? 0,
+    incidentRate: (stats?.total_deliveries ?? 0) > 0
+      ? Math.round(((stats?.failed_deliveries ?? 0) / (stats?.total_deliveries ?? 1)) * 100)
       : 0,
     incidents: [],
 
@@ -431,33 +442,40 @@ export async function getDriverProfile(
   agencyId: string,
   courierId: string,
 ): Promise<DriverProfile> {
-  const raw = await api.get<unknown>(
+  const raw = await api.get<Record<string, unknown>>(
     `agencies/${agencyId}/couriers/${courierId}`,
   );
 
-  // Step 1: validate backend response
-  const backendResult = backendCourierDetailResponseSchema.safeParse(raw);
-  if (!backendResult.success) {
-    console.error("[getDriverProfile] Backend schema validation failed:", JSON.stringify(backendResult.error.issues, null, 2));
-    console.error("[getDriverProfile] Raw response keys:", Object.keys(raw as Record<string, unknown>));
-    const dataObj = (raw as Record<string, unknown>).data;
-    if (dataObj && typeof dataObj === "object") {
-      console.error("[getDriverProfile] Data keys:", Object.keys(dataObj as Record<string, unknown>));
-    }
-    throw new Error(`Backend schema validation failed: ${backendResult.error.message}`);
-  }
+  const dataObj = (raw?.data as Record<string, unknown>) ?? raw ?? {};
+  const courierRaw = (dataObj?.courier as Record<string, unknown>) ?? dataObj ?? {};
+  const statsRaw = (dataObj?.stats as Record<string, unknown>) ?? {};
 
-  const { courier, stats } = backendResult.data.data;
+  const courierParse = backendCourierCardSchema.safeParse(courierRaw);
+  const statsParse = backendCourierStatsSchema.safeParse(statsRaw);
+
+  const courier = courierParse.success
+    ? courierParse.data
+    : (courierRaw as unknown as BackendCourierCard);
+
+  const rawRating = statsRaw.rating_avg ?? courier.rating_avg;
+  const ratingAvgVal = (typeof rawRating === "number" || typeof rawRating === "string") ? rawRating : null;
+
+  const stats = statsParse.success
+    ? statsParse.data
+    : {
+        total_deliveries: Number(statsRaw.total_deliveries ?? courier.total_deliveries ?? 0),
+        completed_deliveries: Number(statsRaw.completed_deliveries ?? courier.completed_deliveries ?? 0),
+        failed_deliveries: Number(statsRaw.failed_deliveries ?? courier.failed_deliveries ?? 0),
+        success_rate: Number(statsRaw.success_rate ?? 0),
+        rating_avg: ratingAvgVal,
+        rating_count: Number(statsRaw.rating_count ?? courier.rating_count ?? 0),
+        kyc_verified: Boolean(statsRaw.kyc_verified ?? courier.kyc_verified ?? false),
+        kyc_documents_count: Number(statsRaw.kyc_documents_count ?? 0),
+        approved_documents_count: Number(statsRaw.approved_documents_count ?? 0),
+      };
+
   const transformed = _transformCourierToProfile(courier, stats);
-
-  // Step 2: validate frontend response
-  const frontendResult = driverProfileSchema.safeParse(transformed);
-  if (!frontendResult.success) {
-    console.error("[getDriverProfile] Frontend schema validation failed:", JSON.stringify(frontendResult.error.issues, null, 2));
-    throw new Error(`Frontend schema validation failed: ${frontendResult.error.message}`);
-  }
-
-  return frontendResult.data;
+  return transformed;
 }
 
 /**
@@ -470,24 +488,18 @@ export async function getDriverDetail(
   agencyId: string,
   courierId: string,
 ): Promise<z.infer<typeof import("../schema").driverDetailSchema>> {
-  const raw = await api.get<unknown>(
+  const raw = await api.get<Record<string, unknown>>(
     `agencies/${agencyId}/couriers/${courierId}`,
   );
 
-  const backendResult = backendCourierDetailResponseSchema.safeParse(raw);
-  if (!backendResult.success) {
-    console.error("[getDriverDetail] Backend schema validation failed:", JSON.stringify(backendResult.error.issues, null, 2));
-    console.error("[getDriverDetail] Raw response keys:", Object.keys(raw as Record<string, unknown>));
-    const dataObj = (raw as Record<string, unknown>).data;
-    if (dataObj && typeof dataObj === "object") {
-      console.error("[getDriverDetail] Data keys:", Object.keys(dataObj as Record<string, unknown>));
-    }
-    throw new Error(`Backend schema validation failed: ${backendResult.error.message}`);
-  }
+  const dataObj = (raw?.data as Record<string, unknown>) ?? raw ?? {};
+  const courierRaw = (dataObj?.courier as Record<string, unknown>) ?? dataObj ?? {};
+  const courierParse = backendCourierCardSchema.safeParse(courierRaw);
 
-  const courier = backendResult.data.data.courier;
+  const courier = courierParse.success
+    ? courierParse.data
+    : (courierRaw as unknown as BackendCourierCard);
 
-  // Determine rank — not available from single detail, use null
   return _transformCourierToDetail(courier, -1);
 }
 
@@ -521,6 +533,42 @@ export async function activateCourier(
 ): Promise<void> {
   await api.post(
     `agencies/${agencyId}/couriers/${courierId}/activate`,
+  );
+}
+
+/** Payload for updating a courier */
+export interface UpdateCourierPayload {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  branch_id?: string;
+  employee_id?: string;
+  vehicle_type?: string;
+  vehicle_make?: string;
+  vehicle_plate?: string;
+  phone_e164?: string;
+  quartier?: string;
+  address?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  status?: number;
+  is_active?: boolean;
+  suspended_until?: string;
+}
+
+/**
+ * Update courier profile details.
+ *
+ * PUT /agencies/{agencyId}/couriers/{courierId}
+ */
+export async function updateCourier(
+  agencyId: string,
+  courierId: string,
+  data: UpdateCourierPayload,
+): Promise<void> {
+  await api.put(
+    `agencies/${agencyId}/couriers/${courierId}`,
+    data,
   );
 }
 

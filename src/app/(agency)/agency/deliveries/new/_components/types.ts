@@ -145,15 +145,6 @@ export const MOCK_DRIVERS: AvailableDriver[] = [
   },
 ];
 
-// Mock vendors for search dropdown (MVP)
-export const MOCK_VENDORS = [
-  { id: "v-1", name: "Boutique Mamadou", address: "ACI 2000, Rue 305" },
-  { id: "v-2", name: "Boutique Maman Aicha", address: "Avenue Kasse Keita" },
-  { id: "v-3", name: "Chez Fatoumata", address: "Badalabougou, Rue 12" },
-  { id: "v-4", name: "Marché Dibida", address: "Médina Coura" },
-  { id: "v-5", name: "Fashion Bamako", address: "Hamdallaye ACI 2000" },
-];
-
 // CSS classes — copier exactement du vendor
 export const INPUT_CLASS =
   "w-full rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white";

@@ -727,3 +727,57 @@ export async function createDelivery(
   const shipment = backendShipmentSchema.parse(raw.data);
   return _transformShipment(shipment);
 }
+
+// ============================================================
+// Search Vendors (for manual delivery creation)
+// ============================================================
+
+export interface VendorItem {
+  id: string;
+  name: string;
+  slug?: string;
+  address: string;
+  logoUrl?: string;
+}
+
+const vendorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string().optional(),
+  address: z.string().optional().default(""),
+  address_line1: z.string().optional(),
+  city: z.string().optional(),
+  logo_url: z.string().optional(),
+  logo: z.string().optional(),
+});
+
+const vendorsResponseSchema = z.object({
+  success: z.boolean().optional(),
+  items: z.array(vendorSchema).optional().default([]),
+});
+
+export async function getVendorsList(query?: string): Promise<VendorItem[]> {
+  const params: Record<string, string | number> = { limit: 20 };
+  if (query && query.trim()) {
+    params.q = query.trim();
+  }
+  try {
+    const raw = await api.get<unknown>("vendors", { params });
+    const parsed = vendorsResponseSchema.safeParse(raw);
+    const items = parsed.success ? parsed.data.items : [];
+
+    return items.map((v) => {
+      const rawAddr = v.address || v.address_line1 || "";
+      const addr = v.city && rawAddr ? `${rawAddr}, ${v.city}` : rawAddr || v.city || "Adresse non spécifiée";
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        address: addr,
+        logoUrl: v.logo_url || v.logo,
+      };
+    });
+  } catch {
+    return [];
+  }
+}

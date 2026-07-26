@@ -15,7 +15,6 @@ import {
   Download,
   Plus,
   Eye,
-  MoreHorizontal,
   MapPin,
   Star,
   Phone,
@@ -1034,11 +1033,11 @@ export function DeliveriesContent() {
                       {/* Actions */}
                       <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
-                          {row.status === "pending" && (
+                          {row.status === "pending" && (!row.driver || row.driver.name === "Non assigné") && (
                             <button
                               aria-label={`Assigner ${row.orderId}`}
                               onClick={() => setAssignModalState({ isOpen: true, shipmentIds: [row.id] })}
-                              className="rounded-lg bg-sugu-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sugu-600"
+                              className="rounded-lg bg-sugu-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sugu-600 shadow-2xs"
                             >
                               + Assigner
                             </button>
@@ -1060,12 +1059,6 @@ export function DeliveriesContent() {
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
-                          <button
-                            aria-label={`Plus d'options ${row.orderId}`}
-                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </button>
                         </div>
                       </td>
                     </tr>

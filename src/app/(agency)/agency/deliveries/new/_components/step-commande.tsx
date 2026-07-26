@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Store, Package, Search, ChevronDown, CheckCircle2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Store, Package, Search, ChevronDown, CheckCircle2, Loader2 } from "lucide-react";
+import { useVendorsList } from "@/features/agency/hooks";
 import {
   type DeliveryFormData,
   type FormUpdater,
   INPUT_CLASS,
   LABEL_CLASS,
-  MOCK_VENDORS,
 } from "./types";
 
 interface StepCommandeProps {
@@ -20,6 +20,9 @@ export function StepCommande({ data, onChange }: StepCommandeProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Hook: Fetch real DB vendors with search
+  const { data: dbVendors = [], isLoading: isLoadingVendors } = useVendorsList(vendorSearch);
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -31,22 +34,11 @@ export function StepCommande({ data, onChange }: StepCommandeProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter vendors
-  const filteredVendors = useMemo(() => {
-    if (!vendorSearch.trim()) return MOCK_VENDORS;
-    const q = vendorSearch.toLowerCase();
-    return MOCK_VENDORS.filter(
-      (v) =>
-        v.name.toLowerCase().includes(q) ||
-        v.address.toLowerCase().includes(q),
-    );
-  }, [vendorSearch]);
-
   return (
     <div className="glass-card rounded-2xl p-5 lg:p-6">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
-        <Package className="h-6 w-6 text-gray-400" />
+        <Package className="h-6 w-6 text-sugu-500" />
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
             Informations commande
@@ -98,7 +90,7 @@ export function StepCommande({ data, onChange }: StepCommandeProps) {
           </div>
         )}
 
-        {/* ── Vendeur / Boutique ── */}
+        {/* ── Vendeur / Boutique (DB Searchable) ── */}
         <div className="relative" ref={dropdownRef}>
           <label className={LABEL_CLASS}>
             Vendeur / Boutique <span className="text-red-500">*</span>
@@ -108,42 +100,76 @@ export function StepCommande({ data, onChange }: StepCommandeProps) {
             <input
               type="text"
               className={`${INPUT_CLASS} pl-10 pr-10`}
-              placeholder="Nom de la boutique ou du vendeur"
+              placeholder="Rechercher une boutique dans la base de données..."
               value={vendorSearch}
               onChange={(e) => {
-                setVendorSearch(e.target.value);
+                const val = e.target.value;
+                setVendorSearch(val);
+                onChange("vendorName", val);
                 setShowDropdown(true);
               }}
               onFocus={() => setShowDropdown(true)}
             />
-            <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            {isLoadingVendors ? (
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-sugu-500" />
+            ) : (
+              <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            )}
           </div>
 
-          {/* Dropdown */}
-          {showDropdown && filteredVendors.length > 0 && (
-            <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200/80 bg-white/95 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95">
-              {filteredVendors.map((vendor) => (
-                <button
-                  key={vendor.id}
-                  type="button"
-                  onClick={() => {
-                    setVendorSearch(vendor.name);
-                    onChange("vendorName", vendor.name);
-                    onChange("vendorId", vendor.id);
-                    onChange("pickupAddress", vendor.address);
-                    setShowDropdown(false);
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-sugu-50/60 dark:hover:bg-gray-800"
-                >
-                  <Store className="h-4 w-4 shrink-0 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {vendor.name}
-                    </p>
-                    <p className="text-xs text-gray-500">{vendor.address}</p>
-                  </div>
-                </button>
-              ))}
+          {/* Dropdown with real DB Vendors */}
+          {showDropdown && (
+            <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-gray-200/80 bg-white/95 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95">
+              {isLoadingVendors ? (
+                <div className="flex items-center justify-center gap-2 p-4 text-xs font-semibold text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin text-sugu-500" />
+                  Recherche des boutiques en cours…
+                </div>
+              ) : dbVendors.length === 0 ? (
+                <div className="p-4 text-center text-xs italic text-gray-500">
+                  {vendorSearch.trim()
+                    ? "Aucune boutique trouvée"
+                    : "Saisissez un nom pour rechercher une boutique"}
+                </div>
+              ) : (
+                dbVendors.map((vendor) => (
+                  <button
+                    key={vendor.id}
+                    type="button"
+                    onClick={() => {
+                      setVendorSearch(vendor.name);
+                      onChange("vendorName", vendor.name);
+                      onChange("vendorId", vendor.id);
+                      if (vendor.address) {
+                        onChange("pickupAddress", vendor.address);
+                      }
+                      setShowDropdown(false);
+                    }}
+                    className="flex w-full items-center gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors last:border-0 hover:bg-sugu-50/60 dark:border-gray-800 dark:hover:bg-gray-800"
+                  >
+                    {vendor.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={vendor.logoUrl}
+                        alt={vendor.name}
+                        className="h-7 w-7 flex-shrink-0 rounded-full border border-gray-200 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-sugu-50 text-sugu-500 dark:bg-sugu-950/30">
+                        <Store className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                        {vendor.name}
+                      </p>
+                      <p className="truncate text-xs text-gray-500">
+                        {vendor.address || "Adresse non spécifiée"}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

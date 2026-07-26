@@ -8,5 +8,5 @@ export * from "./services/zones.service";
 
 // Re-export specific types if they were requested by index.ts
 export type { CreateDeliveryPayload, DeliveryFilters } from "./services/deliveries.service";
-export type { AddCourierPayload, RegisterCourierPayload, DriverFilters } from "./services/drivers.service";
+export type { AddCourierPayload, RegisterCourierPayload, UpdateCourierPayload, DriverFilters } from "./services/drivers.service";
 export type { UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./services/settings.service";

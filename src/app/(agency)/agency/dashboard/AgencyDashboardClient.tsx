@@ -7,11 +7,15 @@ import {
   CheckCircle,
   Clock,
   Banknote,
-  Bell,
+  AlertTriangle,
+  User,
+  ShieldAlert,
+  ArrowRight,
   MapPin,
-  TrendingUp,
+  Navigation,
+  Sparkles,
+  Eye,
 } from "lucide-react";
-import { useState } from "react";
 import type { ReactNode } from "react";
 import type {
   AgencyKpi,
@@ -19,8 +23,8 @@ import type {
   DriverPerformance,
   Complaint,
   DeliveryStatus,
-  AgencyEarningsPoint,
 } from "@/features/agency/schema";
+import Link from "next/link";
 
 // --- Icon mapping ---
 const KPI_ICONS: Record<string, ReactNode> = {
@@ -31,35 +35,65 @@ const KPI_ICONS: Record<string, ReactNode> = {
 };
 
 // --- Delivery status badge styles ---
-const DELIVERY_STATUS: Record<DeliveryStatus, string> = {
-  pending:
-    "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
-  pickup:
-    "bg-sugu-50 text-sugu-600 border-sugu-200 dark:bg-sugu-950/30 dark:text-sugu-400",
-  en_route:
-    "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
-  delivered:
-    "bg-green-50 text-green-600 border-green-200 dark:bg-green-950/30 dark:text-green-400",
-  delayed:
-    "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400",
-  returned:
-    "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
+const DELIVERY_STATUS: Record<
+  DeliveryStatus,
+  { bg: string; text: string; dot: string; border: string }
+> = {
+  pending: {
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    text: "text-amber-700 dark:text-amber-400",
+    dot: "bg-amber-500",
+    border: "border-amber-200/80 dark:border-amber-900/40",
+  },
+  pickup: {
+    bg: "bg-sugu-50 dark:bg-sugu-950/30",
+    text: "text-sugu-700 dark:text-sugu-400",
+    dot: "bg-sugu-500",
+    border: "border-sugu-200/80 dark:border-sugu-900/40",
+  },
+  en_route: {
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    text: "text-blue-700 dark:text-blue-400",
+    dot: "bg-blue-500 animate-pulse",
+    border: "border-blue-200/80 dark:border-blue-900/40",
+  },
+  delivered: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    dot: "bg-emerald-500",
+    border: "border-emerald-200/80 dark:border-emerald-900/40",
+  },
+  delayed: {
+    bg: "bg-rose-50 dark:bg-rose-950/30",
+    text: "text-rose-700 dark:text-rose-400",
+    dot: "bg-rose-500 animate-pulse",
+    border: "border-rose-200/80 dark:border-rose-900/40",
+  },
+  returned: {
+    bg: "bg-gray-100 dark:bg-gray-800",
+    text: "text-gray-600 dark:text-gray-400",
+    dot: "bg-gray-400",
+    border: "border-gray-200 dark:border-gray-700",
+  },
 };
 
 // ════════════════════════════════════════════════════════════
-// Client Component — uses useAgencyDashboard() hook
+// Client Component — Ultra Premium Dashboard
 // ════════════════════════════════════════════════════════════
 
 export default function AgencyDashboardClient() {
   const { data, isLoading, isError } = useAgencyDashboard();
 
-  // While loading, the loading.tsx skeleton is shown by Next.js Suspense.
-  // But since this is now client-side, we handle loading state here too.
   if (isLoading || !data) {
     return (
       <div className="mx-auto max-w-7xl space-y-4 lg:space-y-6">
-        <div className="flex items-center justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-sugu-200 border-t-sugu-500" />
+        <div className="flex h-96 items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-sugu-200 border-t-sugu-500" />
+            <p className="text-xs font-semibold text-gray-400 animate-pulse">
+              Chargement du tableau de bord…
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -69,11 +103,14 @@ export default function AgencyDashboardClient() {
     return (
       <div className="mx-auto max-w-7xl space-y-4 lg:space-y-6">
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            Erreur de chargement
+          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-50 text-amber-500 dark:bg-amber-950/30 mb-3">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <p className="text-base font-bold text-gray-900 dark:text-white">
+            Impossible de charger le tableau de bord
           </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Impossible de charger le tableau de bord. Veuillez réessayer.
+          <p className="mt-1 text-xs text-gray-500 max-w-md">
+            Une erreur s&apos;est produite lors de la récupération des métriques de l&apos;agence. Veuillez vérifier votre connexion ou réactualiser.
           </p>
         </div>
       </div>
@@ -81,175 +118,204 @@ export default function AgencyDashboardClient() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 lg:space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       {/* ════════════ Header ════════════ */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2.5 lg:gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sugu-500 lg:h-11 lg:w-11 lg:rounded-2xl">
-            <Truck className="h-4 w-4 text-white lg:h-5 lg:w-5" />
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-3xl border border-white/80 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/60">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sugu-500 via-orange-500 to-amber-500 text-white shadow-lg shadow-sugu-500/25 ring-4 ring-sugu-50 dark:ring-sugu-950/40">
+              <Truck className="h-6 w-6" />
+            </div>
+            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-900">
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+            </span>
           </div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white lg:text-2xl">
-            {data.agencyName}
-          </h1>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white lg:text-2xl">
+                {data.agencyName}
+              </h1>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                En service
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Responsable : <span className="font-semibold text-gray-700 dark:text-gray-200">{data.managerName}</span>
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-3">
-          <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/60 bg-white/50 text-gray-500 shadow-sm backdrop-blur-md transition-all active:scale-95 lg:h-10 lg:w-10 lg:rounded-2xl dark:border-gray-700/50 dark:bg-gray-900/50"
-            aria-label="Notifications"
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/agency/deliveries"
+            className="inline-flex items-center gap-2 rounded-2xl border border-gray-200/80 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
           >
-            <Bell className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse-dot lg:right-2 lg:top-2" />
-          </button>
+            Toutes les livraisons
+            <ArrowRight className="h-3.5 w-3.5 text-sugu-500" />
+          </Link>
+          <Link
+            href="/agency/drivers"
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sugu-500 to-orange-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-sugu-500/20 transition-all hover:from-sugu-600 hover:to-orange-700 hover:shadow-lg active:scale-[0.98]"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Gérer les livreurs
+          </Link>
         </div>
       </header>
 
       {/* ════════════ KPI Cards ════════════ */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 lg:gap-5">
         {data.kpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} delay={i} />
         ))}
       </div>
 
-      {/* ════════════ Middle Row: Map + Active Deliveries ════════════ */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
-        {/* Map placeholder */}
-        <section className="glass-card overflow-hidden rounded-2xl lg:rounded-3xl" aria-label="Carte des livraisons">
-          <div className="relative h-56 bg-green-50/80 dark:bg-green-950/20 lg:h-80">
-            {/* Stylized map placeholder */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="mx-auto h-10 w-10 text-sugu-400/60" />
-                <p className="mt-2 text-lg font-bold text-gray-700/80 dark:text-gray-300/60">
-                  Burkina Faso
+      {/* ════════════ Main Section: Active Deliveries + Driver Performance ════════════ */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
+        {/* Active Deliveries (8 Columns) */}
+        <section
+          className="rounded-3xl border border-white/80 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/60 lg:col-span-8 lg:p-6 space-y-4"
+          aria-labelledby="active-deliveries-title"
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800/60">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sugu-50 text-sugu-500 dark:bg-sugu-950/30">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div>
+                <h2
+                  id="active-deliveries-title"
+                  className="text-base font-bold text-gray-900 dark:text-white"
+                >
+                  Livraisons en cours
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  Suivi en temps réel des courses de l&apos;agence
                 </p>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                {data.activeDeliveries.length} en direct
+              </span>
+            </div>
+          </div>
 
-            {/* Delivery pins — positioned from real data coordinates */}
-            {data.mapPins.map((pin, i) => {
-              const colors: Record<string, string> = {
-                en_route: "bg-sugu-500",
-                pickup: "bg-green-500",
-                pending: "bg-yellow-500",
-                delayed: "bg-red-500",
-                delivered: "bg-blue-500",
-                returned: "bg-gray-400",
-              };
-              // Bounding box: lat ~12.33–12.41, lng ~-1.56–-1.48 (Ouagadougou area)
-              const latMin = 12.33, latMax = 12.41;
-              const lngMin = -1.56, lngMax = -1.48;
-              const topPct = 10 + (1 - (pin.lat - latMin) / (latMax - latMin)) * 70; // 10–80%
-              const leftPct = 10 + ((pin.lng - lngMin) / (lngMax - lngMin)) * 75;   // 10–85%
+          {/* Table Headers */}
+          <div className="hidden grid-cols-12 items-center gap-2 px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 sm:grid">
+            <span className="col-span-4">Commande &amp; Livreur</span>
+            <span className="col-span-4">Itinéraire</span>
+            <span className="col-span-2 text-center">Statut</span>
+            <span className="col-span-2 text-right">Temps estimé</span>
+          </div>
 
-              return (
-                <div
-                  key={pin.id}
-                  className={cn(
-                    "absolute h-3.5 w-3.5 rounded-full shadow-md ring-2 ring-white dark:ring-gray-900 animate-card-enter",
-                    colors[pin.status] || "bg-gray-400",
-                  )}
-                  style={{
-                    top: `${Math.max(10, Math.min(80, topPct))}%`,
-                    left: `${Math.max(10, Math.min(85, leftPct))}%`,
-                    animationDelay: `${i * 100}ms`,
-                  }}
-                  aria-label={`Livreur ${pin.status}`}
-                />
-              );
-            })}
-
-            {/* Legend */}
-            <div className="absolute bottom-4 left-4 flex flex-col gap-1.5 rounded-xl bg-white/80 px-3 py-2 backdrop-blur-md dark:bg-gray-900/80">
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-sugu-500" /> en route
+          <div className="space-y-2.5">
+            {data.activeDeliveries.length === 0 ? (
+              <div className="py-14 text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/30">
+                <Truck className="mx-auto h-9 w-9 text-gray-300 dark:text-gray-600 mb-2" />
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  Aucune livraison en cours pour le moment
+                </p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Les nouvelles courses attribuées à l&apos;agence apparaîtront ici automatiquement.
+                </p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> pickup
+            ) : (
+              data.activeDeliveries.map((delivery) => (
+                <DeliveryRow key={delivery.id} delivery={delivery} />
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Driver Performance (4 Columns) */}
+        <section
+          className="rounded-3xl border border-white/80 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/60 lg:col-span-4 lg:p-6 space-y-4"
+          aria-labelledby="performance-title"
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800/60">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-500 dark:bg-orange-950/30">
+                <User className="h-5 w-5" />
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> delayed
+              <div>
+                <h2
+                  id="performance-title"
+                  className="text-base font-bold text-gray-900 dark:text-white"
+                >
+                  Top Livreurs
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  Taux de réussite des livreurs
+                </p>
               </div>
             </div>
           </div>
-        </section>
 
-        {/* Active Deliveries */}
-        <section
-          className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6"
-          aria-labelledby="active-deliveries-title"
-        >
-          <h2
-            id="active-deliveries-title"
-            className="text-lg font-semibold text-gray-900 dark:text-white"
-          >
-            Livraisons en cours
-          </h2>
-
-          {/* Column headers */}
-          <div className="mt-4 hidden grid-cols-12 items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 sm:grid">
-            <span className="col-span-4">Livreur</span>
-            <span className="col-span-4">Route addresses</span>
-            <span className="col-span-2 text-center">Status</span>
-            <span className="col-span-2 text-right">ETA</span>
-          </div>
-
-          <div className="mt-2 space-y-0">
-            {data.activeDeliveries.map((delivery) => (
-              <DeliveryRow key={delivery.id} delivery={delivery} />
-            ))}
+          <div className="space-y-3">
+            {data.driverPerformance.length === 0 ? (
+              <div className="py-10 text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/30">
+                <User className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  Aucun livreur enregistré
+                </p>
+              </div>
+            ) : (
+              data.driverPerformance.map((driver, index) => (
+                <DriverBar key={driver.id} driver={driver} rank={index + 1} />
+              ))
+            )}
           </div>
         </section>
       </div>
 
-      {/* ════════════ Bottom Row: Performance + Complaints + Earnings ════════════ */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4">
-        {/* Earnings Chart */}
-        <EarningsChart
-          data={data.earningsChart ?? []}
-          total={data.earningsTotal ?? 0}
-          previous={data.earningsPrevious ?? 0}
-        />
-
-        {/* Driver Performance */}
-        <section
-          className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6"
-          aria-labelledby="performance-title"
-        >
-          <h2
-            id="performance-title"
-            className="text-lg font-semibold text-gray-900 dark:text-white"
-          >
-            Performance livreurs
-          </h2>
-          <p className="mt-0.5 text-xs text-gray-400">
-            Taux de {data.driverPerformance.length} livreurs
-          </p>
-          <div className="mt-4 space-y-3">
-            {data.driverPerformance.map((driver) => (
-              <DriverBar key={driver.id} driver={driver} />
-            ))}
+      {/* ════════════ Bottom Row: Complaints & Support Tickets ════════════ */}
+      <section
+        className="rounded-3xl border border-white/80 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/60 lg:p-6 space-y-4"
+        aria-labelledby="complaints-title"
+      >
+        <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800/60">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 dark:bg-rose-950/30">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h2
+                id="complaints-title"
+                className="text-base font-bold text-gray-900 dark:text-white"
+              >
+                Réclamations récentes &amp; Incidents
+              </h2>
+              <p className="text-[11px] text-gray-400">
+                Tickets de support associés aux livraisons de l&apos;agence
+              </p>
+            </div>
           </div>
-        </section>
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            {data.complaints.length} ticket(s)
+          </span>
+        </div>
 
-        {/* Complaints */}
-        <section
-          className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6"
-          aria-labelledby="complaints-title"
-        >
-          <h2
-            id="complaints-title"
-            className="text-lg font-semibold text-gray-900 dark:text-white"
-          >
-            Réclamations récentes
-          </h2>
-          <div className="mt-4 space-y-3">
-            {data.complaints.map((complaint) => (
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          {data.complaints.length === 0 ? (
+            <div className="col-span-full py-10 text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/30">
+              <ShieldAlert className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                Aucune réclamation récente enregistrée
+              </p>
+            </div>
+          ) : (
+            data.complaints.map((complaint) => (
               <ComplaintRow key={complaint.id} complaint={complaint} />
-            ))}
-          </div>
-        </section>
-      </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -258,44 +324,47 @@ export default function AgencyDashboardClient() {
 // Sub-components
 // ════════════════════════════════════════════════════════════
 
-/** KPI Card */
+/** Premium KPI Card */
 function KpiCard({ kpi, delay }: { kpi: AgencyKpi; delay: number }) {
   const isRing = kpi.ringPercent !== undefined;
 
   return (
     <div
-      className={`kpi-card glass-card rounded-2xl p-3 transition-all duration-300 active:scale-[0.98] lg:rounded-3xl lg:p-5 lg:hover:-translate-y-1 animate-card-enter`}
-      style={{ animationDelay: `${delay * 100}ms` }}
+      className="group relative overflow-hidden rounded-3xl border border-white/80 bg-white/70 p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-sugu-200/80 dark:border-gray-800 dark:bg-gray-900/60 dark:hover:border-sugu-900/50 animate-card-enter"
+      style={{ animationDelay: `${delay * 80}ms` }}
     >
-      <div className="flex items-start justify-between">
+      {/* Background glow decorator */}
+      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-sugu-400/10 to-transparent blur-xl transition-all group-hover:scale-150" />
+
+      <div className="flex items-start justify-between relative z-10">
         <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg lg:h-10 lg:w-10 lg:rounded-xl ${kpi.iconBg} shadow-sm`}
+          className={`flex h-11 w-11 items-center justify-center rounded-2xl ${kpi.iconBg} shadow-md transition-transform group-hover:scale-105`}
         >
-          {KPI_ICONS[kpi.icon] ?? <Truck className="h-4 w-4 lg:h-5 lg:w-5" />}
+          {KPI_ICONS[kpi.icon] ?? <Truck className="h-5 w-5" />}
         </div>
 
         {/* Circular ring for success rate */}
         {isRing && (
-          <div className="relative h-10 w-10 lg:h-12 lg:w-12">
-            <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90 lg:h-12 lg:w-12">
+          <div className="relative h-11 w-11">
+            <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="3"
+                strokeWidth="3.5"
                 className="text-gray-200/60 dark:text-gray-700/40"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="3"
+                strokeWidth="3.5"
                 strokeDasharray={`${kpi.ringPercent}, 100`}
                 strokeLinecap="round"
-                className="text-green-500"
+                className="text-emerald-500 transition-all duration-1000"
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700 dark:text-gray-300">
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-gray-800 dark:text-gray-200">
               {kpi.ringPercent}%
             </span>
           </div>
@@ -303,85 +372,157 @@ function KpiCard({ kpi, delay }: { kpi: AgencyKpi; delay: number }) {
 
         {kpi.badge && !isRing && (
           <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${kpi.badgeColor ?? "text-gray-600 bg-gray-100"}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold shadow-2xs ${kpi.badgeColor ?? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"}`}
           >
             {kpi.badge}
           </span>
         )}
       </div>
 
-      <p className="mt-3 text-xs font-medium text-gray-500 dark:text-gray-400">
-        {kpi.label}
-      </p>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-lg font-extrabold text-gray-900 dark:text-white lg:text-2xl">
-          {kpi.value}
-        </span>
-        {kpi.subValue && (
-          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-            {kpi.subValue}
+      <div className="mt-4 relative z-10">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400">
+          {kpi.label}
+        </p>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white lg:text-3xl">
+            {kpi.value}
           </span>
-        )}
+          {kpi.subValue && (
+            <span className="text-xs font-bold text-gray-400 dark:text-gray-500">
+              {kpi.subValue}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Active delivery row */
+/** Active delivery row — Ultra Modern & Elegant */
 function DeliveryRow({ delivery }: { delivery: ActiveDelivery }) {
+  const st = DELIVERY_STATUS[delivery.status] ?? DELIVERY_STATUS.pending;
+
+  // Clean up route addresses from redundant "Ramassage: " / "Livraison: " prefixes
+  const cleanRoute = delivery.routeAddresses
+    .replace(/Ramassage:\s*/gi, "")
+    .replace(/Livraison:\s*/gi, "");
+
+  const parts = cleanRoute.split(" → ");
+  const pickupAddr = parts[0] || cleanRoute;
+  const deliveryAddr = parts[1] || "";
+
+  const isUnassigned = delivery.driver.name === "Non assigné";
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-white/30 px-3 py-3 transition-colors active:bg-white/50 dark:bg-white/5 dark:active:bg-white/10 lg:grid lg:grid-cols-12 lg:items-center lg:gap-2 lg:bg-transparent lg:px-2">
-      {/* Driver */}
-      <div className="flex items-center gap-2.5 lg:col-span-4">
-        <div className="text-[10px] font-bold text-gray-400">{delivery.orderId}</div>
-        <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${delivery.driver.avatarColor}`}>
-          {delivery.driver.initials}
+    <div className="group flex flex-col gap-2.5 rounded-2xl border border-gray-100/90 bg-white/60 p-3.5 backdrop-blur-md transition-all hover:bg-white hover:shadow-md hover:border-sugu-200/60 dark:border-gray-800/40 dark:bg-gray-900/40 dark:hover:bg-gray-900/80 sm:grid sm:grid-cols-12 sm:items-center sm:gap-3">
+      {/* Order ID & Driver */}
+      <div className="flex items-center gap-3 sm:col-span-4">
+        <span className="font-mono text-xs font-extrabold text-sugu-600 bg-sugu-50/90 px-2.5 py-1 rounded-xl border border-sugu-200/60 dark:bg-sugu-950/40 dark:border-sugu-900/40 dark:text-sugu-400 flex-shrink-0">
+          {delivery.orderId}
+        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className={cn(
+              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold shadow-xs",
+              isUnassigned ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400" : delivery.driver.avatarColor,
+            )}
+          >
+            {delivery.driver.initials}
+          </div>
+          <span
+            className={cn(
+              "truncate text-xs font-bold",
+              isUnassigned ? "text-amber-600 dark:text-amber-400 italic" : "text-gray-800 dark:text-gray-200",
+            )}
+          >
+            {delivery.driver.name}
+          </span>
         </div>
-        <span className="truncate text-xs font-medium text-gray-700 dark:text-gray-300 lg:text-sm">
-          {delivery.driver.name}
+      </div>
+
+      {/* Route Addresses */}
+      <div className="sm:col-span-4 min-w-0 space-y-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
+          <MapPin className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+          <span className="truncate text-[11px] font-medium">{pickupAddr}</span>
+        </div>
+        {deliveryAddr && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <Navigation className="h-3.5 w-3.5 text-sugu-500 flex-shrink-0" />
+            <span className="truncate text-[11px] font-semibold text-gray-800 dark:text-gray-200">
+              {deliveryAddr}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Status Badge */}
+      <div className="flex items-center sm:col-span-2 sm:justify-center">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-extrabold shadow-2xs",
+            st.bg,
+            st.text,
+            st.border,
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full", st.dot)} />
+          {delivery.statusLabel}
         </span>
       </div>
 
-      {/* Route + Status + ETA — stacked on mobile */}
-      <div className="flex items-center justify-between gap-2 lg:contents">
-        <p className="flex-1 truncate text-[11px] text-gray-500 dark:text-gray-400 lg:col-span-4 lg:text-xs">
-          {delivery.routeAddresses}
-        </p>
-        <span
-          className={cn(
-            "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold lg:col-span-2 lg:text-center",
-            DELIVERY_STATUS[delivery.status],
-          )}
+      {/* ETA & Action */}
+      <div className="flex items-center justify-between gap-3 sm:col-span-2 sm:justify-end text-xs font-bold text-gray-700 dark:text-gray-300">
+        <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+          <Clock className="h-3 w-3 text-gray-400" />
+          <span>{delivery.eta === "N/A" ? "—" : delivery.eta}</span>
+        </div>
+        <Link
+          href={`/agency/deliveries?selected=${delivery.id}`}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-sugu-200/80 bg-sugu-50/80 px-3 py-1 text-xs font-bold text-sugu-600 shadow-2xs transition-all hover:bg-sugu-500 hover:text-white hover:border-sugu-500 dark:border-sugu-900/40 dark:bg-sugu-950/40 dark:text-sugu-400 dark:hover:bg-sugu-600 dark:hover:text-white"
+          title="Consulter les détails de la livraison"
         >
-          {delivery.statusLabel}
-        </span>
-        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 lg:col-span-2 lg:text-right lg:text-xs">
-          {delivery.eta}
-        </span>
+          <Eye className="h-3.5 w-3.5" />
+          Voir
+        </Link>
       </div>
     </div>
   );
 }
 
 /** Driver performance bar */
-function DriverBar({ driver }: { driver: DriverPerformance }) {
+function DriverBar({ driver, rank }: { driver: DriverPerformance; rank: number }) {
+  const rankColors = [
+    "bg-amber-400 text-amber-950",
+    "bg-slate-300 text-slate-900",
+    "bg-amber-700 text-amber-100",
+  ];
+
   return (
-    <div className="flex items-center gap-2.5 lg:gap-3">
+    <div className="flex items-center gap-3 p-2 rounded-2xl transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/40">
+      <span
+        className={cn(
+          "flex h-6 w-6 items-center justify-center rounded-lg text-[10px] font-black flex-shrink-0 shadow-2xs",
+          rank <= 3 ? rankColors[rank - 1] : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+        )}
+      >
+        #{rank}
+      </span>
       <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${driver.avatarColor}`}>
         {driver.initials}
       </div>
-      <span className="w-16 truncate text-xs font-medium text-gray-700 dark:text-gray-300 lg:w-20 lg:text-sm">
+      <span className="w-24 truncate text-xs font-bold text-gray-800 dark:text-gray-200">
         {driver.name}
       </span>
-      <div className="flex-1">
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200/60 dark:bg-gray-700/40 lg:h-2.5">
+      <div className="flex-1 min-w-0">
+        <div className="h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800 shadow-inner">
           <div
-            className="h-full rounded-full bg-sugu-500 transition-all duration-700"
+            className="h-full rounded-full bg-gradient-to-r from-sugu-500 to-amber-500 transition-all duration-1000 shadow-xs"
             style={{ width: `${driver.score}%` }}
           />
         </div>
       </div>
-      <span className="w-9 text-right text-xs font-bold text-gray-700 dark:text-gray-300 lg:w-10 lg:text-sm">
+      <span className="w-12 text-right text-xs font-black text-gray-900 dark:text-white">
         {driver.score}%
       </span>
     </div>
@@ -393,212 +534,25 @@ function ComplaintRow({ complaint }: { complaint: Complaint }) {
   const isUrgent = complaint.severity === "urgent";
 
   return (
-    <div className="rounded-xl bg-white/40 px-3 py-3 dark:bg-white/5 lg:px-4">
+    <div className="rounded-2xl border border-gray-100/90 bg-white/60 p-4 shadow-2xs backdrop-blur-md transition-all hover:bg-white hover:shadow-md dark:border-gray-800/50 dark:bg-gray-900/40">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
             {complaint.title}
           </p>
-          <p className="mt-0.5 text-xs text-gray-400">{complaint.date}</p>
+          <p className="mt-1 text-[11px] text-gray-400 font-medium">{complaint.date}</p>
         </div>
         <span
           className={cn(
-            "flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold",
+            "flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold shadow-2xs",
             isUrgent
-              ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              : "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400",
+              ? "bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-950/40 dark:border-rose-900/40 dark:text-rose-400"
+              : "bg-gray-100 text-gray-600 border border-gray-200/80 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
           )}
         >
           {isUrgent ? "Urgent" : "Normal"}
         </span>
       </div>
-      <div className="mt-2 flex gap-2">
-        <button className="rounded-lg border border-sugu-200 bg-sugu-50/80 px-3 py-1 text-xs font-semibold text-sugu-600 transition-all hover:bg-sugu-100 dark:border-sugu-800 dark:bg-sugu-950/30 dark:text-sugu-400">
-          Traiter
-        </button>
-        <button className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-          Détails
-        </button>
-      </div>
     </div>
-  );
-}
-
-/** Earnings SVG area chart */
-function EarningsChart({
-  data,
-  total,
-  previous,
-}: {
-  data: AgencyEarningsPoint[];
-  total: number;
-  previous: number;
-}) {
-  const [period, setPeriod] = useState<"7j" | "30j">("7j");
-
-  if (data.length === 0) {
-    return (
-      <div className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-        <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-          Aucune donnée de gains
-        </p>
-      </div>
-    );
-  }
-
-  const maxVal = Math.max(...data.map((d) => d.value), 1);
-  const chartW = 340;
-  const chartH = 160;
-  const padding = 20;
-
-  const points = data.map((d, i) => ({
-    x: padding + (i / (data.length - 1)) * (chartW - padding * 2),
-    y: chartH - padding - (d.value / maxVal) * (chartH - padding * 2),
-  }));
-
-  // Build SVG path for smooth curve
-  const linePath = points
-    .map((p, i) => {
-      if (i === 0) return `M ${p.x},${p.y}`;
-      const prev = points[i - 1];
-      const cpx = (prev.x + p.x) / 2;
-      return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
-    })
-    .join(" ");
-
-  // Area path (close to bottom)
-  const areaPath = `${linePath} L ${points[points.length - 1].x},${chartH - padding} L ${points[0].x},${chartH - padding} Z`;
-
-  const growthPercent =
-    previous > 0 ? Math.round(((total - previous) / previous) * 100) : 0;
-
-  return (
-    <section
-      className="glass-card rounded-2xl p-4 transition-all duration-300 lg:rounded-3xl lg:p-6 flex flex-col h-full"
-      aria-labelledby="earnings-chart-title"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between shadow-sm">
-        <h2
-          id="earnings-chart-title"
-          className="text-base font-semibold text-gray-900 dark:text-white"
-        >
-          <Banknote className="h-4 w-4 mr-1.5 inline" /> Gains
-        </h2>
-        <div className="flex gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-0.5 rounded-lg">
-          {(["7j", "30j"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                period === p
-                  ? "bg-white text-sugu-600 shadow-sm dark:bg-gray-700 dark:text-white"
-                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="mt-3 flex-1 flex flex-col justify-center">
-        <div className="relative">
-          <svg
-            viewBox={`0 0 ${chartW} ${chartH}`}
-            className="h-32 w-full lg:h-36"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label="Graphique des gains sur 7 jours"
-          >
-            <defs>
-              <linearGradient
-                id="agency-chart-gradient"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor="#f15412" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#f15412" stopOpacity="0.02" />
-              </linearGradient>
-              <linearGradient
-                id="agency-line-gradient"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="0"
-              >
-                <stop offset="0%" stopColor="#fb8a3c" />
-                <stop offset="100%" stopColor="#f15412" />
-              </linearGradient>
-            </defs>
-
-            {/* Area fill */}
-            <path d={areaPath} fill="url(#agency-chart-gradient)" />
-
-            {/* Line */}
-            <path
-              d={linePath}
-              fill="none"
-              stroke="url(#agency-line-gradient)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              className="chart-path"
-            />
-
-            {/* Dots */}
-            {points.map((p, i) => (
-              <circle
-                key={i}
-                cx={p.x}
-                cy={p.y}
-                r="3.5"
-                fill="white"
-                stroke="#f15412"
-                strokeWidth="2"
-                className="animate-card-enter"
-                style={{ animationDelay: `${i * 80 + 400}ms` }}
-              />
-            ))}
-          </svg>
-
-          {/* Day labels */}
-          <div className="mt-1.5 flex justify-between px-2 lg:mt-2 lg:px-5">
-            {data.map((d) => (
-              <span
-                key={d.day}
-                className="text-[9px] font-medium text-gray-400 dark:text-gray-500 lg:text-[11px]"
-              >
-                {d.day}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats below chart */}
-      <div className="mt-auto pt-3 flex items-center justify-between rounded-xl bg-white/40 px-4 py-3 dark:bg-white/5">
-        <div>
-          <p className="text-[10px] uppercase font-bold text-gray-400">Total Période</p>
-          <p className="text-[15px] font-extrabold text-gray-900 dark:text-white">
-            {total.toLocaleString("fr-FR")} <span className="text-[10px] text-gray-500 font-medium">FCFA</span>
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-medium text-gray-400">
-            vs précédente
-          </p>
-          <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-green-50/80 px-2 py-0.5 dark:bg-green-900/20">
-            <TrendingUp className="h-3 w-3 text-green-600" />
-            <p className="text-xs font-bold text-green-600 dark:text-green-400">
-              {growthPercent >= 0 ? "+" : ""}
-              {growthPercent}%
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
