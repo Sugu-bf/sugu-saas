@@ -98,10 +98,11 @@ export async function getSellerConversations(params?: {
     ? (rawData as { data: Conversation[] }).data
     : [];
 
+  const paginatedRes = res as PaginatedConversationsResponse;
   return {
     data: items,
-    has_more: res.meta?.has_more ?? false,
-    next_cursor: res.meta?.next_cursor ?? null,
+    has_more: paginatedRes.meta?.has_more ?? false,
+    next_cursor: paginatedRes.meta?.next_cursor ?? null,
   };
 }
 
