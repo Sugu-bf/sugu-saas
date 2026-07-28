@@ -284,17 +284,19 @@ export const orderDetailSchema = z.object({
   canonicalTimeline: z.array(canonicalTimelineStepSchema),
 
   // COD Mixte split-payment data (optional — only for COD orders)
-  codMixte: z.object({
-    isCodMixte: z.boolean(),
-    currentStep: z.string(),
-    deliveryFeePaid: z.boolean(),
-    productFeePaid: z.boolean(),
-    deliveryFeeAmount: z.number(),
-    productFeeAmount: z.number(),
-    deliveryFeePaidAt: z.string().nullable(),
-    productFeePaidAt: z.string().nullable(),
-    vendorConfirmedAt: z.string().nullable(),
-  }).optional(),
+  codMixte: z
+    .object({
+      isCodMixte: z.boolean(),
+      currentStep: z.string(),
+      deliveryFeePaid: z.boolean(),
+      productFeePaid: z.boolean(),
+      deliveryFeeAmount: z.number(),
+      productFeeAmount: z.number(),
+      deliveryFeePaidAt: z.string().nullable(),
+      productFeePaidAt: z.string().nullable(),
+      vendorConfirmedAt: z.string().nullable(),
+    })
+    .optional(),
 });
 
 export type OrderDetail = z.infer<typeof orderDetailSchema>;
@@ -405,6 +407,25 @@ export const variantSummaryItemSchema = z.object({
   label: z.string(),
   price: z.number(),
   isActive: z.boolean(),
+});
+
+/** Canonical active variant used by the seller edit form. */
+export const editableProductVariantSchema = z.object({
+  id: z.string(),
+  combination: z.record(z.string(), z.string()),
+  price: z.number(),
+  stock: z.number().int(),
+  sku: z.string(),
+  minOrderQuantity: z.number().int().min(1).nullable(),
+  trackStock: z.boolean(),
+  allowBackorder: z.boolean(),
+  lowStockThreshold: z.number().int().min(0).nullable(),
+  bulkTiers: z.array(
+    z.object({
+      minQty: z.number().int().min(1),
+      price: z.number().min(0),
+    }),
+  ),
 });
 
 /** Review summary item */
@@ -551,6 +572,13 @@ export const vendorProductDetailSchema = z.object({
 
   price: z.number(),
   originalPrice: z.number().optional(),
+  hasVariants: z.boolean(),
+  defaultVariantId: z.string().nullable(),
+  minOrderQuantity: z.number().int().min(1),
+  trackStock: z.boolean(),
+  allowBackorder: z.boolean(),
+  lowStockThreshold: z.number().int().min(0).nullable(),
+  editableVariants: z.array(editableProductVariantSchema),
   discountPercent: z.number().optional(),
   marginEstimated: z.number().optional(),
   currency: z.string(),
@@ -633,19 +661,23 @@ export const vendorClientSchema = z.object({
   memberSince: z.string(),
   status: clientStatusSchema,
   statusLabel: z.string(),
-  recentOrders: z.array(z.object({
-    id: z.string(),
-    reference: z.string(),
-    date: z.string(),
-    total: z.number(),
-    statusLabel: z.string(),
-    statusColor: z.string(),
-  })),
-  favoriteProducts: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    emoji: z.string(),
-  })),
+  recentOrders: z.array(
+    z.object({
+      id: z.string(),
+      reference: z.string(),
+      date: z.string(),
+      total: z.number(),
+      statusLabel: z.string(),
+      statusColor: z.string(),
+    }),
+  ),
+  favoriteProducts: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      emoji: z.string(),
+    }),
+  ),
 });
 
 export type VendorClient = z.infer<typeof vendorClientSchema>;
@@ -946,72 +978,92 @@ export const vendorSettingsSchema = z.object({
   sameHoursEveryday: z.boolean(),
   lastSavedAt: z.string(),
   // Security data (from API)
-  security: z.object({
-    isTwoFactorEnabled: z.boolean(),
-    lastPasswordChange: z.string().nullable().optional(),
-    activeSessions: z.array(z.object({
-      id: z.string(),
-      device: z.string(),
-      location: z.string(),
-      time: z.string(),
-      current: z.boolean(),
-    })),
-    suspiciousLoginAlert: z.boolean().optional().default(true),
-    loginHistory: z.array(z.object({
-      id: z.string(),
-      ip: z.string(),
-      device: z.string(),
-      location: z.string(),
-      time: z.string(),
-      success: z.boolean(),
-    })).optional().default([]),
-  }).optional(),
+  security: z
+    .object({
+      isTwoFactorEnabled: z.boolean(),
+      lastPasswordChange: z.string().nullable().optional(),
+      activeSessions: z.array(
+        z.object({
+          id: z.string(),
+          device: z.string(),
+          location: z.string(),
+          time: z.string(),
+          current: z.boolean(),
+        }),
+      ),
+      suspiciousLoginAlert: z.boolean().optional().default(true),
+      loginHistory: z
+        .array(
+          z.object({
+            id: z.string(),
+            ip: z.string(),
+            device: z.string(),
+            location: z.string(),
+            time: z.string(),
+            success: z.boolean(),
+          }),
+        )
+        .optional()
+        .default([]),
+    })
+    .optional(),
   // Notifications preferences (from API)
-  notifications: z.object({
-    emailAlerts: z.object({
-      newOrder: z.boolean(),
-      lowStock: z.boolean(),
-      marketing: z.boolean(),
-    }),
-    pushNotifications: z.boolean(),
-    eventPreferences: z.array(z.object({
-      event: z.string(),
-      sms: z.boolean(),
-      email: z.boolean(),
-      push: z.boolean(),
-      whatsapp: z.boolean(),
-    })).nullable().optional(),
-  }).optional(),
+  notifications: z
+    .object({
+      emailAlerts: z.object({
+        newOrder: z.boolean(),
+        lowStock: z.boolean(),
+        marketing: z.boolean(),
+      }),
+      pushNotifications: z.boolean(),
+      eventPreferences: z
+        .array(
+          z.object({
+            event: z.string(),
+            sms: z.boolean(),
+            email: z.boolean(),
+            push: z.boolean(),
+            whatsapp: z.boolean(),
+          }),
+        )
+        .nullable()
+        .optional(),
+    })
+    .optional(),
   // Legal data (from API)
-  legal: z.object({
-    businessName: z.string().nullable().optional(),
-    legalStatus: z.string().nullable().optional(),
-    taxId: z.string().nullable().optional(),
-    rccm: z.string().nullable().optional(),
-    ninea: z.string().nullable().optional(),
-    termsAccepted: z.boolean(),
-  }).optional(),
+  legal: z
+    .object({
+      businessName: z.string().nullable().optional(),
+      legalStatus: z.string().nullable().optional(),
+      taxId: z.string().nullable().optional(),
+      rccm: z.string().nullable().optional(),
+      ninea: z.string().nullable().optional(),
+      termsAccepted: z.boolean(),
+    })
+    .optional(),
   // Operations data (from API)
-  operations: z.object({
-    delivery: z.object({
-      pickup: z.boolean(),
-      localDelivery: z.boolean(),
-      shipping: z.boolean(),
-      international: z.boolean(),
-    }),
-    payment: z.object({
-      cash: z.boolean(),
-      orangeMoney: z.boolean(),
-      wave: z.boolean(),
-      card: z.boolean(),
-    }),
-    preferences: z.object({
-      currency: z.string(),
-      language: z.string(),
-      timezone: z.string(),
-    }),
-    orderPrefix: z.string(),
-  }).optional(),
+  operations: z
+    .object({
+      delivery: z.object({
+        pickup: z.boolean(),
+        localDelivery: z.boolean(),
+        shipping: z.boolean(),
+        international: z.boolean(),
+      }),
+      payment: z.object({
+        cash: z.boolean(),
+        orangeMoney: z.boolean(),
+        wave: z.boolean(),
+        card: z.boolean(),
+      }),
+      preferences: z.object({
+        currency: z.string(),
+        language: z.string(),
+        timezone: z.string(),
+      }),
+      orderPrefix: z.string(),
+    })
+    .optional(),
 });
 
 export type VendorSettings = z.infer<typeof vendorSettingsSchema>;
@@ -1027,17 +1079,20 @@ export const vendorSettingsApiSchema = z.object({
     storeId: z.string().optional(),
 
     // Profile: from User + UserProfile
-    profile: z.object({
-      firstName: z.string().optional().default(""),
-      lastName: z.string().optional().default(""),
-      email: z.string().optional().default(""),
-      emailVerified: z.boolean().optional().default(false),
-      phone: z.string().optional().default(""),
-      phoneSecondary: z.string().nullable().optional().default(""),
-      language: z.string().optional().default("fr"),
-      timezone: z.string().optional().default("Africa/Dakar"),
-      avatarUrl: z.string().nullable().optional(),
-    }).optional().default({}),
+    profile: z
+      .object({
+        firstName: z.string().optional().default(""),
+        lastName: z.string().optional().default(""),
+        email: z.string().optional().default(""),
+        emailVerified: z.boolean().optional().default(false),
+        phone: z.string().optional().default(""),
+        phoneSecondary: z.string().nullable().optional().default(""),
+        language: z.string().optional().default("fr"),
+        timezone: z.string().optional().default("Africa/Dakar"),
+        avatarUrl: z.string().nullable().optional(),
+      })
+      .optional()
+      .default({}),
 
     identity: z.object({
       storeName: z.string(),
@@ -1052,94 +1107,144 @@ export const vendorSettingsApiSchema = z.object({
       phone: z.string(),
       whatsapp: z.string().nullable().optional(),
       website: z.string().nullable().optional(),
-      address: z.object({
-        street: z.string().optional().default(""),
-        city: z.string().optional().default(""),
-        postalCode: z.string().nullable().optional(),
-        country: z.string().optional().default("BF"),
-      }).optional().default({}),
+      address: z
+        .object({
+          street: z.string().optional().default(""),
+          city: z.string().optional().default(""),
+          postalCode: z.string().nullable().optional(),
+          country: z.string().optional().default("BF"),
+        })
+        .optional()
+        .default({}),
       // PHP may return empty arrays as [] instead of {} — handle both
       socials: z.preprocess(
         (val) => (Array.isArray(val) ? {} : val),
-        z.record(z.string()).optional().default({})
+        z.record(z.string()).optional().default({}),
       ),
     }),
-    legal: z.object({
-      businessName: z.string().nullable().optional(),
-      legalStatus: z.string().nullable().optional(),
-      taxId: z.string().nullable().optional(),
-      rccm: z.string().nullable().optional(),
-      ninea: z.string().nullable().optional(),
-      termsAccepted: z.boolean().optional().default(false),
-    }).optional().default({}),
-    operations: z.object({
-      delivery: z.object({
-        pickup: z.boolean().optional().default(false),
-        localDelivery: z.boolean().optional().default(false),
-        shipping: z.boolean().optional().default(false),
-        international: z.boolean().optional().default(false),
-      }).optional().default({}),
-      payment: z.object({
-        cash: z.boolean().optional().default(false),
-        orangeMoney: z.boolean().optional().default(false),
-        wave: z.boolean().optional().default(false),
-        card: z.boolean().optional().default(false),
-      }).optional().default({}),
-      preferences: z.object({
-        currency: z.string().optional().default("XOF"),
-        language: z.string().optional().default("fr"),
-        timezone: z.string().optional().default("Africa/Dakar"),
-      }).optional().default({}),
-      orderPrefix: z.string().optional().default("CMD-"),
-    }).optional().default({}),
-    account: z.object({
-      plan: z.string().optional().default("free"),
-      status: z.string().optional().default("active"),
-      createdAt: z.string().optional(),
-    }).optional().default({}),
-    security: z.object({
-      isTwoFactorEnabled: z.boolean().optional().default(false),
-      lastPasswordChange: z.string().nullable().optional(),
-      activeSessions: z.array(z.object({
-        id: z.string(),
-        device: z.string().optional().default(""),
-        location: z.string().optional().default(""),
-        time: z.string().optional().default(""),
-        current: z.boolean().optional().default(false),
-      })).optional().default([]),
-      suspiciousLoginAlert: z.boolean().optional().default(true),
-      loginHistory: z.array(z.object({
-        id: z.string(),
-        ip: z.string().optional().default(""),
-        device: z.string().optional().default(""),
-        location: z.string().optional().default(""),
-        time: z.string().optional().default(""),
-        success: z.boolean().optional().default(true),
-      })).optional().default([]),
-    }).optional().default({}),
-    notifications: z.object({
-      emailAlerts: z.object({
-        newOrder: z.boolean().optional().default(true),
-        lowStock: z.boolean().optional().default(true),
-        marketing: z.boolean().optional().default(false),
-      }).optional().default({}),
-      pushNotifications: z.boolean().optional().default(false),
-      eventPreferences: z.array(z.object({
-        event: z.string(),
-        sms: z.boolean(),
-        email: z.boolean(),
-        push: z.boolean(),
-        whatsapp: z.boolean(),
-      })).nullable().optional(),
-    }).optional().default({}),
+    legal: z
+      .object({
+        businessName: z.string().nullable().optional(),
+        legalStatus: z.string().nullable().optional(),
+        taxId: z.string().nullable().optional(),
+        rccm: z.string().nullable().optional(),
+        ninea: z.string().nullable().optional(),
+        termsAccepted: z.boolean().optional().default(false),
+      })
+      .optional()
+      .default({}),
+    operations: z
+      .object({
+        delivery: z
+          .object({
+            pickup: z.boolean().optional().default(false),
+            localDelivery: z.boolean().optional().default(false),
+            shipping: z.boolean().optional().default(false),
+            international: z.boolean().optional().default(false),
+          })
+          .optional()
+          .default({}),
+        payment: z
+          .object({
+            cash: z.boolean().optional().default(false),
+            orangeMoney: z.boolean().optional().default(false),
+            wave: z.boolean().optional().default(false),
+            card: z.boolean().optional().default(false),
+          })
+          .optional()
+          .default({}),
+        preferences: z
+          .object({
+            currency: z.string().optional().default("XOF"),
+            language: z.string().optional().default("fr"),
+            timezone: z.string().optional().default("Africa/Dakar"),
+          })
+          .optional()
+          .default({}),
+        orderPrefix: z.string().optional().default("CMD-"),
+      })
+      .optional()
+      .default({}),
+    account: z
+      .object({
+        plan: z.string().optional().default("free"),
+        status: z.string().optional().default("active"),
+        createdAt: z.string().optional(),
+      })
+      .optional()
+      .default({}),
+    security: z
+      .object({
+        isTwoFactorEnabled: z.boolean().optional().default(false),
+        lastPasswordChange: z.string().nullable().optional(),
+        activeSessions: z
+          .array(
+            z.object({
+              id: z.string(),
+              device: z.string().optional().default(""),
+              location: z.string().optional().default(""),
+              time: z.string().optional().default(""),
+              current: z.boolean().optional().default(false),
+            }),
+          )
+          .optional()
+          .default([]),
+        suspiciousLoginAlert: z.boolean().optional().default(true),
+        loginHistory: z
+          .array(
+            z.object({
+              id: z.string(),
+              ip: z.string().optional().default(""),
+              device: z.string().optional().default(""),
+              location: z.string().optional().default(""),
+              time: z.string().optional().default(""),
+              success: z.boolean().optional().default(true),
+            }),
+          )
+          .optional()
+          .default([]),
+      })
+      .optional()
+      .default({}),
+    notifications: z
+      .object({
+        emailAlerts: z
+          .object({
+            newOrder: z.boolean().optional().default(true),
+            lowStock: z.boolean().optional().default(true),
+            marketing: z.boolean().optional().default(false),
+          })
+          .optional()
+          .default({}),
+        pushNotifications: z.boolean().optional().default(false),
+        eventPreferences: z
+          .array(
+            z.object({
+              event: z.string(),
+              sms: z.boolean(),
+              email: z.boolean(),
+              push: z.boolean(),
+              whatsapp: z.boolean(),
+            }),
+          )
+          .nullable()
+          .optional(),
+      })
+      .optional()
+      .default({}),
 
     // Business hours (from store.settings JSON)
-    businessHours: z.array(z.object({
-      day: z.string(),
-      enabled: z.boolean(),
-      openTime: z.string(),
-      closeTime: z.string(),
-    })).nullable().optional(),
+    businessHours: z
+      .array(
+        z.object({
+          day: z.string(),
+          enabled: z.boolean(),
+          openTime: z.string(),
+          closeTime: z.string(),
+        }),
+      )
+      .nullable()
+      .optional(),
     showHoursOnShop: z.boolean().optional().default(true),
     sameHoursEveryday: z.boolean().optional().default(false),
     showSocialOnShop: z.boolean().optional().default(false),
@@ -1164,12 +1269,14 @@ export const updateContactRequestSchema = z.object({
   phone: z.string(),
   whatsapp: z.string().optional(),
   website: z.string().optional(),
-  address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    postalCode: z.string().nullable().optional(),
-    country: z.string().optional(),
-  }).optional(),
+  address: z
+    .object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      postalCode: z.string().nullable().optional(),
+      country: z.string().optional(),
+    })
+    .optional(),
   socials: z.record(z.string()).optional(),
 });
 export type UpdateContactRequest = z.infer<typeof updateContactRequestSchema>;
@@ -1185,49 +1292,63 @@ export const updateLegalRequestSchema = z.object({
 export type UpdateLegalRequest = z.infer<typeof updateLegalRequestSchema>;
 
 export const updateOperationsRequestSchema = z.object({
-  delivery: z.object({
-    pickup: z.boolean(),
-    localDelivery: z.boolean(),
-    shipping: z.boolean(),
-    international: z.boolean(),
-  }).optional(),
-  payment: z.object({
-    cash: z.boolean(),
-    orangeMoney: z.boolean(),
-    wave: z.boolean(),
-    card: z.boolean(),
-  }).optional(),
-  preferences: z.object({
-    currency: z.string(),
-    language: z.string(),
-    timezone: z.string(),
-  }).optional(),
+  delivery: z
+    .object({
+      pickup: z.boolean(),
+      localDelivery: z.boolean(),
+      shipping: z.boolean(),
+      international: z.boolean(),
+    })
+    .optional(),
+  payment: z
+    .object({
+      cash: z.boolean(),
+      orangeMoney: z.boolean(),
+      wave: z.boolean(),
+      card: z.boolean(),
+    })
+    .optional(),
+  preferences: z
+    .object({
+      currency: z.string(),
+      language: z.string(),
+      timezone: z.string(),
+    })
+    .optional(),
   orderPrefix: z.string().optional(),
 });
 export type UpdateOperationsRequest = z.infer<typeof updateOperationsRequestSchema>;
 
 export const updateNotificationsRequestSchema = z.object({
-  emailAlerts: z.object({
-    newOrder: z.boolean(),
-    lowStock: z.boolean(),
-    marketing: z.boolean(),
-  }).optional(),
+  emailAlerts: z
+    .object({
+      newOrder: z.boolean(),
+      lowStock: z.boolean(),
+      marketing: z.boolean(),
+    })
+    .optional(),
   pushNotifications: z.boolean().optional(),
   // Per-event notification preferences (channel matrix)
-  eventPreferences: z.array(z.object({
-    event: z.string(),
-    sms: z.boolean(),
-    email: z.boolean(),
-    push: z.boolean(),
-    whatsapp: z.boolean(),
-  })).optional(),
+  eventPreferences: z
+    .array(
+      z.object({
+        event: z.string(),
+        sms: z.boolean(),
+        email: z.boolean(),
+        push: z.boolean(),
+        whatsapp: z.boolean(),
+      }),
+    )
+    .optional(),
   // Channel-level toggles
-  channels: z.object({
-    sms: z.boolean(),
-    email: z.boolean(),
-    push: z.boolean(),
-    whatsapp: z.boolean(),
-  }).optional(),
+  channels: z
+    .object({
+      sms: z.boolean(),
+      email: z.boolean(),
+      push: z.boolean(),
+      whatsapp: z.boolean(),
+    })
+    .optional(),
 });
 export type UpdateNotificationsRequest = z.infer<typeof updateNotificationsRequestSchema>;
 
@@ -1320,7 +1441,14 @@ export const ticketPrioritySchema = z.enum(["urgent", "normal", "low"]);
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 
 export const ticketCategorySchema = z.enum([
-  "order", "payment", "delivery", "refund", "account", "vendor", "product", "other",
+  "order",
+  "payment",
+  "delivery",
+  "refund",
+  "account",
+  "vendor",
+  "product",
+  "other",
 ]);
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 
@@ -1411,27 +1539,35 @@ export type CustomerSearchResult = z.infer<typeof customerSearchResultSchema>;
 /** Create order request body (sent to POST /v1/sellers/sales/) */
 export const createOrderRequestSchema = z.object({
   customerId: z.string().nullable().optional(),
-  client: z.object({
-    phone: z.string().min(8),
-    fullName: z.string().min(1),
-    countryCode: z.string().default("BF"),
-    email: z.string().email().optional(),
-  }).optional(),
-  products: z.array(z.object({
-    productId: z.string(),
-    quantity: z.number().int().min(1),
-    unitPrice: z.number().min(0),
-  })).min(1),
+  client: z
+    .object({
+      phone: z.string().min(8),
+      fullName: z.string().min(1),
+      countryCode: z.string().default("BF"),
+      email: z.string().email().optional(),
+    })
+    .optional(),
+  products: z
+    .array(
+      z.object({
+        productId: z.string(),
+        quantity: z.number().int().min(1),
+        unitPrice: z.number().min(0),
+      }),
+    )
+    .min(1),
   subtotal: z.number().min(0),
   tax: z.number().min(0).default(0),
   total: z.number().min(0),
   currency: z.string().default("XOF"),
-  delivery: z.object({
-    method: z.enum(["pickup", "shipping"]),
-    provider: z.string().optional(),
-    deliveryModeKey: z.string().optional(),
-    pickupLocation: z.string().optional(),
-  }).optional(),
+  delivery: z
+    .object({
+      method: z.enum(["pickup", "shipping"]),
+      provider: z.string().optional(),
+      deliveryModeKey: z.string().optional(),
+      pickupLocation: z.string().optional(),
+    })
+    .optional(),
   note: z.string().optional(),
 });
 
@@ -1476,12 +1612,14 @@ export const deliveryPartnerSchema = z.object({
   slug: z.string(),
   type: z.string().optional(),
   logo: z.string().optional(),
-  deliveryModes: z.array(z.object({
-    key: z.string(),
-    label: z.string(),
-    estimatedTime: z.string(),
-    cost: z.number(),
-  })),
+  deliveryModes: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      estimatedTime: z.string(),
+      cost: z.number(),
+    }),
+  ),
 });
 
 export type DeliveryPartner = z.infer<typeof deliveryPartnerSchema>;
@@ -1521,8 +1659,12 @@ export const createProductRequestSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
   price: z.number().min(0),
-  compareAtPrice: z.number().min(0).optional(),
+  compareAtPrice: z.number().min(0).nullable().optional(),
   stock: z.number().int().min(0).optional(),
+  minOrderQuantity: z.number().int().min(1).max(500),
+  trackStock: z.boolean(),
+  lowStockThreshold: z.number().int().min(0),
+  allowBackorder: z.boolean(),
   primary_category_id: z.string().optional(),
   category: z.array(z.string()).optional(),
   brand_id: z.string().optional(),
@@ -1531,14 +1673,24 @@ export const createProductRequestSchema = z.object({
   weight: z.number().optional(),
   weightUnit: z.enum(["kg", "g", "lb"]).optional(),
   currency: z.string().default("XOF"),
+  hasBulkPricing: z.boolean(),
   bulkPrices: z.array(createProductBulkPriceSchema).optional(),
   hasVariants: z.boolean().optional().default(false),
-  variants: z.array(z.object({
-    options: z.record(z.string(), z.string()),
-    price: z.number().min(0),
-    stock: z.number().int().min(0),
-    sku: z.string().optional(),
-  })).optional(),
+  variants: z
+    .array(
+      z.object({
+        options: z.record(z.string(), z.string()),
+        price: z.number().min(0),
+        stock: z.number().int().min(0),
+        sku: z.string().optional(),
+        minOrderQuantity: z.number().int().min(1).max(500).nullable(),
+        trackStock: z.boolean(),
+        allowBackorder: z.boolean(),
+        lowStockThreshold: z.number().int().min(0),
+        bulkPrices: z.array(createProductBulkPriceSchema),
+      }),
+    )
+    .optional(),
 });
 
 export type CreateProductRequest = z.infer<typeof createProductRequestSchema>;
@@ -1594,7 +1746,9 @@ export const backgroundRemovalPreviewResponseSchema = z.object({
   expires_at: z.string(),
 });
 
-export type BackgroundRemovalPreviewResponse = z.infer<typeof backgroundRemovalPreviewResponseSchema>;
+export type BackgroundRemovalPreviewResponse = z.infer<
+  typeof backgroundRemovalPreviewResponseSchema
+>;
 
 export const backgroundRemovalAcceptResponseSchema = z.object({
   media: z.object({

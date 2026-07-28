@@ -36,26 +36,33 @@ import { StepRecapitulatif } from "../../new/_components/step-recapitulatif";
 import {
   type ProductFormData,
   type FormUpdater,
+  type GeneratedVariant,
+  type VariantAxis,
   STEPS,
 } from "../../new/_components/types";
 import { LABEL_CLASS } from "../../new/_components/types";
+import type { VendorProductDetail } from "@/features/vendor/schema";
+import {
+  productMutationErrorMessage,
+  validateProductForm,
+} from "../../new/_components/product-form-validation";
 
 // ── Types ──────────────────────────────────────────────────
 
 interface ExistingPhoto {
   id: string | number;
-  url: string;                      // display URL (original, or detoured preview once processed)
+  url: string; // display URL (original, or detoured preview once processed)
   alt: string;
   isPrimary: boolean;
   markedForRemoval?: boolean;
   // Re-detourage workflow (Approach A: refetch the stored image → preview endpoint):
-  originalUrl?: string;             // kept so the user can revert the detourage
-  detouredUuid?: string;            // Cloudinary preview uuid once detoured
+  originalUrl?: string; // kept so the user can revert the detourage
+  detouredUuid?: string; // Cloudinary preview uuid once detoured
   backgroundRemovalPreviewId?: string;
   isBackgroundRemovalAccepted?: boolean;
-  isProcessing?: boolean;           // true during the detourage API call
-  isDetoured?: boolean;             // true if successfully detoured
-  processingError?: string | null;  // error message if detourage failed
+  isProcessing?: boolean; // true during the detourage API call
+  isDetoured?: boolean; // true if successfully detoured
+  processingError?: string | null; // error message if detourage failed
 }
 
 interface NewPhotoPreview {
@@ -64,12 +71,12 @@ interface NewPhotoPreview {
   previewUrl: string;
   // Detourage workflow fields (mirrors create wizard's ProductPhoto):
   originalPreviewUrl?: string;
-  previewUuid?: string;             // UUID returned by backend after detourage
+  previewUuid?: string; // UUID returned by backend after detourage
   backgroundRemovalPreviewId?: string;
   isBackgroundRemovalAccepted?: boolean;
-  isProcessing?: boolean;           // true during the detourage API call
-  isDetoured?: boolean;             // true if successfully detoured
-  processingError?: string | null;  // error message if detourage failed
+  isProcessing?: boolean; // true during the detourage API call
+  isDetoured?: boolean; // true if successfully detoured
+  processingError?: string | null; // error message if detourage failed
 }
 
 // ── Helper: derive weight value + unit from raw string ──────
@@ -85,50 +92,23 @@ function parseWeightString(raw: string): { value: string; unit: string } {
 }
 
 // ── Helper: reconstruct variantAxes/generatedVariants from API variants ──
-function reconstructVariants(product: Record<string, unknown>): {
+function reconstructVariants(product: VendorProductDetail): {
   hasVariants: boolean;
-  variantAxes: Array<{ id: string; name: string; values: Array<{ id: string; value: string }> }>;
-  generatedVariants: Array<{ id: string; combination: Record<string, string>; price: string; stock: string; sku: string }>;
+  variantAxes: VariantAxis[];
+  generatedVariants: GeneratedVariant[];
 } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawVariants: any[] = (product as any).variantsSummary?.weight ?? [];
-  // Try to get raw API variants through the detail response
-  // The detail transformer puts variants in variantsSummary.weight with {label, price, isActive}
-  // But we need the original backend data. Let's check for _rawVariants or use variantsSummary.
-  // For now, reconstruct from the product detail's variantsSummary.
-  
-  // Filter out default "Standard" / "Default" variants
-  const meaningfulVariants = rawVariants.filter(
-    (v: { label: string }) => v.label !== "Default" && v.label !== "Standard",
-  );
-  
-  if (meaningfulVariants.length === 0) {
+  if (!product.hasVariants) {
     return { hasVariants: false, variantAxes: [], generatedVariants: [] };
   }
 
-  // Try to parse structured option data if variant labels contain " / " separators (e.g. "Rouge / L")
-  // This is a best-effort reconstruction since the detail API flattens the data
   const axesMap = new Map<string, Set<string>>();
-  const generatedVariants: Array<{ id: string; combination: Record<string, string>; price: string; stock: string; sku: string }> = [];
 
-  meaningfulVariants.forEach((v: { label: string; price: number }, i: number) => {
-    const parts = v.label.split(" / ").map((p: string) => p.trim());
-    const combination: Record<string, string> = {};
-    
-    // Assign generic axis names if we can't determine them
-    parts.forEach((part: string, idx: number) => {
-      const axisName = `Option ${idx + 1}`;
-      combination[axisName] = part;
-      if (!axesMap.has(axisName)) axesMap.set(axisName, new Set());
-      axesMap.get(axisName)!.add(part);
-    });
-
-    generatedVariants.push({
-      id: `gv-loaded-${i}`,
-      combination,
-      price: String(v.price ?? 0),
-      stock: "0",
-      sku: "",
+  product.editableVariants.forEach((variant) => {
+    Object.entries(variant.combination).forEach(([axisName, value]) => {
+      if (!axesMap.has(axisName)) {
+        axesMap.set(axisName, new Set());
+      }
+      axesMap.get(axisName)!.add(value);
     });
   });
 
@@ -136,6 +116,22 @@ function reconstructVariants(product: Record<string, unknown>): {
     id: `ax-loaded-${i}`,
     name,
     values: Array.from(values).map((val, j) => ({ id: `val-loaded-${i}-${j}`, value: val })),
+  }));
+  const generatedVariants = product.editableVariants.map((variant) => ({
+    id: variant.id,
+    combination: variant.combination,
+    price: String(variant.price),
+    stock: String(variant.stock),
+    sku: variant.sku,
+    minOrderQuantity: String(variant.minOrderQuantity ?? product.minOrderQuantity),
+    trackStock: variant.trackStock,
+    allowBackorder: variant.allowBackorder,
+    lowStockThreshold: String(variant.lowStockThreshold ?? product.lowStockThreshold ?? 10),
+    bulkTiers: variant.bulkTiers.map((tier, index) => ({
+      id: `variant-tier-${variant.id}-${index}`,
+      minQty: String(tier.minQty),
+      price: String(tier.price),
+    })),
   }));
 
   return { hasVariants: true, variantAxes, generatedVariants };
@@ -199,9 +195,7 @@ function EditStepPhotos({
       <div className="flex items-center gap-3">
         <PackageOpen className="h-6 w-6 text-gray-400" />
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Photos du produit
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Photos du produit</h2>
           <p className="text-sm text-gray-400">Étape 2 sur 4</p>
         </div>
       </div>
@@ -260,10 +254,9 @@ function EditStepPhotos({
           <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-amber-50/50 px-4 py-3 dark:bg-amber-950/20">
             <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              <span className="font-semibold">Détourage optionnel :</span> Cliquez
-              sur le bouton <Wand2 className="inline h-3 w-3" /> sous une nouvelle
-              image pour supprimer l&apos;arrière-plan et appliquer un fond blanc
-              professionnel.
+              <span className="font-semibold">Détourage optionnel :</span> Cliquez sur le bouton{" "}
+              <Wand2 className="inline h-3 w-3" /> sous une nouvelle image pour supprimer
+              l&apos;arrière-plan et appliquer un fond blanc professionnel.
             </p>
           </div>
         </div>
@@ -348,9 +341,7 @@ function ExistingPhotoCard({
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
             <div className="flex flex-col items-center gap-1.5 rounded-lg bg-black/40 px-3 py-2">
               <Loader2 className="h-5 w-5 animate-spin text-white" />
-              <span className="text-[10px] font-semibold text-white">
-                Détourage…
-              </span>
+              <span className="text-[10px] font-semibold text-white">Détourage…</span>
             </div>
           </div>
         )}
@@ -377,11 +368,7 @@ function ExistingPhotoCard({
           }`}
           title={photo.markedForRemoval ? "Restaurer" : "Supprimer"}
         >
-          {photo.markedForRemoval ? (
-            <Plus className="h-3 w-3" />
-          ) : (
-            <Trash2 className="h-3 w-3" />
-          )}
+          {photo.markedForRemoval ? <Plus className="h-3 w-3" /> : <Trash2 className="h-3 w-3" />}
         </button>
       </div>
 
@@ -435,9 +422,7 @@ function ExistingPhotoCard({
               Détourer
             </button>
           ) : (
-            <span className="text-[10px] font-medium text-gray-400">
-              Detourage indisponible
-            </span>
+            <span className="text-[10px] font-medium text-gray-400">Detourage indisponible</span>
           )}
         </div>
       )}
@@ -464,10 +449,7 @@ function ExistingPhotoCard({
       )}
 
       {photo.processingError && !photo.isProcessing && (
-        <p
-          className="mt-1 text-center text-[9px] text-amber-500"
-          title={photo.processingError}
-        >
+        <p className="mt-1 text-center text-[9px] text-amber-500" title={photo.processingError}>
           <AlertTriangle className="inline h-2.5 w-2.5" /> Échec du détourage
         </p>
       )}
@@ -488,7 +470,14 @@ interface NewPhotoCardProps {
   canDetour: boolean;
 }
 
-function NewPhotoCard({ photo, onRemove, onDetour, onAccept, onReject, canDetour }: NewPhotoCardProps) {
+function NewPhotoCard({
+  photo,
+  onRemove,
+  onDetour,
+  onAccept,
+  onReject,
+  canDetour,
+}: NewPhotoCardProps) {
   return (
     <div className="group relative">
       {/* Image container */}
@@ -513,9 +502,7 @@ function NewPhotoCard({ photo, onRemove, onDetour, onAccept, onReject, canDetour
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
             <div className="flex flex-col items-center gap-1.5 rounded-lg bg-black/40 px-3 py-2">
               <Loader2 className="h-5 w-5 animate-spin text-white" />
-              <span className="text-[10px] font-semibold text-white">
-                Détourage…
-              </span>
+              <span className="text-[10px] font-semibold text-white">Détourage…</span>
             </div>
           </div>
         )}
@@ -581,19 +568,13 @@ function NewPhotoCard({ photo, onRemove, onDetour, onAccept, onReject, canDetour
             Détourer
           </button>
         ) : (
-          <span className="text-[10px] font-medium text-gray-400">
-            Detourage indisponible
-          </span>
+          <span className="text-[10px] font-medium text-gray-400">Detourage indisponible</span>
         )}
       </div>
 
       {photo.processingError && !photo.isProcessing && (
-        <p
-          className="mt-1 text-center text-[9px] text-amber-500"
-          title={photo.processingError}
-        >
-          <AlertTriangle className="inline h-2.5 w-2.5" /> Échec — image originale
-          utilisée
+        <p className="mt-1 text-center text-[9px] text-amber-500" title={photo.processingError}>
+          <AlertTriangle className="inline h-2.5 w-2.5" /> Échec — image originale utilisée
         </p>
       )}
     </div>
@@ -624,6 +605,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
     price: "",
     originalPrice: "",
     stock: "",
+    minOrderQuantity: "1",
     alertThreshold: "10",
     autoTrackStock: true,
     hasVariants: false,
@@ -672,9 +654,10 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
     // Detect category from product.category string
     const mainCategory =
-      categories?.find(
-        (c) => c.name.toLowerCase() === (product.category ?? "").toLowerCase(),
-      )?.name ?? product.category ?? "";
+      categories?.find((c) => c.name.toLowerCase() === (product.category ?? "").toLowerCase())
+        ?.name ??
+      product.category ??
+      "";
 
     // Reconstruct bulk pricing tiers from volumeDiscounts
     const bulkTiers =
@@ -688,9 +671,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
     // Decide publishMode from status
     const publishMode: "publish" | "draft" =
-      product.status === "active" || product.status === "out_of_stock"
-        ? "publish"
-        : "draft";
+      product.status === "active" || product.status === "out_of_stock" ? "publish" : "draft";
 
     setFormData((prev) => ({
       ...prev,
@@ -705,6 +686,9 @@ export function EditProductForm({ id }: EditProductFormProps) {
       price: priceToFormString(product.price),
       originalPrice: priceToFormString(product.originalPrice),
       stock: product.kpis?.stock?.value != null ? String(product.kpis.stock.value) : "",
+      minOrderQuantity: String(product.minOrderQuantity ?? 1),
+      alertThreshold: String(product.lowStockThreshold ?? 10),
+      autoTrackStock: product.trackStock,
       hasBulkPricing: bulkTiers.length > 0,
       bulkTiers,
       publishMode,
@@ -747,17 +731,13 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
   const toggleRemoveExisting = useCallback((photoId: string | number) => {
     setExistingPhotos((prev) =>
-      prev.map((p) =>
-        p.id === photoId ? { ...p, markedForRemoval: !p.markedForRemoval } : p,
-      ),
+      prev.map((p) => (p.id === photoId ? { ...p, markedForRemoval: !p.markedForRemoval } : p)),
     );
   }, []);
 
   /** Set an existing photo as the cover/main image. */
   const setPrimaryExisting = useCallback((photoId: string | number) => {
-    setExistingPhotos((prev) =>
-      prev.map((p) => ({ ...p, isPrimary: p.id === photoId })),
-    );
+    setExistingPhotos((prev) => prev.map((p) => ({ ...p, isPrimary: p.id === photoId })));
     setMainPhotoChanged(true);
   }, []);
 
@@ -774,29 +754,32 @@ export function EditProductForm({ id }: EditProductFormProps) {
     setNewPhotos((prev) => [...prev, ...previews]);
   }, []);
 
-  const removeNewPhoto = useCallback((photoId: string) => {
-    // Abort any in-flight detourage for this photo
-    const controller = abortControllersRef.current.get(photoId);
-    if (controller) {
-      controller.abort();
-      abortControllersRef.current.delete(photoId);
-    }
-
-    const photo = newPhotos.find((p) => p.id === photoId);
-    if (photo?.backgroundRemovalPreviewId) {
-      void cancelPreviewMutation
-        .mutateAsync(photo.backgroundRemovalPreviewId)
-        .catch(() => undefined);
-    }
-
-    setNewPhotos((prev) => {
-      const found = prev.find((p) => p.id === photoId);
-      if (found && found.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(found.previewUrl);
+  const removeNewPhoto = useCallback(
+    (photoId: string) => {
+      // Abort any in-flight detourage for this photo
+      const controller = abortControllersRef.current.get(photoId);
+      if (controller) {
+        controller.abort();
+        abortControllersRef.current.delete(photoId);
       }
-      return prev.filter((p) => p.id !== photoId);
-    });
-  }, [cancelPreviewMutation, newPhotos]);
+
+      const photo = newPhotos.find((p) => p.id === photoId);
+      if (photo?.backgroundRemovalPreviewId) {
+        void cancelPreviewMutation
+          .mutateAsync(photo.backgroundRemovalPreviewId)
+          .catch(() => undefined);
+      }
+
+      setNewPhotos((prev) => {
+        const found = prev.find((p) => p.id === photoId);
+        if (found && found.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(found.previewUrl);
+        }
+        return prev.filter((p) => p.id !== photoId);
+      });
+    },
+    [cancelPreviewMutation, newPhotos],
+  );
 
   /** Trigger background removal for a single new photo (on-demand). */
   const triggerDetourage = useCallback(
@@ -807,9 +790,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       // Mark as processing
       setNewPhotos((prev) =>
         prev.map((p) =>
-          p.id === photoId
-            ? { ...p, isProcessing: true, processingError: null }
-            : p,
+          p.id === photoId ? { ...p, isProcessing: true, processingError: null } : p,
         ),
       );
 
@@ -840,8 +821,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        const errorMessage =
-          error instanceof Error ? error.message : "Erreur de détourage";
+        const errorMessage = error instanceof Error ? error.message : "Erreur de détourage";
 
         // Failure — keep the original file, mark error
         setNewPhotos((prev) =>
@@ -867,9 +847,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
   const acceptNewDetourage = useCallback((photoId: string) => {
     setNewPhotos((prev) =>
-      prev.map((p) =>
-        p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p,
-      ),
+      prev.map((p) => (p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p)),
     );
   }, []);
 
@@ -910,9 +888,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       // Mark as processing
       setExistingPhotos((prev) =>
         prev.map((p) =>
-          p.id === photoId
-            ? { ...p, isProcessing: true, processingError: null }
-            : p,
+          p.id === photoId ? { ...p, isProcessing: true, processingError: null } : p,
         ),
       );
 
@@ -946,8 +922,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        const errorMessage =
-          error instanceof Error ? error.message : "Erreur de détourage";
+        const errorMessage = error instanceof Error ? error.message : "Erreur de détourage";
 
         setExistingPhotos((prev) =>
           prev.map((p) =>
@@ -972,9 +947,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
   const acceptExistingDetourage = useCallback((photoId: string | number) => {
     setExistingPhotos((prev) =>
-      prev.map((p) =>
-        p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p,
-      ),
+      prev.map((p) => (p.id === photoId ? { ...p, isBackgroundRemovalAccepted: true } : p)),
     );
   }, []);
 
@@ -1008,27 +981,10 @@ export function EditProductForm({ id }: EditProductFormProps) {
     [cancelPreviewMutation, existingPhotos],
   );
 
-  // ── Validation ──
-  // Drafts can be saved incomplete — only the name is required. Price and
-  // category are enforced when actually publishing.
-  const validateForm = useCallback(
-    (mode: "publish" | "draft"): string | null => {
-      if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
-      if (mode === "publish") {
-        if (!formData.price || parseFloat(formData.price) <= 0)
-          return "Le prix de vente est obligatoire.";
-        if (!formData.categoryIds || formData.categoryIds.length === 0)
-          return "Sélectionnez au moins une catégorie.";
-      }
-      return null;
-    },
-    [formData.name, formData.price, formData.categoryIds],
-  );
-
   // ── Submit ──
   const handleSubmit = useCallback(
     (mode: "publish" | "draft") => {
-      const error = validateForm(mode);
+      const error = validateProductForm(formData, mode);
       if (error) {
         toast.error(error);
         return;
@@ -1036,15 +992,10 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
       const categoryIds = formData.categoryIds;
 
-      const removeMediaIds = existingPhotos
-        .filter((p) => p.markedForRemoval)
-        .map((p) => p.id);
+      const removeMediaIds = existingPhotos.filter((p) => p.markedForRemoval).map((p) => p.id);
 
       const acceptedBackgroundRemovalExisting = existingPhotos.filter(
-        (p) =>
-          p.isBackgroundRemovalAccepted &&
-          p.backgroundRemovalPreviewId &&
-          !p.markedForRemoval,
+        (p) => p.isBackgroundRemovalAccepted && p.backgroundRemovalPreviewId && !p.markedForRemoval,
       );
 
       const acceptedBackgroundRemovalNew = newPhotos.filter(
@@ -1114,15 +1065,13 @@ export function EditProductForm({ id }: EditProductFormProps) {
           },
           onError: (err) => {
             toast.error(
-              err instanceof Error
-                ? err.message
-                : "Erreur lors de la mise à jour du produit.",
+              productMutationErrorMessage(err, "Erreur lors de la mise à jour du produit."),
             );
           },
         },
       );
     },
-    [formData, validateForm, existingPhotos, newPhotos, mainPhotoChanged, updateProduct, id],
+    [formData, existingPhotos, newPhotos, mainPhotoChanged, updateProduct, id],
   );
 
   const isSubmitting = updateProduct.isPending;
@@ -1147,9 +1096,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
     return (
       <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 py-24 text-center">
         <div className="text-5xl">😕</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          Produit introuvable
-        </h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Produit introuvable</h2>
         <p className="text-sm text-gray-400">
           Impossible de charger ce produit. Il a peut-être été supprimé.
         </p>
@@ -1181,9 +1128,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
           {product.name}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-        <span className="font-semibold text-gray-900 dark:text-white">
-          Modifier
-        </span>
+        <span className="font-semibold text-gray-900 dark:text-white">Modifier</span>
       </nav>
 
       {/* ════════════ Page header ════════════ */}
@@ -1192,9 +1137,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
           ✏️
         </div>
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">
-            Modifier le produit
-          </h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Modifier le produit</h1>
           <p className="text-sm text-gray-400">
             Les modifications seront soumises à modération avant publication.
           </p>
@@ -1206,9 +1149,7 @@ export function EditProductForm({ id }: EditProductFormProps) {
 
       {/* ════════════ Step Content ════════════ */}
       <div className="min-h-[420px]">
-        {currentStep === 1 && (
-          <StepInformations data={formData} onChange={handleChange} />
-        )}
+        {currentStep === 1 && <StepInformations data={formData} onChange={handleChange} />}
 
         {currentStep === 2 && initialized && (
           <EditStepPhotos
@@ -1229,16 +1170,10 @@ export function EditProductForm({ id }: EditProductFormProps) {
           />
         )}
 
-        {currentStep === 3 && (
-          <StepPrixStock data={formData} onChange={handleChange} />
-        )}
+        {currentStep === 3 && <StepPrixStock data={formData} onChange={handleChange} />}
 
         {currentStep === 4 && (
-          <StepRecapitulatif
-            data={formData}
-            onChange={handleChange}
-            onGoToStep={goToStep}
-          />
+          <StepRecapitulatif data={formData} onChange={handleChange} onGoToStep={goToStep} />
         )}
       </div>
 

@@ -16,15 +16,58 @@ export const mockProductDetail: VendorProductDetail = {
 
   // Photos
   photos: [
-    { id: "ph-1", url: "/images/products/palm-oil-main.jpg", alt: "Huile de Palme Bio 1L - Vue principale", isPrimary: true },
-    { id: "ph-2", url: "/images/products/palm-oil-side.jpg", alt: "Huile de Palme Bio 1L - Vue latérale", isPrimary: false },
-    { id: "ph-3", url: "/images/products/palm-oil-label.jpg", alt: "Huile de Palme Bio 1L - Étiquette", isPrimary: false },
-    { id: "ph-4", url: "/images/products/palm-oil-back.jpg", alt: "Huile de Palme Bio 1L - Vue arrière", isPrimary: false },
+    {
+      id: "ph-1",
+      url: "/images/products/palm-oil-main.jpg",
+      alt: "Huile de Palme Bio 1L - Vue principale",
+      isPrimary: true,
+    },
+    {
+      id: "ph-2",
+      url: "/images/products/palm-oil-side.jpg",
+      alt: "Huile de Palme Bio 1L - Vue latérale",
+      isPrimary: false,
+    },
+    {
+      id: "ph-3",
+      url: "/images/products/palm-oil-label.jpg",
+      alt: "Huile de Palme Bio 1L - Étiquette",
+      isPrimary: false,
+    },
+    {
+      id: "ph-4",
+      url: "/images/products/palm-oil-back.jpg",
+      alt: "Huile de Palme Bio 1L - Vue arrière",
+      isPrimary: false,
+    },
   ],
 
   // Price
   price: 4500,
   originalPrice: 6000,
+  hasVariants: true,
+  defaultVariantId: "variant-1l",
+  minOrderQuantity: 1,
+  trackStock: true,
+  allowBackorder: false,
+  lowStockThreshold: 10,
+  editableVariants: [
+    {
+      id: "variant-1l",
+      combination: { Contenance: "1L" },
+      price: 4500,
+      stock: 45,
+      sku: "590251-1L",
+      minOrderQuantity: 1,
+      trackStock: true,
+      allowBackorder: false,
+      lowStockThreshold: 10,
+      bulkTiers: [
+        { minQty: 10, price: 4000 },
+        { minQty: 100, price: 3500 },
+      ],
+    },
+  ],
   discountPercent: 25,
   marginEstimated: 4500,
   currency: "FCFA",
@@ -54,12 +97,8 @@ export const mockProductDetail: VendorProductDetail = {
 
   // Variants & Tariffs (sidebar card)
   variantsSummary: {
-    weight: [
-      { label: "1L", price: 4500, isActive: true },
-    ],
-    packaging: [
-      { label: "Packaging", price: 4500, isActive: false },
-    ],
+    weight: [{ label: "1L", price: 4500, isActive: true }],
+    packaging: [{ label: "Packaging", price: 4500, isActive: false }],
   },
 
   // Customer reviews summary (sidebar card)
@@ -68,9 +107,27 @@ export const mockProductDetail: VendorProductDetail = {
     revenueLabel: "1,053,000 FCFA",
     monthlyRevenue: "189,000 FCFA ce mois",
     recentReviews: [
-      { id: "rv-1", name: "Mooenaa", rating: 5, timeAgo: "17 hours ago", avatarColor: "bg-amber-100" },
-      { id: "rv-2", name: "Hamartia", rating: 5, timeAgo: "17 hours ago", avatarColor: "bg-orange-100" },
-      { id: "rv-3", name: "Nama B.", rating: 5, timeAgo: "17 hours ago", avatarColor: "bg-pink-100" },
+      {
+        id: "rv-1",
+        name: "Mooenaa",
+        rating: 5,
+        timeAgo: "17 hours ago",
+        avatarColor: "bg-amber-100",
+      },
+      {
+        id: "rv-2",
+        name: "Hamartia",
+        rating: 5,
+        timeAgo: "17 hours ago",
+        avatarColor: "bg-orange-100",
+      },
+      {
+        id: "rv-3",
+        name: "Nama B.",
+        rating: 5,
+        timeAgo: "17 hours ago",
+        avatarColor: "bg-pink-100",
+      },
     ],
   },
 
@@ -84,15 +141,62 @@ export const mockProductDetail: VendorProductDetail = {
   // Recent sales card
   recentSales: {
     chartData: [
-      { x: 0, y: 20 }, { x: 4, y: 45 }, { x: 8, y: 60 }, { x: 12, y: 75 },
-      { x: 16, y: 55 }, { x: 20, y: 90 }, { x: 24, y: 80 }, { x: 26, y: 70 },
-      { x: 28, y: 85 }, { x: 30, y: 95 },
+      { x: 0, y: 20 },
+      { x: 4, y: 45 },
+      { x: 8, y: 60 },
+      { x: 12, y: 75 },
+      { x: 16, y: 55 },
+      { x: 20, y: 90 },
+      { x: 24, y: 80 },
+      { x: 26, y: 70 },
+      { x: 28, y: 85 },
+      { x: 30, y: 95 },
     ],
     orders: [
-      { id: "o-1", reference: "00003700", customer: "Customer", qty: 1, price: 40, currency: "FCFA", time: "13:38", statusLabel: "Status", statusColor: "text-green-600" },
-      { id: "o-2", reference: "00003702", customer: "Ramuuz", qty: 1, price: 45, currency: "FCFA", time: "13:38", statusLabel: "Status", statusColor: "text-green-600" },
-      { id: "o-3", reference: "00003703", customer: "Customer", qty: 1, price: 40, currency: "FCFA", time: "13:59", statusLabel: "Status", statusColor: "text-green-600" },
-      { id: "o-4", reference: "00003704", customer: "Ramuuz", qty: 1, price: 40, currency: "FCFA", time: "13:38", statusLabel: "Status", statusColor: "text-sugu-500" },
+      {
+        id: "o-1",
+        reference: "00003700",
+        customer: "Customer",
+        qty: 1,
+        price: 40,
+        currency: "FCFA",
+        time: "13:38",
+        statusLabel: "Status",
+        statusColor: "text-green-600",
+      },
+      {
+        id: "o-2",
+        reference: "00003702",
+        customer: "Ramuuz",
+        qty: 1,
+        price: 45,
+        currency: "FCFA",
+        time: "13:38",
+        statusLabel: "Status",
+        statusColor: "text-green-600",
+      },
+      {
+        id: "o-3",
+        reference: "00003703",
+        customer: "Customer",
+        qty: 1,
+        price: 40,
+        currency: "FCFA",
+        time: "13:59",
+        statusLabel: "Status",
+        statusColor: "text-green-600",
+      },
+      {
+        id: "o-4",
+        reference: "00003704",
+        customer: "Ramuuz",
+        qty: 1,
+        price: 40,
+        currency: "FCFA",
+        time: "13:38",
+        statusLabel: "Status",
+        statusColor: "text-sugu-500",
+      },
     ],
   },
 
@@ -133,8 +237,23 @@ export const mockProductDetail: VendorProductDetail = {
 
   // Modification history
   history: [
-    { id: "h-1", date: "26.08.2023", action: "Modification du prix au mannaone et prettons", author: "Descripto" },
-    { id: "h-2", date: "28.08.2023", action: "Stockication du stock uodatles", author: "Descripto" },
-    { id: "h-3", date: "23.06.2023", action: "Addition de photos commor les photos", author: "Descripto" },
+    {
+      id: "h-1",
+      date: "26.08.2023",
+      action: "Modification du prix au mannaone et prettons",
+      author: "Descripto",
+    },
+    {
+      id: "h-2",
+      date: "28.08.2023",
+      action: "Stockication du stock uodatles",
+      author: "Descripto",
+    },
+    {
+      id: "h-3",
+      date: "23.06.2023",
+      action: "Addition de photos commor les photos",
+      author: "Descripto",
+    },
   ],
 };

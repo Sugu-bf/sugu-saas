@@ -27,6 +27,10 @@ import {
 } from "../schema";
 import { api } from "@/lib/http/client";
 import { deriveEmoji } from "./_shared";
+import {
+  transformProductRequest,
+  type ProductMutationFormData,
+} from "./product-mutation-contract";
 
 // ── Raw API Types ──────────────────────────────────────────
 
@@ -44,6 +48,9 @@ interface RawProductItem {
   compareAtAmount?: number | null;
   compareAtPrice?: number | null;
   currency?: string;
+  hasVariants?: boolean;
+  defaultVariantId?: string | null;
+  minOrderQuantity?: number;
   stock?: number;
   sales?: number;
   status?: string;
@@ -57,8 +64,36 @@ interface RawProductItem {
   country_of_origin?: string | null;
   weight?: number | null;
   dimensions?: { length?: number | null; width?: number | null; height?: number | null };
-  bulkPrices?: Array<{ id: string; minQty: number; price: number; currency: string; isActive: boolean }>;
-  variants?: Array<{ id: string; title?: string; sku?: string; price_amount?: number; stock?: number; meta?: Record<string, unknown>; options?: Record<string, string> }>;
+  bulkPrices?: Array<{
+    id: string;
+    minQty: number;
+    price: number;
+    currency: string;
+    isActive: boolean;
+  }>;
+  variants?: Array<{
+    id: string;
+    title?: string;
+    sku?: string;
+    price_amount?: number;
+    price?: number;
+    stock?: number;
+    trackStock?: boolean;
+    allowBackorder?: boolean;
+    lowStockThreshold?: number | null;
+    minOrderQuantity?: number | null;
+    isActive?: boolean;
+    isDefault?: boolean;
+    meta?: Record<string, unknown>;
+    options?: Record<string, string>;
+    bulkPrices?: Array<{
+      id: string;
+      minQty: number;
+      price: number;
+      currency: string;
+      isActive: boolean;
+    }>;
+  }>;
   description?: string;
   shortDescription?: string;
   createdAt?: string;
@@ -112,27 +147,18 @@ const PRODUCT_STATUS_LABELS: Record<string, string> = {
   archived: "Archivé",
 };
 
-const WEIGHT_UNIT_MAP: Record<string, string> = {
-  Gramme: "g",
-  Kilogramme: "kg",
-  Litre: "kg",
-  Millilitre: "g",
-  Mètre: "g",
-  Unité: "g",
-};
-
 // Origin label ↔ ISO 3166-1 alpha-2 code.
 // Keep in sync with ORIGINS in app/(vendor)/vendor/products/new/_components/types.ts
 const ORIGIN_LABEL_TO_CODE: Record<string, string> = {
   Mali: "ML",
-  "Sénégal": "SN",
+  Sénégal: "SN",
   "Côte d'Ivoire": "CI",
   "Burkina Faso": "BF",
   Ghana: "GH",
-  "Guinée": "GN",
+  Guinée: "GN",
   Niger: "NE",
   Togo: "TG",
-  "Bénin": "BJ",
+  Bénin: "BJ",
   Cameroun: "CM",
 };
 const ORIGIN_CODE_TO_LABEL: Record<string, string> = Object.fromEntries(
@@ -179,10 +205,10 @@ export async function getVendorProducts(
   }
 
   const [productsRes, statsRes] = await Promise.all([
-    api.get<{ success: boolean; data: { data: RawProductItem[]; total: number; page: number; totalPages: number } }>(
-      "sellers/products",
-      { params },
-    ),
+    api.get<{
+      success: boolean;
+      data: { data: RawProductItem[]; total: number; page: number; totalPages: number };
+    }>("sellers/products", { params }),
     api.get<RawProductStats>("sellers/products/stats"),
   ]);
 
@@ -225,23 +251,27 @@ export async function getVendorProductDetail(id: string): Promise<VendorProductD
 }
 
 /** Delete a product */
-export async function deleteVendorProduct(id: string): Promise<{ success: boolean; message: string }> {
+export async function deleteVendorProduct(
+  id: string,
+): Promise<{ success: boolean; message: string }> {
   return api.delete<{ success: boolean; message: string }>(`sellers/products/${id}`);
 }
 
 /** Fetch product categories */
 export async function getProductCategories(): Promise<ProductCategory[]> {
-  const res = await api.get<{ success: boolean; data: Array<{ id: string; name: string; slug: string }> }>(
-    "sellers/products/categories",
-  );
+  const res = await api.get<{
+    success: boolean;
+    data: Array<{ id: string; name: string; slug: string }>;
+  }>("sellers/products/categories");
   return (res.data ?? []).map((cat) => productCategorySchema.parse(cat));
 }
 
 /** Fetch product brands */
 export async function getProductBrands(): Promise<ProductBrand[]> {
-  const res = await api.get<{ success: boolean; data: Array<{ id: string; name: string; slug: string }> }>(
-    "sellers/products/brands",
-  );
+  const res = await api.get<{
+    success: boolean;
+    data: Array<{ id: string; name: string; slug: string }>;
+  }>("sellers/products/brands");
   return (res.data ?? []).map((brand) => productBrandSchema.parse(brand));
 }
 
@@ -307,7 +337,8 @@ export async function previewProductBackgroundRemoval(params: {
   const fd = new FormData();
   if (params.file) fd.append("image", params.file);
   if (params.productId) fd.append("product_id", params.productId);
-  if (params.mediaId !== undefined && params.mediaId !== null) fd.append("media_id", String(params.mediaId));
+  if (params.mediaId !== undefined && params.mediaId !== null)
+    fd.append("media_id", String(params.mediaId));
   if (params.storeId) fd.append("store_id", params.storeId);
 
   const response = await fetch("/api/vendor/products/background-removal/preview", {
@@ -336,15 +367,18 @@ export async function acceptProductBackgroundRemoval(params: {
   productId: string;
   makeMain?: boolean;
 }): Promise<BackgroundRemovalAcceptResponse> {
-  const response = await fetch(`/api/vendor/products/background-removal/previews/${params.previewId}/accept`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      product_id: params.productId,
-      make_main: params.makeMain ?? false,
-    }),
-  });
+  const response = await fetch(
+    `/api/vendor/products/background-removal/previews/${params.previewId}/accept`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_id: params.productId,
+        make_main: params.makeMain ?? false,
+      }),
+    },
+  );
 
   if (!response.ok) {
     const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
@@ -379,122 +413,48 @@ export async function cancelProductBackgroundRemoval(previewId: string): Promise
 
 /** Create a new product via the vendor dashboard */
 export async function createVendorProduct(
-  formData: {
-    name: string;
-    description: string;
-    price: string;
-    originalPrice: string;
-    stock: string;
-    weightValue: string;
-    weightUnit: string;
-    origin?: string;
-    publishMode: "publish" | "draft";
-    hasBulkPricing: boolean;
-    bulkTiers: Array<{ minQty: string; price: string }>;
-    hasVariants?: boolean;
-    generatedVariants?: Array<{
-      id: string;
-      combination: Record<string, string>;
-      price: string;
-      stock: string;
-      sku: string;
-    }>;
-  },
+  formData: ProductMutationFormData,
   categoryIds?: string[],
   images?: File[],
   previewIds?: string[],
   backgroundRemovalPreviewIds?: string[],
   backgroundRemovalMainPreviewId?: string,
 ): Promise<CreateProductResponse> {
-  const requestBody = _transformCreateProductRequest(formData, categoryIds);
+  const requestBody = transformProductRequest(formData, categoryIds);
 
   const hasImages = images && images.length > 0;
   const hasPreviewIds = previewIds && previewIds.length > 0;
-  const hasBackgroundRemovalPreviewIds = backgroundRemovalPreviewIds && backgroundRemovalPreviewIds.length > 0;
+  const hasBackgroundRemovalPreviewIds =
+    backgroundRemovalPreviewIds && backgroundRemovalPreviewIds.length > 0;
 
   if (hasImages || hasPreviewIds || hasBackgroundRemovalPreviewIds) {
     const fd = new FormData();
-    fd.append("name", requestBody.name);
-    if (requestBody.description) fd.append("description", requestBody.description);
-    fd.append("price", String(requestBody.price));
-    if (requestBody.compareAtPrice !== undefined) fd.append("compareAtPrice", String(requestBody.compareAtPrice));
-    if (requestBody.stock !== undefined) fd.append("stock", String(requestBody.stock));
-    if (requestBody.primary_category_id) fd.append("primary_category_id", requestBody.primary_category_id);
-    if (requestBody.category && Array.isArray(requestBody.category)) {
-      requestBody.category.forEach((id) => {
-        fd.append("category[]", id);
-      });
-    }
-    if (requestBody.brand_id) fd.append("brand_id", requestBody.brand_id);
-    if (requestBody.country_of_origin) fd.append("country_of_origin", requestBody.country_of_origin);
-    fd.append("status", requestBody.status);
-    if (requestBody.weight !== undefined) fd.append("weight", String(requestBody.weight));
-    if (requestBody.weightUnit) fd.append("weightUnit", requestBody.weightUnit);
-    fd.append("currency", requestBody.currency);
-
-    if (requestBody.bulkPrices) {
-      requestBody.bulkPrices.forEach((bp, idx) => {
-        fd.append(`bulkPrices[${idx}][minQty]`, String(bp.minQty));
-        fd.append(`bulkPrices[${idx}][price]`, String(bp.price));
-      });
-    }
+    appendProductRequest(fd, requestBody);
 
     if (hasImages) {
-      images!.forEach((file) => { fd.append("images[]", file); });
+      images!.forEach((file) => {
+        fd.append("images[]", file);
+      });
     }
     if (hasPreviewIds) {
-      previewIds!.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+      previewIds!.forEach((uuid) => {
+        fd.append("preview_ids[]", uuid);
+      });
     }
     if (hasBackgroundRemovalPreviewIds) {
-      backgroundRemovalPreviewIds!.forEach((id) => { fd.append("background_removal_preview_ids[]", id); });
+      backgroundRemovalPreviewIds!.forEach((id) => {
+        fd.append("background_removal_preview_ids[]", id);
+      });
     }
     if (backgroundRemovalMainPreviewId) {
       fd.append("background_removal_main_preview_id", backgroundRemovalMainPreviewId);
     }
 
-    // Append variant data
-    if (requestBody.hasVariants && requestBody.variants) {
-      fd.append("hasVariants", "1");
-      requestBody.variants.forEach((v, idx) => {
-        Object.entries(v.options).forEach(([key, val]) => {
-          fd.append(`variants[${idx}][options][${key}]`, val);
-        });
-        fd.append(`variants[${idx}][price]`, String(v.price));
-        fd.append(`variants[${idx}][stock]`, String(v.stock));
-        if (v.sku) fd.append(`variants[${idx}][sku]`, v.sku);
-      });
-    }
-
-    const { env } = await import("@/lib/env");
-    const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-      ? env.NEXT_PUBLIC_API_BASE_URL
-      : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-    const url = new URL("sellers/products", baseUrl).toString();
-
-    const tokenMatch = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-    const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
-
-    const headers: Record<string, string> = { Accept: "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const response = await fetch(url, { method: "POST", headers, body: fd });
-
-    if (!response.ok) {
-      const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
-      const { ApiError } = await import("@/lib/http/api-error");
-      throw new ApiError({
-        message: errorJson.message ?? `HTTP ${response.status}`,
-        status: response.status,
-        code: errorJson.code ?? `HTTP_${response.status}`,
-        errors: errorJson.errors,
-      });
-    }
-
-    const res = await response.json() as {
+    const res = await api.post<{
       success: boolean;
       message: string;
       data: { id: string; name: string };
-    };
+    }>("sellers/products", fd);
 
     return createProductResponseSchema.parse({
       id: res.data.id,
@@ -522,27 +482,7 @@ export async function createVendorProduct(
 /** Update an existing product via the vendor dashboard */
 export async function updateVendorProduct(
   id: string,
-  formData: {
-    name: string;
-    description: string;
-    price: string;
-    originalPrice: string;
-    stock: string;
-    weightValue: string;
-    weightUnit: string;
-    origin?: string;
-    publishMode: "publish" | "draft";
-    hasBulkPricing: boolean;
-    bulkTiers: Array<{ minQty: string; price: string }>;
-    hasVariants?: boolean;
-    generatedVariants?: Array<{
-      id: string;
-      combination: Record<string, string>;
-      price: string;
-      stock: string;
-      sku: string;
-    }>;
-  },
+  formData: ProductMutationFormData,
   categoryIds?: string[],
   newImages?: File[],
   removeMediaIds?: (string | number)[],
@@ -551,56 +491,31 @@ export async function updateVendorProduct(
   backgroundRemovalPreviewIds?: string[],
   backgroundRemovalMainPreviewId?: string,
 ): Promise<CreateProductResponse> {
-  const price = parseFloat(formData.price) || 0;
-  const originalPrice = parseFloat(formData.originalPrice) || 0;
-  const stock = parseInt(formData.stock) || 0;
-  const weightValue = parseFloat(formData.weightValue) || 0;
-  const weightUnit = WEIGHT_UNIT_MAP[formData.weightUnit] ?? "g";
-  const status = formData.publishMode === "publish" ? "published" : "draft";
-
-  const bulkPrices = formData.hasBulkPricing
-    ? formData.bulkTiers
-        .filter((t) => parseInt(t.minQty) > 0 && parseFloat(t.price) > 0)
-        .map((t) => ({ minQty: parseInt(t.minQty), price: parseFloat(t.price) }))
-    : [];
+  const requestBody = transformProductRequest(formData, categoryIds);
 
   const fd = new FormData();
   fd.append("_method", "PUT"); // Laravel method spoofing for multipart
-  fd.append("name", formData.name);
-  if (formData.description) fd.append("description", formData.description);
-  fd.append("price", String(Math.round(price))); // match create
-  fd.append("stock", String(stock));
-  fd.append("status", status);
-  fd.append("currency", "XOF");
-  if (weightValue > 0) fd.append("weight", String(weightValue));
-  if (weightUnit) fd.append("weightUnit", weightUnit);
-  if (categoryIds && categoryIds.length > 0) {
-    fd.append("primary_category_id", categoryIds[0]);
-    categoryIds.forEach((id) => {
-      fd.append("category[]", id);
-    });
-  }
-  if (formData.origin && ORIGIN_LABEL_TO_CODE[formData.origin]) {
-    fd.append("country_of_origin", ORIGIN_LABEL_TO_CODE[formData.origin]);
-  }
-  fd.append("compare_at_amount", originalPrice > 0 ? String(Math.round(originalPrice * 100)) : "");
-
-  bulkPrices.forEach((bp, idx) => {
-    fd.append(`bulkPrices[${idx}][minQty]`, String(bp.minQty));
-    fd.append(`bulkPrices[${idx}][price]`, String(bp.price));
-  });
+  appendProductRequest(fd, requestBody);
 
   if (newImages && newImages.length > 0) {
-    newImages.forEach((file) => { fd.append("gallery[]", file); });
+    newImages.forEach((file) => {
+      fd.append("gallery[]", file);
+    });
   }
   if (removeMediaIds && removeMediaIds.length > 0) {
-    removeMediaIds.forEach((mid) => { fd.append("remove_media_ids[]", String(mid)); });
+    removeMediaIds.forEach((mid) => {
+      fd.append("remove_media_ids[]", String(mid));
+    });
   }
   if (previewIds && previewIds.length > 0) {
-    previewIds.forEach((uuid) => { fd.append("preview_ids[]", uuid); });
+    previewIds.forEach((uuid) => {
+      fd.append("preview_ids[]", uuid);
+    });
   }
   if (backgroundRemovalPreviewIds && backgroundRemovalPreviewIds.length > 0) {
-    backgroundRemovalPreviewIds.forEach((id) => { fd.append("background_removal_preview_ids[]", id); });
+    backgroundRemovalPreviewIds.forEach((id) => {
+      fd.append("background_removal_preview_ids[]", id);
+    });
   }
   if (backgroundRemovalMainPreviewId) {
     fd.append("background_removal_main_preview_id", backgroundRemovalMainPreviewId);
@@ -609,54 +524,11 @@ export async function updateVendorProduct(
     fd.append("main_media_id", String(mainMediaId));
   }
 
-  // Append variant data
-  if (formData.hasVariants && formData.generatedVariants && formData.generatedVariants.length > 0) {
-    fd.append("hasVariants", "1");
-    const variants = formData.generatedVariants.map((v) => ({
-      options: v.combination,
-      price: parseFloat(v.price) || parseFloat(formData.price) || 0,
-      stock: parseInt(v.stock) || 0,
-      sku: v.sku || undefined,
-    }));
-    variants.forEach((v, idx) => {
-      Object.entries(v.options).forEach(([key, val]) => {
-        fd.append(`variants[${idx}][options][${key}]`, val);
-      });
-      fd.append(`variants[${idx}][price]`, String(v.price));
-      fd.append(`variants[${idx}][stock]`, String(v.stock));
-      if (v.sku) fd.append(`variants[${idx}][sku]`, v.sku);
-    });
-  }
-
-  const { env } = await import("@/lib/env");
-  const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-    ? env.NEXT_PUBLIC_API_BASE_URL
-    : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-  const url = new URL(`sellers/products/${id}`, baseUrl).toString();
-
-  const tokenMatch = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(url, { method: "POST", headers, body: fd });
-
-  if (!response.ok) {
-    const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
-    const { ApiError } = await import("@/lib/http/api-error");
-    throw new ApiError({
-      message: errorJson.message ?? `HTTP ${response.status}`,
-      status: response.status,
-      code: errorJson.code ?? `HTTP_${response.status}`,
-      errors: errorJson.errors,
-    });
-  }
-
-  const res = await response.json() as {
+  const res = await api.post<{
     success: boolean;
     message: string;
     data: { id: string; name: string };
-  };
+  }>(`sellers/products/${id}`, fd);
 
   return createProductResponseSchema.parse({
     id: res.data.id ?? id,
@@ -679,16 +551,18 @@ function _transformProductListItem(raw: RawProductItem): Record<string, unknown>
     category: raw.category ?? "",
     subcategory: "",
     price: raw.price ?? 0,
-    originalPrice: raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
-      ? raw.compareAtAmount / 100
-      : (raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
-        ? raw.compareAtPrice
-        : undefined),
-    discountPercent: raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
-      ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
-      : (raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
-        ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
-        : undefined),
+    originalPrice:
+      raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
+        ? raw.compareAtAmount / 100
+        : raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
+          ? raw.compareAtPrice
+          : undefined,
+    discountPercent:
+      raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
+        ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
+        : raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
+          ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
+          : undefined,
     stock: raw.stock ?? 0,
     sold: raw.sales ?? 0,
     rating: 0,
@@ -719,7 +593,12 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
   // server-side via the media custom property is_main.
   if (raw.gallery && Array.isArray(raw.gallery)) {
     raw.gallery.forEach((img, idx) => {
-      addPhoto(String(img.id ?? `gallery-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, !!img.is_main);
+      addPhoto(
+        String(img.id ?? `gallery-${idx}`),
+        img.url,
+        `${raw.name} - Photo ${idx + 1}`,
+        !!img.is_main,
+      );
     });
   }
   if (photos.length === 0 && raw.all_images && Array.isArray(raw.all_images)) {
@@ -727,10 +606,17 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
       addPhoto(String(img.id ?? `img-${idx}`), img.url, `${raw.name} - Photo ${idx + 1}`, false);
     });
   }
-  if (photos.length === 0 && raw.main_image) addPhoto("main", raw.main_image, `${raw.name} - Image principale`, true);
-  if (photos.length === 0 && raw.image) addPhoto("fallback", raw.image, raw.name ?? "Produit", true);
+  if (photos.length === 0 && raw.main_image)
+    addPhoto("main", raw.main_image, `${raw.name} - Image principale`, true);
+  if (photos.length === 0 && raw.image)
+    addPhoto("fallback", raw.image, raw.name ?? "Produit", true);
   if (photos.length === 0) {
-    photos.push({ id: "fallback", url: "https://cdn.sugu.pro/s/theme/fallback-product.png", alt: raw.name ?? "Produit", isPrimary: true });
+    photos.push({
+      id: "fallback",
+      url: "https://cdn.sugu.pro/s/theme/fallback-product.png",
+      alt: raw.name ?? "Produit",
+      isPrimary: true,
+    });
   }
 
   // Normalise to exactly one primary, then surface it first for display.
@@ -739,14 +625,20 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     photos[0].isPrimary = true;
     primaryIdx = 0;
   }
-  photos.forEach((p, i) => { p.isPrimary = i === primaryIdx; });
+  photos.forEach((p, i) => {
+    p.isPrimary = i === primaryIdx;
+  });
   if (primaryIdx > 0) {
     const [primary] = photos.splice(primaryIdx, 1);
     photos.unshift(primary);
   }
 
   const weightG = raw.weight;
-  const weightStr = weightG ? (weightG >= 1000 ? `${(weightG / 1000).toFixed(1)} kg` : `${weightG} g`) : "—";
+  const weightStr = weightG
+    ? weightG >= 1000
+      ? `${(weightG / 1000).toFixed(1)} kg`
+      : `${weightG} g`
+    : "—";
 
   const tags: string[] = [];
   if (raw.brand) tags.push(raw.brand);
@@ -760,7 +652,32 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     discount: 0,
   }));
 
-  const variantItems = raw.variants ?? [];
+  const variantItems = (raw.variants ?? []).filter((variant) => variant.isActive !== false);
+  const defaultVariant =
+    variantItems.find((variant) => variant.isDefault || variant.id === raw.defaultVariantId) ??
+    variantItems[0];
+  const hasVariants =
+    raw.hasVariants ??
+    variantItems.some((variant) => Object.keys(variant.options ?? {}).length > 0);
+  const editableVariants = variantItems.map((variant) => ({
+    id: variant.id,
+    combination: variant.options ?? {},
+    price:
+      variant.price ??
+      (variant.price_amount !== undefined ? variant.price_amount / 100 : (raw.price ?? 0)),
+    stock: variant.stock ?? 0,
+    sku: variant.sku ?? "",
+    minOrderQuantity: variant.minOrderQuantity ?? null,
+    trackStock: variant.trackStock ?? true,
+    allowBackorder: variant.allowBackorder ?? false,
+    lowStockThreshold: variant.lowStockThreshold ?? null,
+    bulkTiers: (variant.bulkPrices ?? [])
+      .filter((tier) => tier.isActive !== false)
+      .map((tier) => ({
+        minQty: tier.minQty,
+        price: tier.price,
+      })),
+  }));
   const weightVariants = variantItems.map((v) => ({
     label: v.title ?? v.sku ?? "Standard",
     price: v.price_amount ? v.price_amount / 100 : (raw.price ?? 0),
@@ -793,16 +710,25 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     publishedAt,
     photos,
     price: raw.price ?? 0,
-    originalPrice: raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
-      ? raw.compareAtAmount / 100
-      : (raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
-        ? raw.compareAtPrice
-        : undefined),
-    discountPercent: raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
-      ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
-      : (raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
-        ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
-        : undefined),
+    originalPrice:
+      raw.compareAtAmount !== undefined && raw.compareAtAmount !== null
+        ? raw.compareAtAmount / 100
+        : raw.compareAtPrice !== undefined && raw.compareAtPrice !== null
+          ? raw.compareAtPrice
+          : undefined,
+    hasVariants,
+    defaultVariantId: raw.defaultVariantId ?? null,
+    minOrderQuantity: Math.max(1, raw.minOrderQuantity ?? 1),
+    trackStock: defaultVariant?.trackStock ?? true,
+    allowBackorder: defaultVariant?.allowBackorder ?? false,
+    lowStockThreshold: defaultVariant?.lowStockThreshold ?? null,
+    editableVariants,
+    discountPercent:
+      raw.compareAtAmount && raw.price && raw.compareAtAmount > raw.price * 100
+        ? Math.round(((raw.compareAtAmount - raw.price * 100) / raw.compareAtAmount) * 100)
+        : raw.compareAtPrice && raw.price && raw.compareAtPrice > raw.price
+          ? Math.round(((raw.compareAtPrice - raw.price) / raw.compareAtPrice) * 100)
+          : undefined,
     marginEstimated: undefined,
     currency: raw.currency ?? "FCFA",
     rating: 0,
@@ -820,8 +746,11 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
       stock: {
         value: totalStock,
         unit: "unités",
-        percent: totalStock > 0 ? Math.min(100, Math.round((totalStock / Math.max(totalStock, 100)) * 100)) : 0,
-        alertThreshold: 10,
+        percent:
+          totalStock > 0
+            ? Math.min(100, Math.round((totalStock / Math.max(totalStock, 100)) * 100))
+            : 0,
+        alertThreshold: defaultVariant?.lowStockThreshold ?? 10,
       },
       sold: { value: totalSold, period: "—" },
       views: { value: 0, period: "—" },
@@ -832,7 +761,10 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
       },
     },
     variantsSummary: {
-      weight: weightVariants.length > 0 ? weightVariants : [{ label: "Standard", price: raw.price ?? 0, isActive: true }],
+      weight:
+        weightVariants.length > 0
+          ? weightVariants
+          : [{ label: "Standard", price: raw.price ?? 0, isActive: true }],
       packaging: [],
     },
     reviewsSummary: {
@@ -843,7 +775,10 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
     },
     volumeDiscounts,
     recentSales: {
-      chartData: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+      chartData: [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+      ],
       orders: [],
     },
     variantsDetail: {
@@ -863,26 +798,28 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
       reviews: [],
     },
     history: _buildHistoryFromAuditLogs(raw.auditLogs),
-    moderation: raw.moderation ? {
-      status: raw.moderation.status ?? null,
-      statusLabel: raw.moderation.statusLabel ?? 'Non soumis',
-      statusColor: raw.moderation.statusColor ?? 'gray',
-      rejectionReason: raw.moderation.rejectionReason ?? null,
-      notePublic: raw.moderation.notePublic ?? null,
-      reviewedAt: raw.moderation.reviewedAt ?? null,
-      submittedAt: raw.moderation.submittedAt ?? null,
-      reviewer: raw.moderation.reviewer ?? null,
-      submitter: raw.moderation.submitter ?? null,
-      logs: (raw.moderation.logs ?? []).map((log) => ({
-        id: log.id,
-        action: log.action,
-        fromStatus: log.fromStatus ?? null,
-        toStatus: log.toStatus ?? null,
-        actor: log.actor,
-        context: log.context ?? null,
-        date: log.date ?? null,
-      })),
-    } : undefined,
+    moderation: raw.moderation
+      ? {
+          status: raw.moderation.status ?? null,
+          statusLabel: raw.moderation.statusLabel ?? "Non soumis",
+          statusColor: raw.moderation.statusColor ?? "gray",
+          rejectionReason: raw.moderation.rejectionReason ?? null,
+          notePublic: raw.moderation.notePublic ?? null,
+          reviewedAt: raw.moderation.reviewedAt ?? null,
+          submittedAt: raw.moderation.submittedAt ?? null,
+          reviewer: raw.moderation.reviewer ?? null,
+          submitter: raw.moderation.submitter ?? null,
+          logs: (raw.moderation.logs ?? []).map((log) => ({
+            id: log.id,
+            action: log.action,
+            fromStatus: log.fromStatus ?? null,
+            toStatus: log.toStatus ?? null,
+            actor: log.actor,
+            context: log.context ?? null,
+            date: log.date ?? null,
+          })),
+        }
+      : undefined,
     auditLogs: raw.auditLogs?.map((a) => ({
       id: a.id,
       event: a.event,
@@ -897,14 +834,14 @@ function _transformProductDetailResponse(raw: RawProductItem): Record<string, un
 
 /** Build history entries from Spatie audit logs for the History card */
 function _buildHistoryFromAuditLogs(
-  auditLogs?: RawProductItem['auditLogs'],
+  auditLogs?: RawProductItem["auditLogs"],
 ): Array<{ id: string; date: string; action: string; author: string }> {
   if (!auditLogs || auditLogs.length === 0) return [];
 
   const EVENT_LABELS: Record<string, string> = {
-    created: 'Création du produit',
-    updated: 'Mise à jour du produit',
-    deleted: 'Suppression du produit',
+    created: "Création du produit",
+    updated: "Mise à jour du produit",
+    deleted: "Suppression du produit",
   };
 
   return auditLogs.map((a) => {
@@ -912,101 +849,101 @@ function _buildHistoryFromAuditLogs(
     let action = a.description ?? EVENT_LABELS[a.event] ?? a.event;
 
     // Enrich description with changed field names
-    if (a.event === 'updated' && changedKeys.length > 0) {
+    if (a.event === "updated" && changedKeys.length > 0) {
       const FIELD_LABELS: Record<string, string> = {
-        name: 'nom',
-        price_amount: 'prix',
-        stock: 'stock',
-        status: 'statut',
-        description: 'description',
-        weight_g: 'poids',
-        primary_category_id: 'catégorie',
+        name: "nom",
+        price_amount: "prix",
+        stock: "stock",
+        status: "statut",
+        description: "description",
+        weight_g: "poids",
+        primary_category_id: "catégorie",
       };
       const labels = changedKeys
         .map((k) => FIELD_LABELS[k] || k)
         .slice(0, 3)
-        .join(', ');
-      action = `Mise à jour : ${labels}${changedKeys.length > 3 ? '…' : ''}`;
+        .join(", ");
+      action = `Mise à jour : ${labels}${changedKeys.length > 3 ? "…" : ""}`;
     }
 
     return {
       id: a.id,
       date: a.date
-        ? new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-        : '—',
+        ? new Date(a.date).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "—",
       action,
       author: a.actor,
     };
   });
 }
 
-function _transformCreateProductRequest(
-  formData: {
-    name: string;
-    description: string;
-    price: string;
-    originalPrice: string;
-    stock: string;
-    weightValue: string;
-    weightUnit: string;
-    origin?: string;
-    publishMode: "publish" | "draft";
-    hasBulkPricing: boolean;
-    bulkTiers: Array<{ minQty: string; price: string }>;
-    hasVariants?: boolean;
-    generatedVariants?: Array<{
-      id: string;
-      combination: Record<string, string>;
-      price: string;
-      stock: string;
-      sku: string;
-    }>;
-  },
-  categoryIds?: string[],
-): CreateProductRequest {
-  const price = parseFloat(formData.price) || 0;
-  const compareAtPrice = parseFloat(formData.originalPrice) || undefined;
-  const stock = parseInt(formData.stock) || 0;
-  const weightValue = parseFloat(formData.weightValue) || 0;
-  const weightUnit = WEIGHT_UNIT_MAP[formData.weightUnit] ?? "g";
+function appendProductRequest(formData: FormData, request: CreateProductRequest): void {
+  formData.append("name", request.name);
+  if (request.description !== undefined) {
+    formData.append("description", request.description);
+  }
+  formData.append("price", String(request.price));
+  formData.append(
+    "compareAtPrice",
+    request.compareAtPrice === null || request.compareAtPrice === undefined
+      ? ""
+      : String(request.compareAtPrice),
+  );
+  formData.append("stock", String(request.stock ?? 0));
+  formData.append("minOrderQuantity", String(request.minOrderQuantity));
+  formData.append("trackStock", request.trackStock ? "1" : "0");
+  formData.append("lowStockThreshold", String(request.lowStockThreshold));
+  formData.append("allowBackorder", request.allowBackorder ? "1" : "0");
+  formData.append("hasBulkPricing", request.hasBulkPricing ? "1" : "0");
+  formData.append("hasVariants", request.hasVariants ? "1" : "0");
+  formData.append("status", request.status);
+  formData.append("currency", request.currency);
 
-  let weight: number | undefined;
-  if (weightValue > 0) weight = weightValue;
+  if (request.primary_category_id) {
+    formData.append("primary_category_id", request.primary_category_id);
+  }
+  request.category?.forEach((categoryId) => {
+    formData.append("category[]", categoryId);
+  });
+  if (request.brand_id) formData.append("brand_id", request.brand_id);
+  if (request.country_of_origin) {
+    formData.append("country_of_origin", request.country_of_origin);
+  }
+  if (request.weight !== undefined) {
+    formData.append("weight", String(request.weight));
+  }
+  if (request.weightUnit) {
+    formData.append("weightUnit", request.weightUnit);
+  }
 
-  const status = formData.publishMode === "publish" ? "published" as const : "draft" as const;
+  request.bulkPrices?.forEach((tier, index) => {
+    formData.append(`bulkPrices[${index}][minQty]`, String(tier.minQty));
+    formData.append(`bulkPrices[${index}][price]`, String(tier.price));
+  });
 
-  const bulkPrices = formData.hasBulkPricing
-    ? formData.bulkTiers
-        .filter((t) => parseInt(t.minQty) > 0 && parseFloat(t.price) > 0)
-        .map((t) => ({ minQty: parseInt(t.minQty), price: parseFloat(t.price) }))
-    : undefined;
-
-  // Transform variant data for the API
-  const hasVariants = !!(formData.hasVariants && formData.generatedVariants?.length);
-  const variants = hasVariants
-    ? formData.generatedVariants!.map((v) => ({
-        options: v.combination,
-        price: parseFloat(v.price) || price,
-        stock: parseInt(v.stock) || 0,
-        sku: v.sku || undefined,
-      }))
-    : undefined;
-
-  return {
-    name: formData.name,
-    description: formData.description || undefined,
-    price,
-    compareAtPrice,
-    stock,
-    primary_category_id: categoryIds && categoryIds.length > 0 ? categoryIds[0] : undefined,
-    category: categoryIds || undefined,
-    country_of_origin: formData.origin ? ORIGIN_LABEL_TO_CODE[formData.origin] : undefined,
-    status,
-    weight,
-    weightUnit: weightUnit as "kg" | "g" | "lb",
-    currency: "XOF",
-    bulkPrices: bulkPrices && bulkPrices.length > 0 ? bulkPrices : undefined,
-    hasVariants: hasVariants,
-    variants,
-  };
+  request.variants?.forEach((variant, index) => {
+    Object.entries(variant.options).forEach(([axis, value]) => {
+      formData.append(`variants[${index}][options][${axis}]`, value);
+    });
+    formData.append(`variants[${index}][price]`, String(variant.price));
+    formData.append(`variants[${index}][stock]`, String(variant.stock));
+    if (variant.sku) {
+      formData.append(`variants[${index}][sku]`, variant.sku);
+    }
+    formData.append(
+      `variants[${index}][minOrderQuantity]`,
+      variant.minOrderQuantity === null ? "" : String(variant.minOrderQuantity),
+    );
+    formData.append(`variants[${index}][trackStock]`, variant.trackStock ? "1" : "0");
+    formData.append(`variants[${index}][allowBackorder]`, variant.allowBackorder ? "1" : "0");
+    formData.append(`variants[${index}][lowStockThreshold]`, String(variant.lowStockThreshold));
+    variant.bulkPrices.forEach((tier, tierIndex) => {
+      formData.append(`variants[${index}][bulkPrices][${tierIndex}][minQty]`, String(tier.minQty));
+      formData.append(`variants[${index}][bulkPrices][${tierIndex}][price]`, String(tier.price));
+    });
+  });
 }

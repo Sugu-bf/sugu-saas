@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  keepPreviousData,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import * as vendorService from "./service";
 import { useSession } from "@/features/auth/hooks";
@@ -13,6 +8,7 @@ import type { VendorOrdersResponse } from "./schema";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
+import type { ProductMutationFormData } from "./services/product-mutation-contract";
 
 // ────────────────────────────────────────────────────────────
 // Dashboard
@@ -41,19 +37,10 @@ export function useVendorDashboard() {
  * Hook: Vendor orders (paginated, filterable).
  * Uses keepPreviousData for smooth pagination without flash.
  */
-export function useVendorOrders(filters?: {
-  status?: string;
-  page?: number;
-  search?: string;
-}) {
+export function useVendorOrders(filters?: { status?: string; page?: number; search?: string }) {
   return useQuery({
     queryKey: queryKeys.vendor.orders(filters),
-    queryFn: () =>
-      vendorService.getVendorOrders(
-        filters?.status,
-        filters?.page,
-        filters?.search,
-      ),
+    queryFn: () => vendorService.getVendorOrders(filters?.status, filters?.page, filters?.search),
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -190,9 +177,7 @@ export function useCancelOrder() {
           return {
             ...old,
             orders: old.orders.map((o) =>
-              o.id === id
-                ? { ...o, status: "cancelled" as const, statusLabel: "Annulée" }
-                : o,
+              o.id === id ? { ...o, status: "cancelled" as const, statusLabel: "Annulée" } : o,
             ),
           };
         },
@@ -300,9 +285,7 @@ export function useMarkShipped() {
           return {
             ...old,
             orders: old.orders.map((o) =>
-              o.id === id
-                ? { ...o, status: "shipped" as const, statusLabel: "Expédiée" }
-                : o,
+              o.id === id ? { ...o, status: "shipped" as const, statusLabel: "Expédiée" } : o,
             ),
           };
         },
@@ -357,9 +340,7 @@ export function useMarkDelivered() {
           return {
             ...old,
             orders: old.orders.map((o) =>
-              o.id === id
-                ? { ...o, status: "delivered" as const, statusLabel: "Livrée" }
-                : o,
+              o.id === id ? { ...o, status: "delivered" as const, statusLabel: "Livrée" } : o,
             ),
           };
         },
@@ -392,19 +373,10 @@ export function useMarkDelivered() {
  * Hook: Vendor products (paginated, filterable).
  * Uses keepPreviousData for smooth pagination without flash.
  */
-export function useVendorProducts(filters?: {
-  status?: string;
-  page?: number;
-  search?: string;
-}) {
+export function useVendorProducts(filters?: { status?: string; page?: number; search?: string }) {
   return useQuery({
     queryKey: queryKeys.vendor.products(filters),
-    queryFn: () =>
-      vendorService.getVendorProducts(
-        filters?.status,
-        filters?.page,
-        filters?.search,
-      ),
+    queryFn: () => vendorService.getVendorProducts(filters?.status, filters?.page, filters?.search),
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -443,7 +415,9 @@ export function useDeleteProduct() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.vendor.products() });
 
-      const previousProducts = queryClient.getQueriesData<import("./schema").VendorProductsResponse>({
+      const previousProducts = queryClient.getQueriesData<
+        import("./schema").VendorProductsResponse
+      >({
         queryKey: queryKeys.vendor.products(),
       });
 
@@ -708,40 +682,21 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: (params: {
-      formData: {
-        name: string;
-        description: string;
-        price: string;
-        originalPrice: string;
-        stock: string;
-        weightValue: string;
-        weightUnit: string;
-        origin?: string;
-        publishMode: "publish" | "draft";
-        hasBulkPricing: boolean;
-        bulkTiers: Array<{ minQty: string; price: string }>;
-        hasVariants?: boolean;
-        generatedVariants?: Array<{
-          id: string;
-          combination: Record<string, string>;
-          price: string;
-          stock: string;
-          sku: string;
-        }>;
-      };
+      formData: ProductMutationFormData;
       categoryIds?: string[];
       images?: File[];
       previewIds?: string[];
       backgroundRemovalPreviewIds?: string[];
       backgroundRemovalMainPreviewId?: string;
-    }) => vendorService.createVendorProduct(
-      params.formData,
-      params.categoryIds,
-      params.images,
-      params.previewIds,
-      params.backgroundRemovalPreviewIds,
-      params.backgroundRemovalMainPreviewId,
-    ),
+    }) =>
+      vendorService.createVendorProduct(
+        params.formData,
+        params.categoryIds,
+        params.images,
+        params.previewIds,
+        params.backgroundRemovalPreviewIds,
+        params.backgroundRemovalMainPreviewId,
+      ),
     onSuccess: (data) => {
       // Invalidate product list, stats, and dashboard
       queryClient.invalidateQueries({ queryKey: queryKeys.vendor.products() });
@@ -773,27 +728,7 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: (params: {
       id: string;
-      formData: {
-        name: string;
-        description: string;
-        price: string;
-        originalPrice: string;
-        stock: string;
-        weightValue: string;
-        weightUnit: string;
-        origin?: string;
-        publishMode: "publish" | "draft";
-        hasBulkPricing: boolean;
-        bulkTiers: Array<{ minQty: string; price: string }>;
-        hasVariants?: boolean;
-        generatedVariants?: Array<{
-          id: string;
-          combination: Record<string, string>;
-          price: string;
-          stock: string;
-          sku: string;
-        }>;
-      };
+      formData: ProductMutationFormData;
       categoryIds?: string[];
       newImages?: File[];
       removeMediaIds?: (string | number)[];
@@ -834,19 +769,10 @@ export function useUpdateProduct() {
  * Hook: Vendor clients (paginated, filterable, searchable).
  * Uses keepPreviousData for smooth pagination without flash.
  */
-export function useVendorClients(filters?: {
-  status?: string;
-  page?: number;
-  search?: string;
-}) {
+export function useVendorClients(filters?: { status?: string; page?: number; search?: string }) {
   return useQuery({
     queryKey: queryKeys.vendor.clients(filters),
-    queryFn: () =>
-      vendorService.getVendorClients(
-        filters?.status,
-        filters?.page,
-        filters?.search,
-      ),
+    queryFn: () => vendorService.getVendorClients(filters?.status, filters?.page, filters?.search),
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -957,16 +883,12 @@ export function useAddInventoryStock() {
       });
 
       // Snapshot current cache for rollback
-      const previousData = queryClient.getQueriesData<
-        import("./schema").VendorInventoryResponse
-      >({
+      const previousData = queryClient.getQueriesData<import("./schema").VendorInventoryResponse>({
         queryKey: queryKeys.vendor.inventory(),
       });
 
       // Optimistic: increment stock for the product
-      queryClient.setQueriesData<
-        import("./schema").VendorInventoryResponse
-      >(
+      queryClient.setQueriesData<import("./schema").VendorInventoryResponse>(
         { queryKey: queryKeys.vendor.inventory() },
         (old) => {
           if (!old) return old;
@@ -981,9 +903,7 @@ export function useAddInventoryStock() {
                       0,
                       Math.min(
                         100,
-                        Math.round(
-                          ((p.stockCurrent + params.quantity) / p.stockMax) * 100,
-                        ),
+                        Math.round(((p.stockCurrent + params.quantity) / p.stockMax) * 100),
                       ),
                     ),
                     status: (p.stockCurrent + params.quantity > 10
@@ -1073,34 +993,28 @@ export function useToggleCoupon() {
         queryKey: queryKeys.vendor.marketing(),
       });
 
-      const previousMarketing = queryClient.getQueryData<
-        import("./schema").VendorMarketing
-      >(queryKeys.vendor.marketing());
+      const previousMarketing = queryClient.getQueryData<import("./schema").VendorMarketing>(
+        queryKeys.vendor.marketing(),
+      );
 
       // Optimistic: toggle the coupon status
       if (previousMarketing) {
-        queryClient.setQueryData<import("./schema").VendorMarketing>(
-          queryKeys.vendor.marketing(),
-          {
-            ...previousMarketing,
-            promoCodes: previousMarketing.promoCodes.map((c) => {
-              if (c.id !== couponId) return c;
-              const newStatus = c.status === "active" ? "disabled" : "active";
-              const newLabel = newStatus === "active" ? "Actif" : "Désactivé";
-              return { ...c, status: newStatus as "active" | "disabled", statusLabel: newLabel };
-            }),
-          },
-        );
+        queryClient.setQueryData<import("./schema").VendorMarketing>(queryKeys.vendor.marketing(), {
+          ...previousMarketing,
+          promoCodes: previousMarketing.promoCodes.map((c) => {
+            if (c.id !== couponId) return c;
+            const newStatus = c.status === "active" ? "disabled" : "active";
+            const newLabel = newStatus === "active" ? "Actif" : "Désactivé";
+            return { ...c, status: newStatus as "active" | "disabled", statusLabel: newLabel };
+          }),
+        });
       }
 
       return { previousMarketing };
     },
     onError: (_err, _couponId, context) => {
       if (context?.previousMarketing) {
-        queryClient.setQueryData(
-          queryKeys.vendor.marketing(),
-          context.previousMarketing,
-        );
+        queryClient.setQueryData(queryKeys.vendor.marketing(), context.previousMarketing);
       }
     },
     onSettled: () => {
@@ -1182,8 +1096,13 @@ export function useUpdatePromotion() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ promotionId, data }: { promotionId: string; data: import("./service").UpdatePromotionRequest }) =>
-      vendorService.updatePromotion(promotionId, data),
+    mutationFn: ({
+      promotionId,
+      data,
+    }: {
+      promotionId: string;
+      data: import("./service").UpdatePromotionRequest;
+    }) => vendorService.updatePromotion(promotionId, data),
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.marketing(),
@@ -1546,8 +1465,7 @@ export function useRevokeSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) =>
-      vendorService.revokeSettingsSession(sessionId),
+    mutationFn: (sessionId: string) => vendorService.revokeSettingsSession(sessionId),
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.settings(),
@@ -1666,19 +1584,10 @@ export function useDeleteAccount() {
  * Hook: Vendor support tickets (paginated, filterable).
  * Uses keepPreviousData for smooth tab switching without flash.
  */
-export function useVendorTickets(filters?: {
-  status?: string;
-  page?: number;
-  search?: string;
-}) {
+export function useVendorTickets(filters?: { status?: string; page?: number; search?: string }) {
   return useQuery({
     queryKey: queryKeys.vendor.tickets(filters),
-    queryFn: () =>
-      vendorService.getVendorTickets(
-        filters?.status,
-        filters?.page,
-        filters?.search,
-      ),
+    queryFn: () => vendorService.getVendorTickets(filters?.status, filters?.page, filters?.search),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -1735,16 +1644,8 @@ export function useSendTicketMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: {
-      ticketId: string;
-      body: string;
-      attachments?: File[];
-    }) =>
-      vendorService.sendTicketMessage(
-        params.ticketId,
-        params.body,
-        params.attachments,
-      ),
+    mutationFn: (params: { ticketId: string; body: string; attachments?: File[] }) =>
+      vendorService.sendTicketMessage(params.ticketId, params.body, params.attachments),
     onMutate: async (params) => {
       // Cancel ongoing message queries for this ticket
       await queryClient.cancelQueries({
@@ -1752,9 +1653,9 @@ export function useSendTicketMessage() {
       });
 
       // Snapshot current messages for rollback
-      const previousMessages = queryClient.getQueryData<
-        import("./schema").TicketMessage[]
-      >(queryKeys.vendor.ticketMessages(params.ticketId));
+      const previousMessages = queryClient.getQueryData<import("./schema").TicketMessage[]>(
+        queryKeys.vendor.ticketMessages(params.ticketId),
+      );
 
       // Optimistic: append the new message
       if (previousMessages) {
@@ -1817,9 +1718,7 @@ export function useCloseTicket() {
       });
 
       // Snapshot for rollback
-      const previousQueries = queryClient.getQueriesData<
-        import("./schema").VendorTicketsResponse
-      >({
+      const previousQueries = queryClient.getQueriesData<import("./schema").VendorTicketsResponse>({
         queryKey: queryKeys.vendor.tickets(),
       });
 
@@ -1831,9 +1730,7 @@ export function useCloseTicket() {
           return {
             ...old,
             tickets: old.tickets.map((t) =>
-              t.id === ticketId
-                ? { ...t, status: "resolved" as const, statusLabel: "Résolu" }
-                : t,
+              t.id === ticketId ? { ...t, status: "resolved" as const, statusLabel: "Résolu" } : t,
             ),
           };
         },

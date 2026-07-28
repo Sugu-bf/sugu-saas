@@ -28,6 +28,11 @@ export interface GeneratedVariant {
   price: string;
   stock: string;
   sku: string;
+  minOrderQuantity: string;
+  trackStock: boolean;
+  allowBackorder: boolean;
+  lowStockThreshold: string;
+  bulkTiers: PriceTier[];
 }
 
 export interface PriceTier {
@@ -39,17 +44,17 @@ export interface PriceTier {
 /** A photo selected in the wizard (File object + preview URL) */
 export interface ProductPhoto {
   id: string;
-  file: File;                      // Original file
-  previewUrl: string;              // Display URL (local blob OR Cloudinary URL from server)
-  originalPreviewUrl?: string;     // Local original preview retained for comparison/revert
+  file: File; // Original file
+  previewUrl: string; // Display URL (local blob OR Cloudinary URL from server)
+  originalPreviewUrl?: string; // Local original preview retained for comparison/revert
   isMain: boolean;
   // Detourage workflow fields:
-  previewUuid?: string;            // UUID returned by backend after detourage
+  previewUuid?: string; // UUID returned by backend after detourage
   backgroundRemovalPreviewId?: string;
   isBackgroundRemovalAccepted?: boolean;
-  isProcessing?: boolean;          // true during the API call for detourage
+  isProcessing?: boolean; // true during the API call for detourage
   processingError?: string | null; // Error message if detourage failed
-  isDetoured?: boolean;            // true if the image was successfully detoured
+  isDetoured?: boolean; // true if the image was successfully detoured
 }
 
 export interface ProductFormData {
@@ -64,6 +69,7 @@ export interface ProductFormData {
   price: string;
   originalPrice: string;
   stock: string;
+  minOrderQuantity: string;
   alertThreshold: string;
   autoTrackStock: boolean;
   hasVariants: boolean;
@@ -84,15 +90,7 @@ export type FormUpdater = <K extends keyof ProductFormData>(
 // ── Constants ──
 
 export const CATEGORIES: Record<string, string[]> = {
-  Alimentaire: [
-    "Huiles végétales",
-    "Café",
-    "Boissons",
-    "Farines",
-    "Miels",
-    "Épices",
-    "Pâtes",
-  ],
+  Alimentaire: ["Huiles végétales", "Café", "Boissons", "Farines", "Miels", "Épices", "Pâtes"],
   Cosmétique: ["Beurres", "Savons", "Huiles essentielles"],
   Santé: ["Superfoods", "Compléments"],
   Mode: ["Vêtements", "Accessoires"],
@@ -122,14 +120,7 @@ export function originCodeToLabel(code: string | null | undefined): string {
   return ORIGINS.find((o) => o.code === code.toUpperCase())?.label ?? "";
 }
 
-export const WEIGHT_UNITS = [
-  "Gramme",
-  "Kilogramme",
-  "Litre",
-  "Millilitre",
-  "Mètre",
-  "Unité",
-];
+export const WEIGHT_UNITS = ["Gramme", "Kilogramme"];
 
 export const STEPS = [
   { id: 1, label: "Informations" },
@@ -146,8 +137,7 @@ export const INPUT_CLASS =
 export const SELECT_CLASS =
   "w-full appearance-none cursor-pointer rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-3 pr-10 text-sm text-gray-900 transition-all focus:border-sugu-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white";
 
-export const LABEL_CLASS =
-  "mb-1.5 block text-sm font-medium text-gray-600 dark:text-gray-400";
+export const LABEL_CLASS = "mb-1.5 block text-sm font-medium text-gray-600 dark:text-gray-400";
 
 // ── Default form data ──
 
@@ -160,10 +150,11 @@ export const DEFAULT_FORM_DATA: ProductFormData = {
   tags: ["bio", "naturel", "cuisine"],
   origin: "Mali",
   weightValue: "1",
-  weightUnit: "Litre",
+  weightUnit: "Kilogramme",
   price: "4500",
   originalPrice: "6000",
   stock: "50",
+  minOrderQuantity: "1",
   alertThreshold: "10",
   autoTrackStock: true,
   hasVariants: false,

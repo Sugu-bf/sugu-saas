@@ -49,9 +49,7 @@ function Toggle({
           "relative h-[26px] w-[46px] rounded-full transition-all duration-300 ease-in-out",
           "shadow-inner",
           "focus-visible:ring-2 focus-visible:ring-sugu-500/30 focus-visible:ring-offset-1",
-          checked
-            ? "bg-sugu-500"
-            : "bg-gray-300 dark:bg-gray-600",
+          checked ? "bg-sugu-500" : "bg-gray-300 dark:bg-gray-600",
         )}
       >
         <span
@@ -102,9 +100,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
   const originalPriceNum = parseInt(data.originalPrice) || 0;
   const discount = useMemo(() => {
     if (originalPriceNum > priceNum && priceNum > 0) {
-      return Math.round(
-        ((originalPriceNum - priceNum) / originalPriceNum) * 100,
-      );
+      return Math.round(((originalPriceNum - priceNum) / originalPriceNum) * 100);
     }
     return 0;
   }, [priceNum, originalPriceNum]);
@@ -129,17 +125,30 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
             price: data.price || "0",
             stock: "0",
             sku: "",
+            minOrderQuantity: data.minOrderQuantity || "1",
+            trackStock: data.autoTrackStock,
+            allowBackorder: false,
+            lowStockThreshold: data.alertThreshold || "10",
+            bulkTiers: [],
           }
         );
       });
       onChange("generatedVariants", variants);
     },
-    [data.generatedVariants, data.price, onChange],
+    [
+      data.alertThreshold,
+      data.autoTrackStock,
+      data.generatedVariants,
+      data.minOrderQuantity,
+      data.price,
+      onChange,
+    ],
   );
 
   const addAxis = () => {
     const name = newAxisName.trim();
-    if (!name || (data.variantAxes ?? []).some((a) => a.name.toLowerCase() === name.toLowerCase())) return;
+    if (!name || (data.variantAxes ?? []).some((a) => a.name.toLowerCase() === name.toLowerCase()))
+      return;
     const newAxes = [...(data.variantAxes ?? []), { id: `ax-${Date.now()}`, name, values: [] }];
     onChange("variantAxes", newAxes);
     setNewAxisName("");
@@ -173,10 +182,65 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
     regenerateVariants(newAxes);
   };
 
-  const updateVariantField = (variantId: string, field: "price" | "stock" | "sku", value: string) => {
+  const updateVariantField = (
+    variantId: string,
+    field: "price" | "stock" | "sku" | "minOrderQuantity",
+    value: string,
+  ) => {
     onChange(
       "generatedVariants",
-      (data.generatedVariants ?? []).map((v) => (v.id === variantId ? { ...v, [field]: value } : v)),
+      (data.generatedVariants ?? []).map((v) =>
+        v.id === variantId ? { ...v, [field]: value } : v,
+      ),
+    );
+  };
+
+  const addVariantTier = (variantId: string) => {
+    onChange(
+      "generatedVariants",
+      data.generatedVariants.map((variant) =>
+        variant.id === variantId
+          ? {
+              ...variant,
+              bulkTiers: [...variant.bulkTiers, { id: `vt-${Date.now()}`, minQty: "", price: "" }],
+            }
+          : variant,
+      ),
+    );
+  };
+
+  const removeVariantTier = (variantId: string, tierId: string) => {
+    onChange(
+      "generatedVariants",
+      data.generatedVariants.map((variant) =>
+        variant.id === variantId
+          ? {
+              ...variant,
+              bulkTiers: variant.bulkTiers.filter((tier) => tier.id !== tierId),
+            }
+          : variant,
+      ),
+    );
+  };
+
+  const updateVariantTier = (
+    variantId: string,
+    tierId: string,
+    field: "minQty" | "price",
+    value: string,
+  ) => {
+    onChange(
+      "generatedVariants",
+      data.generatedVariants.map((variant) =>
+        variant.id === variantId
+          ? {
+              ...variant,
+              bulkTiers: variant.bulkTiers.map((tier) =>
+                tier.id === tierId ? { ...tier, [field]: value } : tier,
+              ),
+            }
+          : variant,
+      ),
     );
   };
 
@@ -189,10 +253,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
 
   // ── Bulk tier handlers ──
   const addTier = () => {
-    onChange("bulkTiers", [
-      ...data.bulkTiers,
-      { id: `t${Date.now()}`, minQty: "", price: "" },
-    ]);
+    onChange("bulkTiers", [...data.bulkTiers, { id: `t${Date.now()}`, minQty: "", price: "" }]);
   };
 
   const removeTier = (id: string) => {
@@ -215,18 +276,14 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
       <div className="flex items-center gap-3">
         <Banknote className="h-6 w-6 text-gray-400" />
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Prix &amp; Stock
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Prix &amp; Stock</h2>
           <p className="text-sm text-gray-400">Étape 3 sur 4</p>
         </div>
       </div>
 
       {/* ══════════ Tarification ══════════ */}
-      <h3 className="mt-6 text-base font-bold text-gray-900 dark:text-white">
-        Tarification
-      </h3>
-      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <h3 className="mt-6 text-base font-bold text-gray-900 dark:text-white">Tarification</h3>
+      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className={LABEL_CLASS}>
             Prix de vente <span className="text-red-400">*</span>
@@ -245,9 +302,28 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
           </div>
         </div>
         <div>
+          <label className={LABEL_CLASS}>Quantité minimum de commande</label>
+          <div className="relative">
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={data.minOrderQuantity}
+              onChange={(e) => onChange("minOrderQuantity", e.target.value)}
+              placeholder="1"
+              className={cn(INPUT_CLASS, "pr-16")}
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">
+              unités
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] text-gray-400">
+            Quantité minimale acceptée dans le panier
+          </p>
+        </div>
+        <div>
           <label className={LABEL_CLASS}>
-            Prix barré{" "}
-            <span className="font-normal text-gray-400">(ancien prix)</span>
+            Prix barré <span className="font-normal text-gray-400">(ancien prix)</span>
           </label>
           <div className="relative">
             <input
@@ -276,9 +352,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
       )}
 
       {/* ══════════ Stock ══════════ */}
-      <h3 className="mt-7 text-base font-bold text-gray-900 dark:text-white">
-        Stock
-      </h3>
+      <h3 className="mt-7 text-base font-bold text-gray-900 dark:text-white">Stock</h3>
       <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className={LABEL_CLASS}>
@@ -305,7 +379,17 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
             <input
               type="number"
               value={data.alertThreshold}
-              onChange={(e) => onChange("alertThreshold", e.target.value)}
+              onChange={(e) => {
+                const threshold = e.target.value;
+                onChange("alertThreshold", threshold);
+                onChange(
+                  "generatedVariants",
+                  data.generatedVariants.map((variant) => ({
+                    ...variant,
+                    lowStockThreshold: threshold,
+                  })),
+                );
+              }}
               placeholder="10"
               className={cn(INPUT_CLASS, "pr-16")}
             />
@@ -331,7 +415,17 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
         </div>
         <Toggle
           checked={data.autoTrackStock}
-          onToggle={() => onChange("autoTrackStock", !data.autoTrackStock)}
+          onToggle={() => {
+            const trackStock = !data.autoTrackStock;
+            onChange("autoTrackStock", trackStock);
+            onChange(
+              "generatedVariants",
+              data.generatedVariants.map((variant) => ({
+                ...variant,
+                trackStock,
+              })),
+            );
+          }}
           label="toggle"
         />
       </div>
@@ -339,13 +433,10 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
       {/* ══════════ Variantes ══════════ */}
       <div className="mt-7 flex items-center justify-between">
         <h3 className="text-base font-bold text-gray-900 dark:text-white">
-          Variantes{" "}
-          <span className="font-normal text-gray-400">(optionnel)</span>
+          Variantes <span className="font-normal text-gray-400">(optionnel)</span>
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
-            Ce produit a des variantes
-          </span>
+          <span className="text-xs text-gray-500">Ce produit a des variantes</span>
           <Toggle
             checked={data.hasVariants}
             onToggle={() => onChange("hasVariants", !data.hasVariants)}
@@ -410,9 +501,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
                   onChange={(e) =>
                     setNewValueByAxis((prev) => ({ ...prev, [axis.id]: e.target.value }))
                   }
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && (e.preventDefault(), addValue(axis.id))
-                  }
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addValue(axis.id))}
                   placeholder={`Ajouter une valeur (ex: ${
                     axis.name.toLowerCase().includes("couleur")
                       ? "Rouge, Bleu, Vert"
@@ -478,45 +567,109 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
                 </button>
               </div>
 
-              {/* Table header */}
-              <div className="mt-3 grid grid-cols-[1fr_100px_80px_100px] gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                <span>Combinaison</span>
-                <span>Prix (FCFA)</span>
-                <span>Stock</span>
-                <span>SKU</span>
-              </div>
+              <div className="mt-3 overflow-x-auto">
+                {/* Table header */}
+                <div className="grid min-w-[640px] grid-cols-[minmax(140px,1fr)_100px_80px_90px_110px] gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  <span>Combinaison</span>
+                  <span>Prix (FCFA)</span>
+                  <span>Stock</span>
+                  <span>MOQ</span>
+                  <span>SKU</span>
+                </div>
 
-              {/* Table rows */}
-              <div className="mt-1.5 max-h-[280px] space-y-1.5 overflow-y-auto">
-                {data.generatedVariants.map((v) => (
-                  <div
-                    key={v.id}
-                    className="grid grid-cols-[1fr_100px_80px_100px] items-center gap-2"
-                  >
-                    <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {Object.values(v.combination).join(" / ")}
-                    </span>
-                    <input
-                      type="number"
-                      value={v.price}
-                      onChange={(e) => updateVariantField(v.id, "price", e.target.value)}
-                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
-                    />
-                    <input
-                      type="number"
-                      value={v.stock}
-                      onChange={(e) => updateVariantField(v.id, "stock", e.target.value)}
-                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
-                    />
-                    <input
-                      type="text"
-                      value={v.sku}
-                      onChange={(e) => updateVariantField(v.id, "sku", e.target.value)}
-                      placeholder="Auto"
-                      className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
-                    />
-                  </div>
-                ))}
+                {/* Table rows */}
+                <div className="mt-1.5 max-h-[380px] min-w-[640px] space-y-2 overflow-y-auto">
+                  {data.generatedVariants.map((variant) => (
+                    <div
+                      key={variant.id}
+                      className="rounded-lg border border-gray-100 p-2 dark:border-gray-800"
+                    >
+                      <div className="grid grid-cols-[minmax(140px,1fr)_100px_80px_90px_110px] items-center gap-2">
+                        <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {Object.values(variant.combination).join(" / ")}
+                        </span>
+                        <input
+                          type="number"
+                          value={variant.price}
+                          onChange={(e) => updateVariantField(variant.id, "price", e.target.value)}
+                          className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                        />
+                        <input
+                          type="number"
+                          value={variant.stock}
+                          onChange={(e) => updateVariantField(variant.id, "stock", e.target.value)}
+                          className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          max={500}
+                          value={variant.minOrderQuantity}
+                          onChange={(e) =>
+                            updateVariantField(variant.id, "minOrderQuantity", e.target.value)
+                          }
+                          className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                        />
+                        <input
+                          type="text"
+                          value={variant.sku}
+                          onChange={(e) => updateVariantField(variant.id, "sku", e.target.value)}
+                          placeholder="Auto"
+                          className="rounded-lg border border-gray-200/60 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-sugu-400 focus:outline-none dark:border-gray-700/40 dark:bg-gray-900/20 dark:text-gray-300"
+                        />
+                      </div>
+
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-[11px] font-semibold text-sugu-500">
+                          Tarifs de gros de cette variante ({variant.bulkTiers.length})
+                        </summary>
+                        <div className="mt-2 space-y-2 rounded-lg bg-gray-50/60 p-2 dark:bg-gray-900/40">
+                          {variant.bulkTiers.map((tier) => (
+                            <div
+                              key={tier.id}
+                              className="grid grid-cols-[1fr_1fr_32px] items-center gap-2"
+                            >
+                              <input
+                                type="number"
+                                value={tier.minQty}
+                                onChange={(e) =>
+                                  updateVariantTier(variant.id, tier.id, "minQty", e.target.value)
+                                }
+                                placeholder="Quantité min."
+                                className="rounded-lg border border-gray-200/60 bg-white px-2 py-1.5 text-xs dark:border-gray-700/40 dark:bg-gray-900/20"
+                              />
+                              <input
+                                type="number"
+                                value={tier.price}
+                                onChange={(e) =>
+                                  updateVariantTier(variant.id, tier.id, "price", e.target.value)
+                                }
+                                placeholder="Prix unitaire"
+                                className="rounded-lg border border-gray-200/60 bg-white px-2 py-1.5 text-xs dark:border-gray-700/40 dark:bg-gray-900/20"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeVariantTier(variant.id, tier.id)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                title="Supprimer ce palier"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => addVariantTier(variant.id)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-sugu-500"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Ajouter un palier variante
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -526,8 +679,7 @@ export function StepPrixStock({ data, onChange }: StepPrixStockProps) {
       {/* ══════════ Tarifs de gros ══════════ */}
       <div className="mt-7 flex items-center justify-between">
         <h3 className="text-base font-bold text-gray-900 dark:text-white">
-          Tarifs de gros{" "}
-          <span className="font-normal text-gray-400">(optionnel)</span>
+          Tarifs de gros <span className="font-normal text-gray-400">(optionnel)</span>
         </h3>
         <div className="flex items-center gap-2">
           <span className="hidden text-xs text-gray-500 sm:inline">

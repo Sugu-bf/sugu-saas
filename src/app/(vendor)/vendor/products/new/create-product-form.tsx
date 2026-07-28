@@ -6,12 +6,21 @@ import { ChevronRight, ChevronLeft, Rocket, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCreateProduct } from "@/features/vendor/hooks";
-import { type ProductFormData, type FormUpdater, STEPS, DEFAULT_FORM_DATA } from "./_components/types";
+import {
+  type ProductFormData,
+  type FormUpdater,
+  STEPS,
+  DEFAULT_FORM_DATA,
+} from "./_components/types";
 import { StepIndicator } from "./_components/step-indicator";
 import { StepInformations } from "./_components/step-informations";
 import { StepPhotos } from "./_components/step-photos";
 import { StepPrixStock } from "./_components/step-prix-stock";
 import { StepRecapitulatif } from "./_components/step-recapitulatif";
+import {
+  productMutationErrorMessage,
+  validateProductForm,
+} from "./_components/product-form-validation";
 
 export function CreateProductForm() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -29,6 +38,7 @@ export function CreateProductForm() {
     price: "",
     originalPrice: "",
     stock: "",
+    minOrderQuantity: "1",
     alertThreshold: "10",
     autoTrackStock: true,
     hasVariants: false,
@@ -62,28 +72,12 @@ export function CreateProductForm() {
     setCurrentStep(step);
   }, []);
 
-  // ── Validation ──
-  // The API requires a price even for drafts at creation. The category is only
-  // enforced when actually publishing.
-  const validateForm = useCallback(
-    (mode: "publish" | "draft"): string | null => {
-      if (!formData.name.trim()) return "Le nom du produit est obligatoire.";
-      if (!formData.price || parseFloat(formData.price) <= 0)
-        return "Le prix de vente est obligatoire.";
-      if (
-        mode === "publish" &&
-        (!formData.categoryIds || formData.categoryIds.length === 0)
-      )
-        return "Sélectionnez au moins une catégorie.";
-      return null;
-    },
-    [formData.name, formData.price, formData.categoryIds],
-  );
-
   // ── Submit handler (publish or draft) ──
   const handleSubmit = useCallback(
     (mode: "publish" | "draft") => {
-      const error = validateForm(mode);
+      const error = validateProductForm(formData, mode, {
+        requirePriceForDraft: true,
+      });
       if (error) {
         toast.error(error);
         return;
@@ -141,16 +135,12 @@ export function CreateProductForm() {
             );
           },
           onError: (err) => {
-            toast.error(
-              err instanceof Error
-                ? err.message
-                : "Erreur lors de la création du produit.",
-            );
+            toast.error(productMutationErrorMessage(err, "Erreur lors de la création du produit."));
           },
         },
       );
     },
-    [formData, validateForm, createProduct],
+    [formData, createProduct],
   );
 
   const isSubmitting = createProduct.isPending;
@@ -158,10 +148,7 @@ export function CreateProductForm() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       {/* ════════════ Breadcrumb ════════════ */}
-      <nav
-        className="flex items-center gap-1.5 text-sm"
-        aria-label="breadcrumb"
-      >
+      <nav className="flex items-center gap-1.5 text-sm" aria-label="breadcrumb">
         <Link
           href="/vendor/products"
           className="font-medium text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
@@ -169,9 +156,7 @@ export function CreateProductForm() {
           Produits
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-        <span className="font-semibold text-gray-900 dark:text-white">
-          Ajouter un produit
-        </span>
+        <span className="font-semibold text-gray-900 dark:text-white">Ajouter un produit</span>
       </nav>
 
       {/* ════════════ Stepper ════════════ */}
@@ -179,13 +164,9 @@ export function CreateProductForm() {
 
       {/* ════════════ Step Content ════════════ */}
       <div className="min-h-[420px]">
-        {currentStep === 1 && (
-          <StepInformations data={formData} onChange={handleChange} />
-        )}
+        {currentStep === 1 && <StepInformations data={formData} onChange={handleChange} />}
         {currentStep === 2 && <StepPhotos data={formData} setFormData={setFormData} />}
-        {currentStep === 3 && (
-          <StepPrixStock data={formData} onChange={handleChange} />
-        )}
+        {currentStep === 3 && <StepPrixStock data={formData} onChange={handleChange} />}
         {currentStep === 4 && (
           <StepRecapitulatif data={formData} onChange={handleChange} onGoToStep={goToStep} />
         )}
@@ -238,9 +219,7 @@ export function CreateProductForm() {
               ) : (
                 <Rocket className="h-4 w-4" />
               )}
-              {formData.publishMode === "draft"
-                ? "Enregistrer le brouillon"
-                : "Publier le produit"}
+              {formData.publishMode === "draft" ? "Enregistrer le brouillon" : "Publier le produit"}
             </button>
           )}
         </div>
