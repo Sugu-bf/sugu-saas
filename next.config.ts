@@ -21,6 +21,21 @@ const securityHeaders = [
   },
 ];
 
+const privateNoIndexHeaders = [
+  { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+];
+
+const privateRoutePatterns = [
+  "/vendor/:path*",
+  "/agency/:path*",
+  "/driver/:path*",
+  "/login",
+  "/forgot-password",
+  "/reset-password/:path*",
+  "/signup/:path*",
+  "/api/:path*",
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
@@ -45,6 +60,10 @@ const nextConfig: NextConfig = {
         source: "/sw.js",
         headers: [{ key: "Cache-Control", value: "no-cache" }],
       },
+      ...privateRoutePatterns.map((source) => ({
+        source,
+        headers: privateNoIndexHeaders,
+      })),
     ];
   },
 

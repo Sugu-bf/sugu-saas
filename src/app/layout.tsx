@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { SUGU_PRO_NAME, SUGU_PRO_OG_IMAGE, SUGU_PRO_URL } from "@/lib/seo";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -14,11 +15,28 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "SUGU — Plateforme SaaS",
-    template: "%s | SUGU",
+    default: "Sugu Pro — Le système derrière chaque commande",
+    template: `%s | ${SUGU_PRO_NAME}`,
   },
-  description: "Plateforme SaaS multi-vendeur et logistique SUGU.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  description: "Sugu Pro relie catalogue, commandes, livraison, paiement et revenus pour les vendeurs et équipes de livraison.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || SUGU_PRO_URL),
+  applicationName: SUGU_PRO_NAME,
+  authors: [{ name: "Sugu", url: "https://sugu.pro/" }],
+  creator: "Sugu",
+  publisher: "Sugu",
+  formatDetection: { telephone: false, email: false, address: false },
+  openGraph: {
+    siteName: SUGU_PRO_NAME,
+    locale: "fr_BF",
+    type: "website",
+    images: [{ url: SUGU_PRO_OG_IMAGE, width: 1200, height: 630 }],
+  },
+  twitter: { card: "summary_large_image", images: [SUGU_PRO_OG_IMAGE] },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -30,7 +48,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SUGU",
+    title: SUGU_PRO_NAME,
   },
 };
 

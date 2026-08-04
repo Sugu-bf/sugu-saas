@@ -766,10 +766,12 @@ export function LandingPageV3() {
           </a>
 
           <div className="hidden items-center gap-7 text-sm font-bold text-white/72 lg:flex">
-            <a className="hover:text-white" href="#flow">Fil</a>
-            <a className="hover:text-white" href="#cockpit">Cockpit</a>
-            <a className="hover:text-white" href="#terrain">Terrain</a>
-            <a className="hover:text-white" href="#questions">Questions</a>
+            <Link className="hover:text-white" href="/vendeurs">Vendeurs</Link>
+            <Link className="hover:text-white" href="/agences-de-livraison">Agences</Link>
+            <Link className="hover:text-white" href="/coursiers">Coursiers</Link>
+            <Link className="hover:text-white" href="/fonctionnalites">Fonctionnalités</Link>
+            <Link className="hover:text-white" href="/tarifs">Tarifs</Link>
+            <Link className="hover:text-white" href="/faq">FAQ</Link>
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
@@ -822,10 +824,12 @@ export function LandingPageV3() {
         {/* Mobile Navigation */}
         <div id="mobileNav" className={`${mobileMenuOpen ? "block" : "hidden"} border-t border-white/10 bg-night px-4 py-4 lg:hidden`}>
           <div className="grid gap-2 text-base font-bold">
-            <a className="rounded-xl px-4 py-3 hover:bg-white/10" href="#flow" onClick={() => setMobileMenuOpen(false)}>Fil</a>
-            <a className="rounded-xl px-4 py-3 hover:bg-white/10" href="#cockpit" onClick={() => setMobileMenuOpen(false)}>Cockpit</a>
-            <a className="rounded-xl px-4 py-3 hover:bg-white/10" href="#terrain" onClick={() => setMobileMenuOpen(false)}>Terrain</a>
-            <a className="rounded-xl px-4 py-3 hover:bg-white/10" href="#questions" onClick={() => setMobileMenuOpen(false)}>Questions</a>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/vendeurs" onClick={() => setMobileMenuOpen(false)}>Vendeurs</Link>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/agences-de-livraison" onClick={() => setMobileMenuOpen(false)}>Agences</Link>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/coursiers" onClick={() => setMobileMenuOpen(false)}>Coursiers</Link>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/fonctionnalites" onClick={() => setMobileMenuOpen(false)}>Fonctionnalités</Link>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/tarifs" onClick={() => setMobileMenuOpen(false)}>Tarifs</Link>
+            <Link className="rounded-xl px-4 py-3 hover:bg-white/10" href="/faq" onClick={() => setMobileMenuOpen(false)}>FAQ</Link>
             {user ? (
               <>
                 <Link
@@ -918,7 +922,7 @@ export function LandingPageV3() {
                   <Image src="https://cdn.sugu.pro/p/sugupro/avatars/avatar-seydou.jpg" width={40} height={40} className="h-10 w-10 rounded-full border-2 border-[#07111F] object-cover shadow-sm" alt="Avatar Seydou" />
                   <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#07111F] bg-clay text-xs font-bold text-white shadow-sm">+</span>
                 </div>
-                <p className="text-sm font-semibold text-white/72">Rejoint par <span className="font-black text-white">2 500+ vendeurs</span> en {"Afrique de l'Ouest"}</p>
+                <p className="text-sm font-semibold text-white/72">Pensé pour les <span className="font-black text-white">vendeurs et équipes de livraison</span> en {"Afrique de l'Ouest"}</p>
               </div>
             </div>
 
@@ -1177,20 +1181,20 @@ export function LandingPageV3() {
 
             <div className="mt-14 grid gap-4 md:grid-cols-4">
               <div className="rounded-[1.4rem] border border-black/10 p-6">
-                <p className="text-5xl font-black text-slate-900">2 500+</p>
-                <p className="mt-3 font-bold text-slate-500">vendeurs</p>
+                <p className="text-3xl font-black text-slate-900">Vendeurs</p>
+                <p className="mt-3 font-bold text-slate-500">catalogue et commandes</p>
               </div>
               <div className="rounded-[1.4rem] border border-black/10 p-6">
-                <p className="text-5xl font-black text-slate-900">50k+</p>
-                <p className="mt-3 font-bold text-slate-500">commandes/mois</p>
+                <p className="text-3xl font-black text-slate-900">Agences</p>
+                <p className="mt-3 font-bold text-slate-500">équipe et livraisons</p>
               </div>
               <div className="rounded-[1.4rem] border border-black/10 p-6">
-                <p className="text-5xl font-black text-slate-900">15+</p>
-                <p className="mt-3 font-bold text-slate-500">villes</p>
+                <p className="text-3xl font-black text-slate-900">Coursiers</p>
+                <p className="mt-3 font-bold text-slate-500">missions et gains</p>
               </div>
               <div className="rounded-[1.4rem] border border-black/10 p-6">
-                <p className="text-5xl font-black text-slate-900">4.8</p>
-                <p className="mt-3 font-bold text-slate-500">note affichée</p>
+                <p className="text-3xl font-black text-slate-900">Un seul fil</p>
+                <p className="mt-3 font-bold text-slate-500">de la commande au revenu</p>
               </div>
             </div>
           </div>
@@ -1290,12 +1294,21 @@ export function LandingPageV3() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 bg-night px-4 py-8 text-white/50 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <a href="#top" className="flex items-baseline gap-0.5 text-white">
             <span className="text-2xl font-black tracking-[-0.04em]">SUGU</span>
             <span className="text-xs font-black text-clay">Pro</span>
           </a>
-          <p className="text-sm font-semibold">© 2026 SUGU. Le système derrière chaque commande.</p>
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold lg:justify-center" aria-label="Liens publics Sugu Pro">
+            <Link href="/vendeurs" className="hover:text-white">Vendeurs</Link>
+            <Link href="/agences-de-livraison" className="hover:text-white">Agences</Link>
+            <Link href="/coursiers" className="hover:text-white">Coursiers</Link>
+            <Link href="/fonctionnalites" className="hover:text-white">Fonctionnalités</Link>
+            <Link href="/tarifs" className="hover:text-white">Tarifs</Link>
+            <a href="https://sugu.pro/" className="hover:text-white">Marketplace Sugu</a>
+            <a href="https://sugupay.net/" className="hover:text-white">SuguPay</a>
+          </nav>
+          <p className="text-sm font-semibold">© 2026 SUGU.</p>
         </div>
       </footer>
 
