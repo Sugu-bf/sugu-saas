@@ -25,16 +25,24 @@ const PUBLIC_PATHS = [
 ];
 const PUBLIC_PREFIXES = ["/api/", "/_next/", "/favicon", "/signup/"];
 const PUBLIC_FILE = /\.[^/]+$/;
+// First-access link sent by email: /reset-password/{token}. Exactly one
+// segment after the prefix — the token is validated by the API, not here.
+const PUBLIC_PATTERNS = [/^\/reset-password\/[^/]+\/?$/];
+
+export function isPublicPath(pathname: string): boolean {
+  return (
+    PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    PUBLIC_PATTERNS.some((re) => re.test(pathname)) ||
+    PUBLIC_FILE.test(pathname)
+  );
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths, public prefixes, and API routes
-  if (
-    PUBLIC_PATHS.includes(pathname) ||
-    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
-    PUBLIC_FILE.test(pathname)
-  ) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
