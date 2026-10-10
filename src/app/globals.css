@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../design-system/tokens.css";
 @source "../";
 
 /* Force Tailwind v4 dark: variant to use .dark class, NOT prefers-color-scheme */

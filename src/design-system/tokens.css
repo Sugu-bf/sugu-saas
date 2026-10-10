@@ -1,0 +1,220 @@
+/* ============================================================
+   SUGU Pro — Design System tokens (Phase A, light mode only)
+
+   Two layers:
+   1. `@theme` — new token names, global, collision-free with legacy.
+   2. `.sugu-ui` — scope that re-points the three names legacy already
+      owns (`background`, `foreground`, `border`) plus the focus ring.
+      Legacy pages never carry the class, so they are untouched.
+      Radix portals render outside the scope: every overlay primitive
+      puts `.sugu-ui` on its own content.
+   ============================================================ */
+
+@theme {
+  /* ── Surfaces ─────────────────────────────────────────── */
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f4f4f5;
+  --color-surface-hover: #ececee;
+  --color-surface-elevated: #ffffff;
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --color-foreground-muted: #52525b;
+  --color-foreground-subtle: #6b6b73;
+
+  /* ── Borders ──────────────────────────────────────────── */
+  --color-border-strong: #c9c9cf;
+  /* Form control outline: 3:1 against the surface (WCAG 1.4.11). */
+  --color-border-control: #8a8a94;
+
+  /* ── Brand & action ───────────────────────────────────────
+     `brand` is the SUGU orange, for accents and non-text marks.
+     `primary` is the action colour: a deeper orange so that white
+     text on it reaches 4.5:1 (#f15412 only reaches 3.5:1). */
+  --color-brand: #f15412;
+  --color-brand-hover: #e23d0c;
+  --color-brand-subtle: #fff4ed;
+  --color-primary: #d2400a;
+  --color-primary-hover: #b53608;
+  --color-primary-foreground: #ffffff;
+  --color-focus-ring: #f15412;
+  --color-disabled: #f0f0f2;
+  --color-disabled-foreground: #8a8a94;
+
+  /* ── Status tones: fg / bg / border / icon (+ solid) ──── */
+  --color-success-fg: #0b6b3a;
+  --color-success-bg: #e3f5ea;
+  --color-success-border: #9fd8b6;
+  --color-success-icon: #12804a;
+
+  --color-warning-fg: #8a4b00;
+  --color-warning-bg: #fdf0d5;
+  --color-warning-border: #f0c878;
+  --color-warning-icon: #a85f00;
+
+  --color-danger-fg: #a81e1e;
+  --color-danger-bg: #fde8e6;
+  --color-danger-border: #f2aaa5;
+  --color-danger-icon: #c62828;
+  --color-danger-solid: #c62828;
+  --color-danger-solid-hover: #a81e1e;
+
+  --color-info-fg: #1a4fa3;
+  --color-info-bg: #e5eefc;
+  --color-info-border: #a9c4f2;
+  --color-info-icon: #2563c9;
+
+  --color-neutral-fg: #3f3f46;
+  --color-neutral-bg: #f0f0f2;
+  --color-neutral-border: #d4d4d8;
+  --color-neutral-icon: #6b6b73;
+
+  /* ── Radius: short scale ──────────────────────────────── */
+  --radius-compact: 4px;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-pill: 9999px;
+  /* Product decision: every button is fully rounded. One token, so the
+     choice can be revisited without touching components. */
+  --radius-button: 9999px;
+
+  /* ── Control heights (h-control, min-h-touch, size-control…) ── */
+  --spacing-control-sm: 2rem;
+  --spacing-control: 2.25rem;
+  --spacing-touch: 2.75rem;
+
+  /* ── Typography: 6 steps, 12px floor ──────────────────── */
+  --text-page-title: 1.375rem;
+  --text-page-title--line-height: 1.75rem;
+  --text-page-title--font-weight: 600;
+  --text-page-title--letter-spacing: -0.01em;
+
+  --text-section-title: 1rem;
+  --text-section-title--line-height: 1.5rem;
+  --text-section-title--font-weight: 600;
+
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-label--font-weight: 500;
+
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1rem;
+
+  --text-kpi: 1.5rem;
+  --text-kpi--line-height: 2rem;
+  --text-kpi--font-weight: 600;
+  --text-kpi--letter-spacing: -0.01em;
+
+  /* ── Shadows: neutral only ────────────────────────────── */
+  --shadow-raised: 0 1px 2px rgba(24, 24, 27, 0.06);
+  --shadow-overlay: 0 8px 24px rgba(24, 24, 27, 0.12), 0 1px 2px rgba(24, 24, 27, 0.08);
+
+  /* ── Motion: short and discreet ───────────────────────── */
+  --animate-ds-fade: ds-fade 120ms ease-out;
+  --animate-ds-pop: ds-pop 140ms ease-out;
+  --animate-ds-sheet-right: ds-sheet-right 180ms ease-out;
+  --animate-ds-sheet-bottom: ds-sheet-bottom 180ms ease-out;
+  --animate-ds-spin: spin 0.8s linear infinite;
+
+  @keyframes ds-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes ds-pop {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes ds-sheet-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
+  @keyframes ds-sheet-bottom {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+}
+
+/* ── Structure tokens (not Tailwind namespaces) ─────────── */
+:root {
+  --z-sticky: 10;
+  --z-header: 30;
+  --z-dropdown: 60;
+  --z-overlay: 70;
+  --z-modal: 71;
+  --z-popover: 80;
+  --z-tooltip: 90;
+
+  /* Page gutter: phone / tablet / desktop */
+  --page-gutter: 1rem;
+}
+
+@media (min-width: 48rem) {
+  :root { --page-gutter: 1.5rem; }
+}
+
+@media (min-width: 80rem) {
+  :root { --page-gutter: 2rem; }
+}
+
+@utility z-sticky { z-index: var(--z-sticky); }
+@utility z-header { z-index: var(--z-header); }
+@utility z-dropdown { z-index: var(--z-dropdown); }
+@utility z-overlay { z-index: var(--z-overlay); }
+@utility z-modal { z-index: var(--z-modal); }
+@utility z-popover { z-index: var(--z-popover); }
+@utility z-tooltip { z-index: var(--z-tooltip); }
+
+@utility px-page { padding-inline: var(--page-gutter); }
+@utility py-page { padding-block: var(--page-gutter); }
+@utility gap-page { gap: var(--page-gutter); }
+
+/* `touch:` — phones (below 768px) and any coarse pointer (tablets).
+   Used to grow controls to a 44px target. */
+@custom-variant touch (@media (pointer: coarse) or (max-width: 47.9375rem));
+
+/* ── Scope ──────────────────────────────────────────────── */
+.sugu-ui {
+  --background: #f7f7f8;
+  --foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --border: #e4e4e7;
+  --ring: #f15412;
+
+  color: var(--foreground);
+  color-scheme: light;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* globals.css sets `* { border-color }` and `:focus-visible { outline }`
+   outside any cascade layer, so they beat every Tailwind utility
+   (`border-primary`, `outline-none`…). Legacy pages depend on that
+   behaviour; inside the scope we hand the decision back to the layers. */
+.sugu-ui,
+.sugu-ui * {
+  border-color: revert-layer;
+}
+
+.sugu-ui:focus-visible,
+.sugu-ui :focus-visible {
+  outline: revert-layer;
+  outline-offset: revert-layer;
+}
+
+@layer base {
+  .sugu-ui,
+  .sugu-ui *,
+  .sugu-ui ::before,
+  .sugu-ui ::after {
+    border-color: var(--border);
+  }
+
+  .sugu-ui:focus-visible,
+  .sugu-ui :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+}
