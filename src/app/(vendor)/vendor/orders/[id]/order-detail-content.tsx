@@ -37,9 +37,10 @@ import {
   formatOrderDateTime,
   orderLabel,
 } from "@/features/vendor/orders/components/order-bits";
-import { OrderTimeline } from "@/features/vendor/orders/components/order-timeline";
+import { OrderTrackingBanner, OrderTrackingSteps } from "@/features/vendor/orders/components/order-tracking";
 import { describeFailure } from "@/features/vendor/orders/errors";
 import { useConfirmHandoff, useOrderAction, usePickupCodes } from "@/features/vendor/orders/hooks";
+import { buildTrackingView } from "@/features/vendor/orders/tracking";
 import {
   TRANSITIONS,
   orderGuidance,
@@ -70,7 +71,10 @@ export function OrderDetailContent({ order }: { order: OrderDetail }) {
 
   const primary = primaryTransition(order);
   const secondary = secondaryTransitions(order);
-  const guidance = orderGuidance(order);
+  const tracking = buildTrackingView(order);
+  // The backend tracking already says where the order stands and what comes
+  // next. The guidance sentence is kept for a backend that does not send it.
+  const guidance = order.tracking ? null : orderGuidance(order);
   const phone = order.customer.phone;
 
   async function run(key: OrderActionKey) {
@@ -168,6 +172,8 @@ export function OrderDetailContent({ order }: { order: OrderDetail }) {
         }
       />
 
+      {tracking && <OrderTrackingBanner view={tracking} />}
+
       {guidance && (
         <Alert tone={guidance.tone} title={guidance.title}>
           {guidance.body}
@@ -229,7 +235,11 @@ export function OrderDetailContent({ order }: { order: OrderDetail }) {
 
           <Card className="order-7 lg:order-none">
             <Section title="Suivi de la commande">
-              <OrderTimeline steps={order.timeline} />
+              {tracking ? (
+                <OrderTrackingSteps view={tracking} />
+              ) : (
+                <p className="text-body text-foreground-muted">Aucun suivi n&apos;a été transmis pour cette commande.</p>
+              )}
             </Section>
           </Card>
         </div>

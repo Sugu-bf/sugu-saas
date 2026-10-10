@@ -194,6 +194,42 @@ const timelineStepSchema = z.object({
 });
 export type OrderTimelineStep = z.infer<typeof timelineStepSchema>;
 
+/**
+ * `tracking` (Laravel: OrderTimelineProjection::track): the same timeline,
+ * worded and ordered by the backend, with the current and next steps.
+ *
+ * `status`: `done` and `current` are reached steps, `upcoming` is expected.
+ * A reached step with a null `timestamp` happened at a moment the backend did
+ * not record. `kind`, `flow` and `state` are kept as sent: a value added
+ * later must not break the page.
+ */
+const trackingStepSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  summary: nullableString,
+  kind: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: nullableString,
+});
+export type OrderTrackingStep = z.infer<typeof trackingStepSchema>;
+
+const trackingSchema = z.object({
+  version: z.number().int(),
+  /** `counter_sale`, `direct_sale`, `direct_delivery`, `marketplace`, `cod_mixte`. */
+  flow: z.string(),
+  /** `in_progress`, `completed`, `canceled`, `failed`, `returned`. */
+  state: z.string(),
+  steps: z.array(trackingStepSchema),
+  /** Index in `steps` of the step the order stands on. */
+  current: z.number().int().nonnegative().nullable(),
+  /** Index in `steps` of the next expected step; null when nothing is expected. */
+  next: z.number().int().nonnegative().nullable(),
+  /** Null for an order that ended on an exception. */
+  progress: z.object({ done: z.number().int().nonnegative(), total: z.number().int().nonnegative() }).nullable(),
+});
+export type OrderTracking = z.infer<typeof trackingSchema>;
+
 const rawDetailSchema = z.object({
   id: z.string().min(1),
   reference: nullableString,
@@ -233,6 +269,7 @@ const rawDetailSchema = z.object({
     paymentStatus: nullableString,
   }),
   canonical_timeline: z.array(timelineStepSchema).nullish(),
+  tracking: trackingSchema.nullish(),
   cod_mixte: z
     .object({
       isCodMixte: z.boolean().nullish(),
@@ -331,7 +368,10 @@ export interface OrderDetail {
     courier: { name: string | null; phone: string | null } | null;
     note: string | null;
   };
+  /** `canonical_timeline`: read only when the backend sends no `tracking`. */
   timeline: OrderTimelineStep[];
+  /** Null on a backend older than V1.2. */
+  tracking: OrderTracking | null;
   actions: OrderActions;
   /** `server`: flags sent by the backend. `rules`: derived from the known workflow. */
   actionsSource: "server" | "rules";
@@ -445,6 +485,7 @@ export function parseOrderDetail(raw: unknown): OrderDetail {
       note: order.delivery?.note ?? null,
     },
     timeline: order.canonical_timeline ?? [],
+    tracking: order.tracking ?? null,
     actions: order.actions ?? deriveActionsFromRules({ status: order.statusCode, isDirect, hasShipment, codMixte: cod }),
     actionsSource: order.actions ? "server" : "rules",
   };

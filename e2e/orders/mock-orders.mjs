@@ -3,6 +3,16 @@
 // (../sugu): amounts in francs, backend status codes, the same guards as the
 // real endpoints. One independent data set per session token, so tests can
 // mutate orders without seeing each other. Nothing here reaches a real backend.
+//
+// Tracking (V1.2). The orders the workflow tests mutate answer like a backend
+// older than V1.2: `canonical_timeline` only. The `order-track-*` orders carry
+// a `tracking` block that is NOT written here: it is read from
+// laravel-order-tracking.json, produced by the Laravel projection itself
+// (../sugu, tests/Feature/Orders/OrderTrackingProjectionTest.php).
+
+import { readFileSync } from "node:fs";
+
+const LARAVEL_TRACKING = JSON.parse(readFileSync(new URL("./laravel-order-tracking.json", import.meta.url), "utf8")).scenarios;
 
 const STORE_ID = "store-11";
 const HOUR = 3600_000;
@@ -160,32 +170,87 @@ function seed() {
   return orders;
 }
 
+/**
+ * `canonical_timeline` as OrderTimelineProjection::build answers it: its keys
+ * and labels, reached steps only, the latest one `current`.
+ */
 function timelineOf(item) {
-  const reached = ["pending", "confirmed", "processing", "shipped", "delivered"].indexOf(item.status);
   const steps = [
-    ["placed", "Commande passée"],
-    ["confirmed", "Confirmée par le vendeur"],
+    ["placed", "Commande reçue"],
+    ["vendor_confirmed", "Stock confirmé"],
     ["preparing", "En préparation"],
-    ["shipped", "Expédiée"],
+    ["in_transit", "En livraison"],
     ["delivered", "Livrée"],
   ];
-  if (item.status === "canceled") {
-    return [
-      { key: "placed", label: "Commande passée", status: "done", timestamp: item.createdAt },
-      { key: "cancelled", label: "Commande annulée", status: "done", timestamp: item.createdAt },
-    ];
-  }
-  return steps.map(([key, label], index) => ({
+  const reached = ["pending", "confirmed", "processing", "shipped", "delivered"].indexOf(item.status);
+  const step = (key, label, last) => ({
     key,
     label,
-    status: index <= reached ? "done" : index === reached + 1 ? "current" : "upcoming",
-    timestamp: index <= reached ? item.createdAt : null,
-  }));
+    status: last ? "current" : "done",
+    timestamp: item.createdAt,
+    store_id: null,
+    actor_type: null,
+    description: null,
+  });
+  if (item.status === "canceled") return [step("placed", "Commande reçue", false), step("canceled", "Annulée", true)];
+  return steps.slice(0, Math.max(reached, 0) + 1).map(([key, label], index, all) => step(key, label, index === all.length - 1));
+}
+
+// One order per scenario of the Laravel fixture. They are opened by id only:
+// they are not listed and not counted, so the list tests keep their numbers.
+const TRACKED_AT = "2026-10-01T08:00:00.000000Z";
+const TRACKED = {
+  marketplace_pending: { status: "pending" },
+  marketplace_collected: {
+    status: "processing",
+    partner: { id: "21", name: "Faso Express" },
+    shipmentStatus: "assigned",
+    courier: { name: "Moussa Kaboré", phone: "+22670000001" },
+    pickup: { store_id: STORE_ID, pickup_code: "4821", status: "collected", vendor_handoff_at: null },
+  },
+  marketplace_delivered: { status: "delivered", partner: { id: "21", name: "Faso Express" }, shipmentStatus: "delivered" },
+  delivered_without_history: { status: "delivered" },
+  cod_mixte_product_unpaid: {
+    status: "shipped",
+    isCod: true,
+    codFlow: "mixte",
+    codStep: "awaiting_product_payment",
+    paymentStatus: "partial",
+    deliveryFeePaid: true,
+    productFeePaid: false,
+    partner: { id: "22", name: "Ouaga Livraison" },
+    shipmentStatus: "arrived",
+  },
+  canceled: { status: "canceled" },
+  delivery_failed: { status: "shipped", partner: { id: "21", name: "Faso Express" }, shipmentStatus: "delivery_failed" },
+  counter_sale: { status: "delivered", direct: true, deliveryMethod: "pickup", deliveryFees: 0, address: null },
+  direct_delivery: {
+    status: "confirmed",
+    direct: true,
+    isCod: true,
+    codFlow: "legacy",
+    paymentStatus: "cod_pending",
+    deliveryMethod: "shipping",
+    deliveryFees: 0,
+    partner: { id: "21", name: "Faso Express" },
+    shipmentStatus: "pending",
+  },
+};
+
+function trackedOrders() {
+  return Object.entries(TRACKED).map(([scenario, overrides], index) => {
+    const item = order(200 + index, { id: `order-track-${scenario}`, createdAt: TRACKED_AT, ...overrides });
+    if (item.direct) item.orderTotal = item.subtotal - item.discount;
+    item.timeline = timelineOf(item);
+    item.tracking = LARAVEL_TRACKING[scenario];
+    if (!item.tracking) throw new Error(`laravel-order-tracking.json has no scenario "${scenario}"`);
+    return item;
+  });
 }
 
 const states = new Map();
 function stateOf(token) {
-  if (!states.has(token)) states.set(token, { orders: seed(), sales: new Map(), nextNumber: 100 });
+  if (!states.has(token)) states.set(token, { orders: seed(), tracked: trackedOrders(), sales: new Map(), nextNumber: 100 });
   return states.get(token);
 }
 
@@ -268,6 +333,8 @@ function detail(item) {
       paymentMethod: item.isCod ? "Cash (COD)" : "Mobile Money",
     },
     canonical_timeline: item.timeline,
+    // Absent on the workflow orders, as on a backend older than V1.2.
+    ...(item.tracking ? { tracking: item.tracking } : {}),
     cod_mixte:
       item.codFlow === "mixte"
         ? {
@@ -356,7 +423,7 @@ const TRANSITIONS = {
 
 export default async function ordersExtension({ req, res, url, path, method, token, send, readJson }) {
   const state = stateOf(token);
-  const own = (id) => state.orders.find((item) => item.id === id && item.storeId === STORE_ID);
+  const own = (id) => [...state.orders, ...state.tracked].find((item) => item.id === id && item.storeId === STORE_ID);
   const notFound = () => send(res, 404, { success: false, message: "Commande non trouvée." });
 
   // ── Manual sale ──

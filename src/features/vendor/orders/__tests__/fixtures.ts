@@ -67,10 +67,13 @@ export function detailPayload(overrides: Overrides = {}): Record<string, unknown
       paymentStatus: "paid",
       paymentMethod: "Mobile Money",
     },
+    // OrderTimelineProjection::buildForRole('vendor'): a new order of one
+    // boutique, with its per-boutique steps still to come.
     canonical_timeline: [
-      { key: "placed", label: "Commande passée", status: "done", timestamp: "2026-10-08T09:30:00.000000Z" },
-      { key: "confirmed", label: "Confirmée par le vendeur", status: "current", timestamp: null },
-      { key: "delivered", label: "Livrée", status: "upcoming", timestamp: null },
+      { key: "placed", label: "Commande reçue", status: "current", timestamp: "2026-10-08T09:30:00.000000Z", store_id: null, actor_type: null, description: "Commande créée, en attente de paiement" },
+      { key: "vendor_confirmed", label: "Stock confirmé", status: "upcoming", timestamp: null, store_id: "s1", actor_type: null, description: null },
+      { key: "collected", label: "Collecté", status: "upcoming", timestamp: null, store_id: "s1", actor_type: null, description: null },
+      { key: "vendor_handoff", label: "Remise vendeur", status: "upcoming", timestamp: null, store_id: "s1", actor_type: null, description: null },
     ],
     cod_mixte: null,
     delivery: {

@@ -1,0 +1,506 @@
+{
+    "source": "sugu: tests/Feature/Orders/OrderTrackingProjectionTest.php (OrderTimelineProjection::track, role vendor)",
+    "scenarios": {
+        "marketplace_pending": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "in_progress",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "À faire : confirmer que les articles sont disponibles.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "collected",
+                    "title": "Colis collecté",
+                    "summary": "Le coursier viendra collecter le colis à votre boutique.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_handoff",
+                    "title": "Remise au coursier",
+                    "summary": "À confirmer une fois le colis remis au coursier.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis sera acheminé jusqu'au client.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Livraison au client",
+                    "summary": "Validée par le code que le client donne au coursier. Vous n'avez rien à faire.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 0,
+            "next": 1,
+            "progress": {
+                "done": 1,
+                "total": 6
+            }
+        },
+        "marketplace_collected": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "in_progress",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "La disponibilité des articles est confirmée.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:20:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "preparing",
+                    "title": "En préparation",
+                    "summary": "La commande est passée en préparation.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:30:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "courier_assigned",
+                    "title": "Coursier désigné",
+                    "summary": "Un coursier est chargé de collecter et de livrer le colis.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T09:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "collected",
+                    "title": "Colis collecté",
+                    "summary": "Le coursier a collecté le colis à la boutique.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": "2026-10-01T10:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_handoff",
+                    "title": "Remise au coursier",
+                    "summary": "À confirmer une fois le colis remis au coursier.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis sera acheminé jusqu'au client.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Livraison au client",
+                    "summary": "Validée par le code que le client donne au coursier. Vous n'avez rien à faire.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 4,
+            "next": 5,
+            "progress": {
+                "done": 5,
+                "total": 8
+            }
+        },
+        "marketplace_delivered": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "completed",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "La disponibilité des articles est confirmée.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:20:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "preparing",
+                    "title": "En préparation",
+                    "summary": "La commande est passée en préparation.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:30:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "courier_assigned",
+                    "title": "Coursier désigné",
+                    "summary": "Un coursier est chargé de collecter et de livrer le colis.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T09:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "collected",
+                    "title": "Colis collecté",
+                    "summary": "Le coursier a collecté le colis à la boutique.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T10:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_handoff",
+                    "title": "Remise au coursier",
+                    "summary": "Vous avez confirmé la remise du colis au coursier.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T10:05:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis a pris la route vers le client.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T11:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Commande livrée",
+                    "summary": "Le client a reçu sa commande.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": "2026-10-01T13:00:00.000000Z",
+                    "store_id": null
+                }
+            ],
+            "current": 7,
+            "next": null,
+            "progress": {
+                "done": 8,
+                "total": 8
+            }
+        },
+        "delivered_without_history": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "completed",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Commande livrée",
+                    "summary": "Le client a reçu sa commande.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 1,
+            "next": null,
+            "progress": {
+                "done": 2,
+                "total": 2
+            }
+        },
+        "cod_mixte_product_unpaid": {
+            "version": 1,
+            "flow": "cod_mixte",
+            "state": "in_progress",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "La disponibilité des articles est confirmée.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T09:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivery_fee_paid",
+                    "title": "Frais de livraison",
+                    "summary": "Le client a réglé les frais de livraison.",
+                    "kind": "payment",
+                    "status": "done",
+                    "timestamp": "2026-10-01T12:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis est en route vers le client.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "product_fee_paid",
+                    "title": "Paiement des produits",
+                    "summary": "Le client règle les produits à la réception, après les avoir vérifiés.",
+                    "kind": "payment",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Livraison au client",
+                    "summary": "Validée par le code que le client donne au coursier. Vous n'avez rien à faire.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 3,
+            "next": 4,
+            "progress": {
+                "done": 4,
+                "total": 6
+            }
+        },
+        "canceled": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "canceled",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "La disponibilité des articles est confirmée.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:20:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "canceled",
+                    "title": "Commande annulée",
+                    "summary": "La commande a été annulée.",
+                    "kind": "exception",
+                    "status": "current",
+                    "timestamp": "2026-10-01T10:00:00.000000Z",
+                    "store_id": null
+                }
+            ],
+            "current": 2,
+            "next": null,
+            "progress": null
+        },
+        "delivery_failed": {
+            "version": 1,
+            "flow": "marketplace",
+            "state": "in_progress",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Commande reçue",
+                    "summary": "Le client a passé cette commande.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "vendor_confirmed",
+                    "title": "Commande confirmée",
+                    "summary": "La disponibilité des articles est confirmée.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:10:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis a pris la route vers le client.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T11:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivery_failed",
+                    "title": "Livraison échouée",
+                    "summary": "Le coursier n'a pas pu remettre le colis au client.",
+                    "kind": "exception",
+                    "status": "current",
+                    "timestamp": "2026-10-01T12:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Livraison au client",
+                    "summary": "Validée par le code que le client donne au coursier. Vous n'avez rien à faire.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 3,
+            "next": 4,
+            "progress": {
+                "done": 3,
+                "total": 4
+            }
+        },
+        "counter_sale": {
+            "version": 1,
+            "flow": "counter_sale",
+            "state": "completed",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Vente enregistrée",
+                    "summary": "Vous avez enregistré cette vente au comptoir.",
+                    "kind": "milestone",
+                    "status": "done",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Remise au client",
+                    "summary": "Articles remis au client en boutique, paiement encaissé.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                }
+            ],
+            "current": 1,
+            "next": null,
+            "progress": {
+                "done": 2,
+                "total": 2
+            }
+        },
+        "direct_delivery": {
+            "version": 1,
+            "flow": "direct_delivery",
+            "state": "in_progress",
+            "steps": [
+                {
+                    "key": "placed",
+                    "title": "Vente enregistrée",
+                    "summary": "Vous avez enregistré cette vente pour le client.",
+                    "kind": "milestone",
+                    "status": "current",
+                    "timestamp": "2026-10-01T08:00:00.000000Z",
+                    "store_id": null
+                },
+                {
+                    "key": "in_transit",
+                    "title": "En cours de livraison",
+                    "summary": "Le colis sera acheminé jusqu'au client.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                },
+                {
+                    "key": "delivered",
+                    "title": "Livraison au client",
+                    "summary": "À déclarer lorsque le client a reçu ses articles.",
+                    "kind": "milestone",
+                    "status": "upcoming",
+                    "timestamp": null,
+                    "store_id": null
+                }
+            ],
+            "current": 0,
+            "next": 1,
+            "progress": {
+                "done": 1,
+                "total": 3
+            }
+        }
+    }
+}
