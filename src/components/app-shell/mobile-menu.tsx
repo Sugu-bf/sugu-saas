@@ -1,0 +1,51 @@
+"use client";
+
+import { LogOut } from "lucide-react";
+import { Button, Sheet, SheetContent } from "@/design-system";
+import { NavList } from "./nav-list";
+import type { NavGroup } from "./navigation";
+
+export interface MobileMenuProps {
+  /** `bottom`: phone menu (entries that are not tabs). `left`: tablet drawer (everything). */
+  side: "bottom" | "left";
+  open: boolean;
+  onClose: () => void;
+  groups: NavGroup[];
+  activeId: string | null;
+  name: string;
+  spaceLabel: string;
+  onLogout: () => void;
+  loggingOut: boolean;
+}
+
+/**
+ * Navigation in a panel: Escape, an outside press and the close button
+ * dismiss it; focus is trapped while open and then returns to the control
+ * that opened it.
+ */
+export function MobileMenu({
+  side,
+  open,
+  onClose,
+  groups,
+  activeId,
+  name,
+  spaceLabel,
+  onLogout,
+  loggingOut,
+}: MobileMenuProps) {
+  return (
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+      <SheetContent side={side} title={name} description={spaceLabel}>
+        <nav aria-label={side === "left" ? "Navigation principale" : "Autres rubriques"}>
+          <NavList groups={groups} activeId={activeId} touch onNavigate={onClose} />
+        </nav>
+        <div className="mt-4 border-t border-border pt-4">
+          <Button icon={LogOut} onClick={onLogout} loading={loggingOut} className="w-full">
+            Se déconnecter
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
