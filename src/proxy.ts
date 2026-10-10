@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/session-user";
+import { isUiGalleryEnabled } from "@/lib/env/ui-gallery";
 
 /**
  * Proxy — route protection.
@@ -45,6 +46,15 @@ export function proxy(request: NextRequest) {
   // Allow public paths, public prefixes, and API routes
   if (isPublicPath(pathname)) {
     return NextResponse.next();
+  }
+
+  // Design-system gallery (/dev/ui): a development tool. Where it is enabled
+  // it needs no session; in production it does not exist, session or not.
+  // Answered here because the page streams and could only send a soft 404.
+  if (pathname === "/dev" || pathname.startsWith("/dev/")) {
+    return isUiGalleryEnabled()
+      ? NextResponse.next()
+      : new NextResponse("Not Found", { status: 404 });
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
