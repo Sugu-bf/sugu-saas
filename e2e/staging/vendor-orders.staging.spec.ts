@@ -175,6 +175,11 @@ test.describe("V1 acceptance on staging", () => {
     const created = (await response!.json()).data;
     expect(created.reference).toMatch(/^SU-\d{4}-\d{6}$/);
     await expect(page.getByRole("heading", { level: 1, name: `Commande ${created.reference}` })).toBeVisible({ timeout: 30_000 });
+    // A counter sale is handed over and cashed: delivered AND paid.
+    const header = page.locator("main header").first();
+    await expect(header).toContainText("Livrée");
+    await expect(header).toContainText("Payée");
+    await shot(page, "staging-sale-created-375");
 
     // Same body, same key: the same order comes back, nothing new is created.
     const replay = await page.request.post("/api/proxy/sellers/sales", {
