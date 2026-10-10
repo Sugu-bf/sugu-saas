@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { type ReactNode } from "react";
 import type { UserRole } from "@/types";
+import { homePathFor } from "@/lib/auth/session-user";
 import { useSidebar } from "./sidebar-context";
 import { useSession } from "@/features/auth";
 
@@ -74,7 +75,7 @@ const vendorSections: SideNavSection[] = [
     items: [
       { label: "Paramètres", href: "/vendor/settings", icon: <Settings className="h-5 w-5" /> },
       { label: "Tickets", href: "/vendor/tickets", icon: <HelpCircle className="h-5 w-5" /> },
-      { label: "Aide", href: "/vendor/help", icon: <HelpCircle className="h-5 w-5" /> },
+      { label: "Aide", href: "/faq", icon: <HelpCircle className="h-5 w-5" /> },
     ],
   },
 ];
@@ -149,7 +150,7 @@ export function Sidebar({ role }: SidebarProps) {
       {/* Logo + Store/Agency name */}
       <div className="flex h-16 items-center gap-2.5 border-b border-gray-200/60 px-4 dark:border-gray-800/60">
         <Link
-          href={`/${role}/dashboard`}
+          href={homePathFor({ role, courier_status: null })}
           className={cn("flex items-center gap-2.5", collapsed && "mx-auto")}
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-400 to-sugu-600 text-sm font-bold text-white shadow-md shadow-sugu-500/20">

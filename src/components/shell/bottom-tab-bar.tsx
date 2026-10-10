@@ -51,7 +51,7 @@ const vendorDrawerItems: TabItem[] = [
   { label: "Marketing", href: "/vendor/marketing", icon: <Megaphone className="h-5 w-5" /> },
   { label: "Paramètres", href: "/vendor/settings", icon: <Settings className="h-5 w-5" /> },
   { label: "Support", href: "/vendor/tickets", icon: <MessageSquare className="h-5 w-5" /> },
-  { label: "Aide", href: "/vendor/help", icon: <HelpCircle className="h-5 w-5" /> },
+  { label: "Aide", href: "/faq", icon: <HelpCircle className="h-5 w-5" /> },
 ];
 
 // ────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { UserMenu } from "./user-menu";
 import { useSidebar } from "./sidebar-context";
 import { useSession } from "@/features/auth";
 import type { UserRole } from "@/types";
+import { homePathFor } from "@/lib/auth/session-user";
 
 interface TopbarProps {
   role: UserRole;
@@ -30,7 +31,7 @@ export function Topbar({ role }: TopbarProps) {
       <div className="flex items-center gap-3">
         {/* Mobile: brand logo + name (sidebar is hidden on mobile) */}
         <Link
-          href={`/${role}/dashboard`}
+          href={homePathFor({ role, courier_status: null })}
           className="flex items-center gap-2 lg:hidden"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sugu-400 to-sugu-600 text-xs font-bold text-white shadow-md shadow-sugu-500/20">
