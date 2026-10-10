@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useLogin, useVerifyOtp } from "@/features/auth";
 import { loginSchema, type LoginPayload } from "@/features/auth/schema";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
@@ -16,6 +16,15 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof LoginPayload, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Arriving from an expired session (see lib/auth/session-expiry).
+  /* eslint-disable react-hooks/set-state-in-effect -- read the URL after hydration */
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reason") === "expired") {
+      setServerError("Votre session a expiré. Reconnectez-vous pour continuer.");
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 2FA state
   const [is2FA, setIs2FA] = useState(false);
