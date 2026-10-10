@@ -1,1216 +1,737 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Minus, Package, Plus, Search, ShoppingCart, Trash2, UserRound, X } from "lucide-react";
 import {
-  ChevronRight,
-  Search,
-  ScanBarcode,
-  Plus,
-  Minus,
-  Trash2,
-  Phone,
-  Mail,
-  MapPin,
-  Truck,
-  Store,
-  Zap,
-  Package,
-  ShoppingCart,
-  BadgePercent,
-  Pencil,
-  Loader2,
-  AlertCircle,
-  X,
-  Building2,
-  CheckCircle2,
-} from "lucide-react";
+  Alert,
+  Button,
+  Card,
+  DescriptionList,
+  ErrorState,
+  FormErrorSummary,
+  FormField,
+  IconButton,
+  Input,
+  Money,
+  PageHeader,
+  Radio,
+  RadioGroup,
+  Section,
+  Select,
+  Skeleton,
+  StepActions,
+  Stepper,
+  Textarea,
+  type StepDefinition,
+} from "@/design-system";
+import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
+import { describeFailure } from "@/features/vendor/orders/errors";
 import {
-  useProductSearch,
-  useCustomerSearch,
-  useCreateOrder,
-  useCreateCustomer,
-  useDeliveryPartners,
-} from "@/features/vendor/hooks";
-import type { ProductSearchResult, CustomerSearchResult, DeliveryPartner } from "@/features/vendor/schema";
+  useCreateSale,
+  useSaleAgencies,
+  useSaleCustomerSearch,
+  useSaleProductSearch,
+} from "@/features/vendor/orders/hooks";
+import {
+  EMPTY_SALE,
+  SALE_FIELD_STEP,
+  SALE_STEPS,
+  buildSaleRequest,
+  computeSaleTotals,
+  saleFieldOfApiError,
+  validateSale,
+  type DiscountKind,
+  type SaleAgency,
+  type SaleCustomer,
+  type SaleDraft,
+  type SaleProduct,
+  type SaleStep,
+  type SaleTotals,
+} from "@/features/vendor/orders/sale";
 
-// ────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────
+const STEPS: StepDefinition[] = [
+  { id: "items", label: "Articles" },
+  { id: "customer", label: "Client" },
+  { id: "delivery", label: "Livraison" },
+  { id: "review", label: "Récapitulatif" },
+];
 
-interface OrderItem {
-  id: string;
-  name: string;
-  sku: string;
-  imageUrl?: string;
-  price: number;
-  quantity: number;
-  stock: number;
-}
-
-// ────────────────────────────────────────────────────────────
-// Main Form
-// ────────────────────────────────────────────────────────────
+/** Labels and anchors of the fields, for the error summary. */
+const FIELDS: Record<string, { label: string; id?: string }> = {
+  lines: { label: "Articles", id: "sale-product-search" },
+  discount: { label: "Remise", id: "sale-discount" },
+  customer: { label: "Client", id: "sale-customer-search" },
+  customerName: { label: "Nom du client", id: "sale-customer-name" },
+  customerPhone: { label: "Téléphone", id: "sale-customer-phone" },
+  customerEmail: { label: "E-mail", id: "sale-customer-email" },
+  agency: { label: "Agence", id: "sale-agency" },
+  addressLine: { label: "Adresse de livraison", id: "sale-address" },
+};
 
 export function CreateOrderForm() {
-  // ── Product state
-  const [items, setItems] = useState<OrderItem[]>([]);
-  const [productSearch, setProductSearch] = useState("");
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const productDropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [draft, setDraft] = useState<SaleDraft>(EMPTY_SALE);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // ── Client state
-  const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
-  const [clientSearch, setClientSearch] = useState("");
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<{
-    id: string;
-    name: string;
-    initials: string;
-    phone: string;
-    email: string;
-    address: string;
-    orderCount: number;
-  } | null>(null);
-  const clientDropdownRef = useRef<HTMLDivElement>(null);
+  const create = useCreateSale();
+  // One key for the life of this form: a retry replays, it does not duplicate.
+  const idempotencyKey = useIdempotencyKey();
 
-  // ── New client form state
-  const [newClientName, setNewClientName] = useState("");
-  const [newClientPhone, setNewClientPhone] = useState("");
-  const [newClientEmail, setNewClientEmail] = useState("");
+  const step = SALE_STEPS[stepIndex];
+  const totals = computeSaleTotals(draft);
+  const update = (patch: Partial<SaleDraft>) => setDraft((current) => ({ ...current, ...patch }));
 
-  // ── Delivery state
-  const [selectedAgency, setSelectedAgency] = useState<DeliveryPartner | null>(null);
-  const [showAgencyPopup, setShowAgencyPopup] = useState(false);
-  const [selectedDeliveryModeKey, setSelectedDeliveryModeKey] = useState<string | null>(null);
-  const [deliveryMode, setDeliveryMode] = useState<"shipping" | "pickup">("shipping");
-  const [deliveryNote, setDeliveryNote] = useState("");
-
-  // ── Discount state
-  const [promoCode, setPromoCode] = useState("");
-  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
-  const [discountValue, setDiscountValue] = useState("");
-
-  // ── Payment state
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "mobile" | "card">("cash");
-  const [initialStatus, setInitialStatus] = useState("pending_payment");
-
-  // ── Error state
-  const [formError, setFormError] = useState<string | null>(null);
-
-  // ── API hooks
-  const { data: productResults, isLoading: isSearchingProducts } = useProductSearch(productSearch);
-  const { data: customerResults, isLoading: isSearchingCustomers } = useCustomerSearch(clientSearch);
-  const {
-    data: deliveryPartners,
-    isLoading: isLoadingPartners,
-    isError: isPartnersError,
-    refetch: refetchPartners,
-  } = useDeliveryPartners();
-  const createOrderMutation = useCreateOrder();
-  const createCustomerMutation = useCreateCustomer();
-
-  // ── Computed values
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [items],
-  );
-
-  const selectedMode = selectedAgency?.deliveryModes.find((m) => m.key === selectedDeliveryModeKey) ?? null;
-  const deliveryCost = deliveryMode === "pickup" ? 0 : (selectedMode?.cost ?? 0);
-
-  const discountAmount = useMemo(() => {
-    const val = parseInt(discountValue) || 0;
-    if (discountType === "percentage") return Math.round((subtotal * val) / 100);
-    return val;
-  }, [subtotal, discountType, discountValue]);
-
-  const total = subtotal + deliveryCost - discountAmount;
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-
-  // ── Filter search results to exclude already-added products
-  const filteredProductResults = useMemo(() => {
-    if (!productResults) return [];
-    return productResults.filter((p: ProductSearchResult) => !items.some((i) => i.id === p.id));
-  }, [productResults, items]);
-
-  // ── Click outside handlers
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
-        setShowProductDropdown(false);
-      }
-      if (clientDropdownRef.current && !clientDropdownRef.current.contains(e.target as Node)) {
-        setShowClientDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // ── Handlers
-  const updateQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, Math.min(item.stock, item.quantity + delta)) }
-          : item,
-      ),
-    );
-  };
-
-  const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const addItem = (result: ProductSearchResult) => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: result.id,
-        name: result.name,
-        sku: result.sku,
-        imageUrl: result.imageUrl,
-        price: result.price,
-        quantity: 1,
-        stock: result.stock,
-      },
-    ]);
-    setProductSearch("");
-    setShowProductDropdown(false);
-  };
-
-  const selectClient = (customer: CustomerSearchResult) => {
-    setSelectedClient({
-      id: customer.id,
-      name: customer.name,
-      initials: customer.initials,
-      phone: customer.phone,
-      email: customer.email,
-      address: "",
-      orderCount: customer.orderCount,
+  /** Drop the errors of the fields being edited: they are re-checked on "Suivant". */
+  function clearErrors(...keys: string[]) {
+    setErrors((current) => {
+      if (!keys.some((key) => key in current)) return current;
+      const next = { ...current };
+      for (const key of keys) delete next[key];
+      return next;
     });
-    setClientSearch("");
-    setShowClientDropdown(false);
-  };
+  }
 
-  const handleSubmit = useCallback(async () => {
-    setFormError(null);
+  function goTo(index: number) {
+    setStepIndex(index);
+    window.scrollTo({ top: 0 });
+  }
 
-    // ── Validation
-    if (items.length === 0) {
-      setFormError("Ajoutez au moins un produit à la commande.");
-      return;
-    }
+  function next() {
+    const found = validateSale(draft, step);
+    setErrors(found);
+    if (Object.keys(found).length === 0) goTo(stepIndex + 1);
+  }
 
-    if (clientMode === "existing" && !selectedClient) {
-      setFormError("Sélectionnez ou recherchez un client existant.");
-      return;
-    }
+  /** Show the step that holds the first error. */
+  function showErrors(found: Record<string, string>) {
+    setErrors(found);
+    const first = Object.keys(found).map((key) => SALE_FIELD_STEP[key]).find(Boolean);
+    if (first) goTo(SALE_STEPS.indexOf(first));
+  }
 
-    if (clientMode === "new" && !newClientName.trim()) {
-      setFormError("Le nom du client est requis.");
-      return;
-    }
+  async function submit() {
+    if (create.isPending) return;
+    setSubmitError(null);
 
-    if (clientMode === "new" && !newClientPhone.trim()) {
-      setFormError("Le numéro de téléphone est requis pour un nouveau client.");
-      return;
-    }
+    const found = validateSale(draft);
+    if (Object.keys(found).length > 0) return showErrors(found);
 
-    // ── Validate delivery agency
-    if (deliveryMode === "shipping" && !selectedAgency) {
-      setFormError("Veuillez sélectionner une agence de livraison.");
-      return;
-    }
-
-    if (deliveryMode === "shipping" && !selectedDeliveryModeKey) {
-      setFormError("Veuillez sélectionner un mode de livraison.");
-      return;
-    }
-
-    // ── Build the order payload
-    const deliveryMethod = deliveryMode;
-
-    // Split new client name into first/last
-    const nameParts = newClientName.trim().split(" ");
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-
-    const orderPayload = {
-      customerId: clientMode === "existing" ? (selectedClient?.id ?? null) : null,
-      client: clientMode === "new"
-        ? {
-            phone: newClientPhone,
-            fullName: newClientName,
-            countryCode: "BF" as const,
-            email: newClientEmail || undefined,
-          }
-        : undefined,
-      products: items.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-        unitPrice: item.price,
-      })),
-      subtotal,
-      tax: 0,
-      total,
-      currency: "XOF" as const,
-      delivery: {
-        method: deliveryMethod as "pickup" | "shipping",
-        provider: deliveryMode === "shipping" ? selectedAgency?.id : undefined,
-        deliveryModeKey: deliveryMode === "shipping" ? selectedDeliveryModeKey ?? undefined : undefined,
-        pickupLocation: deliveryMode === "pickup" ? "Boutique principale" : undefined,
-      },
-      note: deliveryNote || undefined,
-    };
-
-    // If creating a new customer, first create them, then use the customerId
-    if (clientMode === "new") {
-      try {
-        const newCustomer = await createCustomerMutation.mutateAsync({
-          firstName,
-          lastName,
-          email: newClientEmail || undefined,
-          phone: newClientPhone,
-        });
-        orderPayload.customerId = newCustomer.id;
-        orderPayload.client = undefined;
-      } catch {
-        // If customer creation fails, try with inline client data (the sale endpoint also creates inline)
+    try {
+      const sale = await create.mutateAsync({ request: buildSaleRequest(draft), idempotencyKey: idempotencyKey() });
+      toast.success(sale.reference ? `Vente ${sale.reference} enregistrée.` : "Vente enregistrée.");
+      router.push(`/vendor/orders/${sale.id}`);
+    } catch (error) {
+      const failure = describeFailure(error);
+      const fieldErrors: Record<string, string> = {};
+      for (const [path, message] of Object.entries(failure.fields)) {
+        const field = saleFieldOfApiError(path);
+        if (field && !fieldErrors[field]) fieldErrors[field] = message;
       }
+      if (Object.keys(fieldErrors).length > 0) showErrors(fieldErrors);
+      else setSubmitError(failure.message);
     }
+  }
 
-    createOrderMutation.mutate(orderPayload);
-  }, [
-    items, clientMode, selectedClient, newClientName, newClientPhone, newClientEmail,
-    deliveryMode, deliveryNote, subtotal, total, createOrderMutation, createCustomerMutation,
-    selectedAgency, selectedDeliveryModeKey,
-  ]);
-
-  const isSubmitting = createOrderMutation.isPending || createCustomerMutation.isPending;
+  const errorSteps = [...new Set(Object.keys(errors).map((key) => SALE_FIELD_STEP[key]).filter(Boolean))];
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-3 lg:space-y-5">
-      {/* ════════════ Breadcrumb + Actions ════════════ */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav className="flex items-center gap-1.5 text-xs lg:text-sm" aria-label="breadcrumb">
-          <Link
-            href="/vendor/orders"
-            className="font-medium text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-          >
-            Commandes
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <span className="font-semibold text-gray-900 dark:text-white">
-            Nouvelle commande
-          </span>
-        </nav>
+    <div className="sugu-ui mx-auto flex w-full max-w-6xl flex-col gap-4">
+      <PageHeader
+        title="Nouvelle vente"
+        description="Enregistrez une vente faite en boutique, par téléphone ou sur les réseaux."
+        breadcrumbs={[{ label: "Commandes", href: "/vendor/orders" }, { label: "Nouvelle vente" }]}
+      />
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/vendor/orders"
-            className="hidden rounded-xl border border-gray-200 bg-white/60 px-4 py-2.5 text-sm font-medium text-gray-600 backdrop-blur-sm transition-all hover:bg-white dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300 lg:inline-block"
-          >
-            Annuler
-          </Link>
-          <button className="hidden rounded-xl border border-sugu-200 bg-sugu-50/80 px-4 py-2.5 text-sm font-semibold text-sugu-600 transition-all hover:bg-sugu-100 dark:border-sugu-800 dark:bg-sugu-950/30 dark:text-sugu-400 lg:inline-block">
-            Enregistrer brouillon
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="rounded-xl bg-sugu-500 px-4 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:px-5 lg:py-2.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
-          >
-            {isSubmitting ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Création…
-              </span>
-            ) : (
-              "Créer la commande →"
-            )}
-          </button>
-        </div>
-      </div>
+      <Stepper steps={STEPS} currentStep={stepIndex} errorSteps={errorSteps} label="Étapes de la vente" />
 
-      {/* ════════════ Global Error ════════════ */}
-      {(formError || createOrderMutation.isError) && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          {formError || (createOrderMutation.error as Error)?.message || "Erreur lors de la création de la commande."}
-        </div>
+      <FormErrorSummary errors={errors} fields={FIELDS} />
+      {submitError && (
+        <Alert tone="danger" title="La vente n'a pas été enregistrée">
+          {submitError}
+        </Alert>
       )}
 
-      {/* ════════════ 3-Column Grid ════════════ */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-5">
-        {/* ───────── LEFT COLUMN ───────── */}
-        <div className="space-y-3 lg:space-y-5">
-          {/* ── Produits de la commande ── */}
-          <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-                Produits de la commande
-              </h2>
-              <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-sugu-500 transition-colors hover:text-sugu-600">
-                <ScanBarcode className="h-4 w-4" />
-                Scanner code-barres
-              </button>
-            </div>
-
-            {/* Product Search */}
-            <div className="relative mt-3 lg:mt-4" ref={productDropdownRef}>
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un produit..."
-                value={productSearch}
-                onChange={(e) => {
-                  setProductSearch(e.target.value);
-                  setShowProductDropdown(true);
-                }}
-                onFocus={() => setShowProductDropdown(true)}
-                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-              />
-
-              {/* Dropdown results */}
-              {showProductDropdown && productSearch.length >= 2 && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-gray-200/80 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                  {isSearchingProducts ? (
-                    <div className="flex items-center justify-center gap-2 px-4 py-4 text-sm text-gray-400">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Recherche…
-                    </div>
-                  ) : filteredProductResults.length > 0 ? (
-                    filteredProductResults.map((result: ProductSearchResult) => (
-                      <button
-                        key={result.id}
-                        type="button"
-                        onClick={() => addItem(result)}
-                        disabled={result.stock === 0}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 first:rounded-t-xl last:rounded-b-xl disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                          {result.imageUrl ? (
-                            <Image src={result.imageUrl} alt={result.name} fill className="object-cover" />
-                          ) : (
-                            <Package className="h-4 w-4 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                            {result.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {formatCurrency(result.price)} FCFA · Stock: {result.stock}
-                            {result.stock === 0 && " (Rupture)"}
-                          </p>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-4 text-center text-sm text-gray-400">
-                      Aucun produit trouvé
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Item List */}
-            <div className="mt-3 space-y-2 lg:mt-4 lg:space-y-3">
-              {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200/60 py-8 dark:border-gray-700/40">
-                  <ShoppingCart className="h-8 w-8 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-sm text-gray-400">Aucun produit ajouté</p>
-                  <p className="text-xs text-gray-300 dark:text-gray-600">Recherchez et ajoutez des produits ci-dessus</p>
-                </div>
-              ) : (
-                items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-xl bg-white/40 px-3 py-3 dark:bg-white/5"
-                  >
-                    <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
-                      {item.imageUrl ? (
-                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                      ) : (
-                        <Package className="h-5 w-5 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate lg:text-sm">
-                        {item.name}
-                      </p>
-                      <p className="text-[11px] text-gray-400">SKU: {item.sku}</p>
-                    </div>
-
-                    {/* Quantity controls */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-6 text-center text-sm font-bold text-gray-900 dark:text-white">
-                        {item.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-
-                    {/* Line total */}
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200 lg:text-sm">
-                        {formatCurrency(item.price * item.quantity)} FCFA
-                      </p>
-                      <p className="text-[10px] text-gray-400">
-                        {formatCurrency(item.price)} × {item.quantity}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.id)}
-                      className="rounded-lg p-1 text-gray-300 transition-colors hover:text-red-500"
-                      aria-label={`Supprimer ${item.name}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer */}
-            {items.length > 0 && (
-              <>
-                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800 lg:mt-4">
-                  <span className="text-sm text-gray-500">
-                    {totalItems} article{totalItems > 1 ? "s" : ""}
-                  </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
-                    Sous-total: {formatCurrency(subtotal)} FCFA
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProductSearch("");
-                    setShowProductDropdown(false);
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-sugu-500 transition-colors hover:text-sugu-600"
-                >
-                  <Plus className="h-4 w-4" />
-                  Ajouter un produit
-                </button>
-              </>
-            )}
-          </section>
-
-          {/* ── Remise & Code promo ── */}
-          <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-              <BadgePercent className="h-4 w-4 text-sugu-500 lg:h-5 lg:w-5" />
-              Remise & Code promo
-            </h2>
-
-            {/* Promo code */}
-            <div className="mt-3 flex gap-2 lg:mt-4">
-              <input
-                type="text"
-                placeholder="Code promo"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                className="flex-1 rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-              />
-              <button className="rounded-xl border border-sugu-200 bg-sugu-50/80 px-4 py-2.5 text-sm font-semibold text-sugu-600 transition-all hover:bg-sugu-100 dark:border-sugu-800 dark:bg-sugu-950/30 dark:text-sugu-400">
-                Appliquer
-              </button>
-            </div>
-
-            {/* Manual discount */}
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-sm text-gray-500">Remise manuelle</span>
-              <select
-                value={discountType}
-                onChange={(e) => setDiscountType(e.target.value as "percentage" | "fixed")}
-                className="rounded-lg border border-gray-200/80 bg-gray-50/50 px-2 py-1.5 text-xs text-gray-700 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-gray-300"
-              >
-                <option value="percentage">Pourcentage</option>
-                <option value="fixed">Montant fixe</option>
-              </select>
-              <input
-                type="number"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                className="w-16 rounded-lg border border-gray-200/80 bg-gray-50/50 px-2 py-1.5 text-center text-sm text-gray-900 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-              />
-              <span className="text-sm text-gray-400">
-                {discountType === "percentage" ? "%" : "FCFA"}
-              </span>
-              {discountAmount > 0 && (
-                <span className="ml-auto text-sm font-semibold text-red-500">
-                  -{discountType === "percentage" ? `${discountValue}%` : ""} = -{formatCurrency(discountAmount)} FCFA
-                </span>
-              )}
-            </div>
-          </section>
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:items-start">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          {step === "items" && (
+            <ItemsStep
+              draft={draft}
+              totals={totals}
+              errors={errors}
+              onChange={(patch) => {
+                update(patch);
+                clearErrors("lines", "discount");
+              }}
+            />
+          )}
+          {step === "customer" && (
+            <CustomerStep
+              draft={draft}
+              errors={errors}
+              onChange={(patch) => {
+                update(patch);
+                clearErrors("customer", "customerName", "customerPhone", "customerEmail");
+              }}
+            />
+          )}
+          {step === "delivery" && (
+            <DeliveryStep
+              draft={draft}
+              errors={errors}
+              onChange={(patch) => {
+                update(patch);
+                clearErrors("agency", "addressLine");
+              }}
+            />
+          )}
+          {step === "review" && <ReviewStep draft={draft} totals={totals} onEdit={(target) => goTo(SALE_STEPS.indexOf(target))} />}
         </div>
 
-        {/* ───────── MIDDLE COLUMN ───────── */}
-        <div className="space-y-3 lg:space-y-5">
-          {/* ── Client ── */}
-          <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-                Client
-              </h2>
-            </div>
-
-            {/* Mode toggle */}
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-gray-500">Client existant ou nouveau</span>
-              <div className="flex rounded-lg border border-gray-200/80 p-0.5 dark:border-gray-700/50">
-                <button
-                  type="button"
-                  onClick={() => setClientMode("existing")}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                    clientMode === "existing"
-                      ? "bg-sugu-500 text-white shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}
-                >
-                  Existant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClientMode("new")}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                    clientMode === "new"
-                      ? "bg-sugu-500 text-white shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}
-                >
-                  Nouveau
-                </button>
-              </div>
-            </div>
-
-            {clientMode === "existing" ? (
-              <>
-                {/* Search client */}
-                <div className="relative mt-3" ref={clientDropdownRef}>
-                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher un client..."
-                    value={clientSearch}
-                    onChange={(e) => {
-                      setClientSearch(e.target.value);
-                      setShowClientDropdown(true);
-                    }}
-                    onFocus={() => setShowClientDropdown(true)}
-                    className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-                  />
-
-                  {/* Client dropdown */}
-                  {showClientDropdown && clientSearch.length >= 2 && (
-                    <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-gray-200/80 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                      {isSearchingCustomers ? (
-                        <div className="flex items-center justify-center gap-2 px-4 py-4 text-sm text-gray-400">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Recherche…
-                        </div>
-                      ) : customerResults && customerResults.length > 0 ? (
-                        customerResults.map((customer: CustomerSearchResult) => (
-                          <button
-                            key={customer.id}
-                            type="button"
-                            onClick={() => selectClient(customer)}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 first:rounded-t-xl last:rounded-b-xl"
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sugu-500 text-xs font-bold text-white">
-                              {customer.initials}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {customer.name}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {customer.phone || customer.email} · {customer.orderCount} commandes
-                              </p>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-4 py-4 text-center text-sm text-gray-400">
-                          Aucun client trouvé
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected client card */}
-                {selectedClient ? (
-                  <div className="mt-3 rounded-xl bg-white/40 p-4 dark:bg-white/5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sugu-500 text-xs font-bold text-white lg:h-10 lg:w-10 lg:text-sm">
-                          {selectedClient.initials}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">
-                            {selectedClient.name}
-                          </p>
-                          <div className="mt-1 space-y-0.5">
-                            {selectedClient.phone && (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                <Phone className="h-3 w-3" />
-                                {selectedClient.phone}
-                              </div>
-                            )}
-                            {selectedClient.email && (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                <Mail className="h-3 w-3" />
-                                {selectedClient.email}
-                              </div>
-                            )}
-                            {selectedClient.address && (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                <MapPin className="h-3 w-3" />
-                                {selectedClient.address}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedClient(null);
-                          setClientSearch("");
-                        }}
-                        className="text-xs font-semibold text-sugu-500 hover:text-sugu-600"
-                      >
-                        Changer
-                      </button>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-gray-400">
-                        {selectedClient.orderCount} commandes précédentes
-                      </span>
-                      {selectedClient.orderCount >= 5 && (
-                        <span className="rounded-full border border-sugu-200 bg-sugu-50/80 px-2 py-0.5 text-[10px] font-bold text-sugu-600">
-                          Client fidèle
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-3 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200/60 py-6 dark:border-gray-700/40">
-                    <p className="text-sm text-gray-400">Aucun client sélectionné</p>
-                    <p className="text-xs text-gray-300 dark:text-gray-600">Recherchez un client ci-dessus</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              /* New client form */
-              <div className="mt-3 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Nom complet"
-                  value={newClientName}
-                  onChange={(e) => setNewClientName(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-2.5 text-sm placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-                />
-                <input
-                  type="tel"
-                  placeholder="Numéro de téléphone"
-                  value={newClientPhone}
-                  onChange={(e) => setNewClientPhone(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-2.5 text-sm placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-                />
-                <input
-                  type="email"
-                  placeholder="Email (optionnel)"
-                  value={newClientEmail}
-                  onChange={(e) => setNewClientEmail(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-2.5 text-sm placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-                />
-              </div>
-            )}
-          </section>
-
-          {/* ── Livraison ── */}
-          <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-              <Truck className="h-4 w-4 text-sugu-500 lg:h-5 lg:w-5" />
-              Livraison
-            </h2>
-
-            {/* ── Delivery method toggle: Shipping vs Pickup ── */}
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-gray-500">Type de livraison</span>
-              <div className="flex rounded-lg border border-gray-200/80 p-0.5 dark:border-gray-700/50">
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMode("shipping")}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                    deliveryMode === "shipping"
-                      ? "bg-sugu-500 text-white shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}
-                >
-                  Livraison
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMode("pickup")}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                    deliveryMode === "pickup"
-                      ? "bg-sugu-500 text-white shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}
-                >
-                  Retrait
-                </button>
-              </div>
-            </div>
-
-            {deliveryMode === "shipping" ? (
-              <>
-                {/* ── Agency Selection ── */}
-                <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Agence de livraison
-                </p>
-
-                {selectedAgency ? (
-                  <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-sugu-500 bg-sugu-50/40 p-3.5 dark:bg-sugu-950/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sugu-500/10 text-sugu-500">
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">
-                          {selectedAgency.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {selectedAgency.deliveryModes.length} mode{selectedAgency.deliveryModes.length > 1 ? "s" : ""} disponible{selectedAgency.deliveryModes.length > 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAgencyPopup(true);
-                      }}
-                      className="text-xs font-semibold text-sugu-500 hover:text-sugu-600"
-                    >
-                      Changer
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowAgencyPopup(true)}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white/30 px-4 py-4 text-sm font-semibold text-gray-500 transition-all hover:border-sugu-400 hover:text-sugu-600 dark:border-gray-600 dark:bg-gray-900/20 dark:hover:border-sugu-500"
-                  >
-                    <Building2 className="h-5 w-5" />
-                    Sélectionner une agence de livraison
-                  </button>
-                )}
-
-                {/* ── Delivery Modes (only visible after agency is selected) ── */}
-                {selectedAgency && selectedAgency.deliveryModes.length > 0 && (
-                  <>
-                    <p className="mt-4 text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Mode de livraison
-                    </p>
-                    <div className="mt-2 space-y-2">
-                      {selectedAgency.deliveryModes.map((mode) => (
-                        <label
-                          key={mode.key}
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3.5 transition-all",
-                            selectedDeliveryModeKey === mode.key
-                              ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                              : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40 dark:bg-gray-900/20",
-                          )}
-                        >
-                          <input
-                            type="radio"
-                            name="deliveryMode"
-                            checked={selectedDeliveryModeKey === mode.key}
-                            onChange={() => setSelectedDeliveryModeKey(mode.key)}
-                            className="mt-1 h-4 w-4 text-sugu-500 focus:ring-sugu-500"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {mode.key.includes("express") ? (
-                                  <Zap className="h-4 w-4 text-sugu-500" />
-                                ) : (
-                                  <Package className="h-4 w-4 text-blue-500" />
-                                )}
-                                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                  {mode.label}
-                                </span>
-                              </div>
-                              {selectedDeliveryModeKey === mode.key && (
-                                <span className="rounded-full bg-sugu-500 px-2 py-0.5 text-[9px] font-bold text-white">
-                                  SÉLECTIONNÉ
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-0.5 text-xs text-gray-400">
-                              {selectedAgency.name} · {mode.estimatedTime}
-                            </p>
-                          </div>
-                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                            {mode.cost > 0 ? `${formatCurrency(mode.cost)} FCFA` : "Gratuit"}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {selectedAgency && selectedAgency.deliveryModes.length === 0 && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
-                    <AlertCircle className="mr-1.5 inline h-4 w-4" />
-                    Cette agence n&apos;a pas de modes de livraison configurés.
-                  </div>
-                )}
-              </>
-            ) : (
-              /* ── Pickup mode ── */
-              <div className="mt-3">
-                <div className="flex items-start gap-3 rounded-xl border-2 border-sugu-500 bg-sugu-50/40 p-3.5 dark:bg-sugu-950/10">
-                  <Store className="mt-0.5 h-5 w-5 text-green-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Retrait en boutique
-                    </p>
-                    <p className="mt-0.5 text-xs text-gray-400">
-                      Gratuit · Disponible sous 1h
-                    </p>
-                  </div>
-                  <span className="text-sm font-bold text-green-600">Gratuit</span>
-                </div>
-              </div>
-            )}
-
-            {/* Delivery address */}
-            {deliveryMode !== "pickup" && selectedClient?.address && (
-              <div className="mt-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Adresse de livraison
-                </p>
-                <div className="mt-2 flex items-start gap-2 rounded-xl bg-white/40 px-4 py-3 dark:bg-white/5">
-                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-sugu-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {selectedClient.address}
-                    </p>
-                    <button className="mt-1 text-xs font-semibold text-sugu-500 hover:text-sugu-600">
-                      Changer l&apos;adresse
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Delivery note */}
-            <div className="mt-4">
-              <p className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400">
-                <Pencil className="h-3.5 w-3.5" />
-                Note pour le livreur
-              </p>
-              <input
-                type="text"
-                value={deliveryNote}
-                onChange={(e) => setDeliveryNote(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-gray-200/80 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-sugu-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sugu-500/20 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-white"
-                placeholder="Instructions spéciales..."
-              />
-            </div>
-          </section>
-        </div>
-
-        {/* ───────── RIGHT COLUMN ───────── */}
-        <div className="space-y-3 lg:space-y-5">
-          {/* ── Récapitulatif ── */}
-          <section className="glass-card rounded-2xl p-4 lg:rounded-3xl lg:p-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white lg:text-lg">
-              Récapitulatif
-            </h2>
-
-            <div className="mt-3 lg:mt-4">
-              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                Résumé de la commande
-              </h3>
-
-              <div className="mt-3 space-y-2.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{totalItems} articles</span>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
-                    → {formatCurrency(subtotal)} FCFA
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">
-                    Livraison ({deliveryMode === "pickup" ? "Retrait" : selectedMode?.label ?? "—"})
-                  </span>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
-                    → {deliveryCost > 0 ? `${formatCurrency(deliveryCost)} FCFA` : "Gratuit"}
-                  </span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">
-                      Remise (-{discountType === "percentage" ? `${discountValue}%` : `${formatCurrency(parseInt(discountValue))}`})
-                    </span>
-                    <span className="font-medium text-red-500">
-                      → -{formatCurrency(discountAmount)} FCFA
-                    </span>
-                  </div>
-                )}
-
-                <div className="border-t border-gray-200/60 pt-3 dark:border-gray-700/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-gray-900 dark:text-white">
-                      TOTAL
-                    </span>
-                    <span className="text-lg font-extrabold text-sugu-500 lg:text-xl">
-                      {formatCurrency(total)} FCFA
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment method */}
-            <div className="mt-4 lg:mt-6">
-              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                Méthode de paiement
-              </h3>
-              <div className="mt-3 space-y-2">
-                {([
-                  { key: "cash" as const, label: "Espèces", icon: "" },
-                  { key: "mobile" as const, label: "Mobile Money", icon: "" },
-                  { key: "card" as const, label: "Carte bancaire", icon: "" },
-                ]).map((method) => (
-                  <label
-                    key={method.key}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all",
-                      paymentMethod === method.key
-                        ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                        : "border-gray-200/60 bg-white/30 hover:border-gray-300 dark:border-gray-700/40",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === method.key}
-                      onChange={() => setPaymentMethod(method.key)}
-                      className="h-4 w-4 text-sugu-500 focus:ring-sugu-500"
-                    />
-                    <span className="text-lg">{method.icon}</span>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {method.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Initial status */}
-            <div className="mt-5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Statut initial
-                </span>
-                <select
-                  value={initialStatus}
-                  onChange={(e) => setInitialStatus(e.target.value)}
-                  className="rounded-lg border border-gray-200/80 bg-gray-50/50 px-3 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700/50 dark:bg-gray-900/50 dark:text-gray-300"
-                >
-                  <option value="pending_payment">En attente de paiement</option>
-                  <option value="confirmed">Confirmée</option>
-                  <option value="processing">En préparation</option>
-                </select>
-              </div>
-            </div>
-
-            {/* CTA */}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-sugu-500 px-6 py-3 text-xs font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed lg:mt-6 lg:py-3.5 lg:text-sm lg:hover:bg-sugu-600 lg:hover:-translate-y-0.5"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Création en cours…
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="h-5 w-5" />
-                  Créer la commande
-                </>
-              )}
-            </button>
-
-            <p className="mt-3 text-center text-[11px] text-gray-400">
-              Un SMS sera envoyé au client avec les détails.
-            </p>
-          </section>
-        </div>
+        {step !== "review" && (
+          <Card className="hidden lg:sticky lg:top-4 lg:block">
+            <Section title="Montant" headingLevel={2}>
+              <TotalsList totals={totals} />
+            </Section>
+          </Card>
+        )}
       </div>
 
-      {/* ════════════ Agency Selection Popup ════════════ */}
-      {showAgencyPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-gray-200/60 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200/60 px-6 py-4 dark:border-gray-700">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Sélectionner une agence
-                </h3>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Choisissez l&apos;agence de livraison pour cette commande
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAgencyPopup(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <StepActions
+        isFirstStep={stepIndex === 0}
+        isLastStep={step === "review"}
+        onPrevious={() => goTo(stepIndex - 1)}
+        onNext={next}
+        onSubmit={submit}
+        submitLabel="Enregistrer la vente"
+        submitIcon={ShoppingCart}
+        submitting={create.isPending}
+        sticky
+      />
+    </div>
+  );
+}
 
-            {/* Body */}
-            <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-              {isLoadingPartners ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
-                  <span className="ml-2 text-sm text-gray-400">Chargement des agences…</span>
-                </div>
-              ) : isPartnersError ? (
-                <div className="flex flex-col items-center justify-center py-12" role="alert">
-                  <Building2 className="h-10 w-10 text-red-300" />
-                  <p className="mt-3 text-sm font-medium text-gray-700">
-                    Impossible de charger les agences de livraison
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => refetchPartners()}
-                    className="mt-3 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                  >
-                    Réessayer
-                  </button>
-                </div>
-              ) : !deliveryPartners || deliveryPartners.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Building2 className="h-10 w-10 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-3 text-sm font-medium text-gray-500">
-                    Aucune agence de livraison disponible
-                  </p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    Contactez l&apos;administrateur pour configurer les agences.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {deliveryPartners.map((partner) => (
-                    <button
-                      key={partner.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAgency(partner);
-                        // Auto-select first delivery mode
-                        setSelectedDeliveryModeKey(
-                          partner.deliveryModes.length > 0 ? partner.deliveryModes[0].key : null,
-                        );
-                        setShowAgencyPopup(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all",
-                        selectedAgency?.id === partner.id
-                          ? "border-sugu-500 bg-sugu-50/40 dark:bg-sugu-950/10"
-                          : "border-gray-200/60 bg-white/30 hover:border-sugu-300 hover:bg-sugu-50/20 dark:border-gray-700/40 dark:bg-gray-900/20 dark:hover:border-sugu-700",
-                      )}
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sugu-500/10 to-sugu-500/20 text-sugu-500">
-                        <Building2 className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                            {partner.name}
-                          </p>
-                          {selectedAgency?.id === partner.id && (
-                            <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-sugu-500" />
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {partner.deliveryModes.length > 0
-                            ? partner.deliveryModes.map((m) => m.label).join(" · ")
-                            : "Aucun mode configuré"}
-                        </p>
-                        {partner.type && (
-                          <span className="mt-1 inline-block rounded-full border border-gray-200 bg-gray-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-800/50">
-                            {partner.type}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        {partner.deliveryModes.length > 0 && (
-                          <p className="text-xs text-gray-400">
-                            à partir de {formatCurrency(Math.min(...partner.deliveryModes.map((m) => m.cost)))} FCFA
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+// ── Shared ──────────────────────────────────────────────────
 
-            {/* Footer */}
-            <div className="border-t border-gray-200/60 px-6 py-4 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={() => setShowAgencyPopup(false)}
-                className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-600 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
+function TotalsList({ totals }: { totals: SaleTotals }) {
+  return (
+    <DescriptionList
+      items={[
+        {
+          label: `Articles (${totals.itemCount})`,
+          value: <Money francs={totals.subtotalFrancs} />,
+        },
+        ...(totals.discountFrancs > 0 ? [{ label: "Remise", value: <Money francs={-totals.discountFrancs} /> }] : []),
+        { label: "Total à encaisser", value: <Money francs={totals.totalFrancs} className="text-section-title" /> },
+      ]}
+    />
+  );
+}
+
+interface StepProps {
+  draft: SaleDraft;
+  errors: Record<string, string>;
+  onChange: (patch: Partial<SaleDraft>) => void;
+}
+
+function Thumbnail({ src }: { src: string | null }) {
+  return (
+    <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-control border border-border bg-surface-subtle">
+      {src ? (
+        <Image src={src} alt="" fill sizes="40px" className="object-cover" />
+      ) : (
+        <Package className="size-5 text-foreground-subtle" aria-hidden="true" />
       )}
     </div>
+  );
+}
+
+// ── Step 1: items ───────────────────────────────────────────
+
+function ItemsStep({ draft, totals, errors, onChange }: StepProps & { totals: SaleTotals }) {
+  const [search, setSearch] = useState("");
+  const results = useSaleProductSearch(search);
+  const searching = search.trim().length >= 2;
+  const inCart = new Set(draft.lines.map((line) => line.productId));
+
+  function add(product: SaleProduct) {
+    onChange({
+      lines: [
+        ...draft.lines,
+        {
+          productId: product.id,
+          name: product.name,
+          sku: product.sku,
+          imageUrl: product.imageUrl,
+          unitPriceFrancs: product.priceFrancs,
+          quantity: 1,
+          stock: product.stock,
+        },
+      ],
+    });
+  }
+
+  function setQuantity(productId: string, quantity: number) {
+    onChange({
+      lines: draft.lines.map((line) =>
+        line.productId === productId ? { ...line, quantity: Math.max(1, Math.min(line.stock, quantity)) } : line,
+      ),
+    });
+  }
+
+  return (
+    <>
+      <Card>
+        <Section title="Ajouter des articles" description="Recherchez dans le catalogue de votre boutique.">
+          <FormField label="Rechercher un produit" hideLabel id="sale-product-search" error={errors.lines}>
+            <Input
+              type="search"
+              leadingIcon={Search}
+              placeholder="Nom ou référence du produit"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              autoComplete="off"
+            />
+          </FormField>
+
+          {searching && (
+            <div aria-live="polite">
+              {results.isError ? (
+                <ErrorState
+                  title="La recherche a échoué"
+                  description={describeFailure(results.error).message}
+                  onRetry={() => results.refetch()}
+                  retrying={results.isFetching}
+                />
+              ) : results.isPending ? (
+                <div className="flex flex-col gap-2" role="status" aria-label="Recherche en cours">
+                  <Skeleton className="h-12" />
+                  <Skeleton className="h-12" />
+                </div>
+              ) : results.data.length === 0 ? (
+                <p className="text-body text-foreground-muted">Aucun produit ne correspond à « {search.trim()} ».</p>
+              ) : (
+                <ul className="divide-y divide-border rounded-control border border-border">
+                  {results.data.map((product) => {
+                    const added = inCart.has(product.id);
+                    const unavailable = product.stock <= 0;
+                    return (
+                      <li key={product.id} className="flex items-center gap-3 px-3 py-2">
+                        <Thumbnail src={product.imageUrl} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-body font-medium text-foreground">{product.name}</p>
+                          <p className="text-meta text-foreground-muted tabular-nums">
+                            <Money francs={product.priceFrancs} /> ·{" "}
+                            {unavailable ? "Rupture de stock" : `${product.stock} en stock`}
+                          </p>
+                        </div>
+                        <Button
+                          size="compact"
+                          icon={Plus}
+                          disabled={added || unavailable}
+                          onClick={() => add(product)}
+                          aria-label={`Ajouter ${product.name}`}
+                        >
+                          {added ? "Ajouté" : "Ajouter"}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </Section>
+      </Card>
+
+      <Card>
+        <Section title="Articles de la vente">
+          {draft.lines.length === 0 ? (
+            <p className="text-body text-foreground-muted">Aucun article pour le moment.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {draft.lines.map((line) => (
+                <li key={line.productId} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <Thumbnail src={line.imageUrl} />
+                  <div className="min-w-0 flex-1 basis-40">
+                    <p className="text-body font-medium break-words text-foreground">{line.name}</p>
+                    <p className="text-meta text-foreground-muted tabular-nums">
+                      <Money francs={line.unitPriceFrancs} /> l&apos;unité · {line.stock} en stock
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <IconButton
+                      icon={Minus}
+                      variant="secondary"
+                      label={`Retirer un ${line.name}`}
+                      tooltip={false}
+                      disabled={line.quantity <= 1}
+                      onClick={() => setQuantity(line.productId, line.quantity - 1)}
+                    />
+                    <span
+                      className="w-8 text-center text-body font-medium text-foreground tabular-nums"
+                      aria-label={`Quantité de ${line.name} : ${line.quantity}`}
+                    >
+                      {line.quantity}
+                    </span>
+                    <IconButton
+                      icon={Plus}
+                      variant="secondary"
+                      label={`Ajouter un ${line.name}`}
+                      tooltip={false}
+                      disabled={line.quantity >= line.stock}
+                      onClick={() => setQuantity(line.productId, line.quantity + 1)}
+                    />
+                  </div>
+                  <Money
+                    francs={line.unitPriceFrancs * line.quantity}
+                    className="w-28 text-right text-body font-medium text-foreground"
+                  />
+                  <IconButton
+                    icon={Trash2}
+                    label={`Supprimer ${line.name} de la vente`}
+                    onClick={() => onChange({ lines: draft.lines.filter((other) => other.productId !== line.productId) })}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </Card>
+
+      <Card>
+        <Section title="Remise" description="Facultative. Elle s'applique au total de la vente.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <FormField label="Type de remise">
+              <Select
+                value={draft.discountKind}
+                onChange={(event) => onChange({ discountKind: event.target.value as DiscountKind })}
+                options={[
+                  { value: "amount", label: "Montant en FCFA" },
+                  { value: "percent", label: "Pourcentage" },
+                ]}
+              />
+            </FormField>
+            <FormField label="Remise" id="sale-discount" error={errors.discount}>
+              <Input
+                inputMode="numeric"
+                placeholder="0"
+                suffix={draft.discountKind === "percent" ? "%" : "FCFA"}
+                value={draft.discountInput}
+                onChange={(event) => onChange({ discountInput: event.target.value })}
+              />
+            </FormField>
+          </div>
+          <div className="lg:hidden">
+            <TotalsList totals={totals} />
+          </div>
+        </Section>
+      </Card>
+    </>
+  );
+}
+
+// ── Step 2: customer ────────────────────────────────────────
+
+function CustomerStep({ draft, errors, onChange }: StepProps) {
+  const [search, setSearch] = useState("");
+  const results = useSaleCustomerSearch(search);
+  const searching = search.trim().length >= 2;
+
+  function choose(customer: SaleCustomer) {
+    onChange({ customer });
+    setSearch("");
+  }
+
+  return (
+    <Card>
+      <Section title="Client">
+        <RadioGroup
+          label="Ce client est-il déjà dans votre fichier ?"
+          value={draft.customerMode}
+          onValueChange={(value) => onChange({ customerMode: value as SaleDraft["customerMode"] })}
+        >
+          <Radio value="existing" label="Client existant" />
+          <Radio value="new" label="Nouveau client" description="Il sera ajouté à votre fichier clients." />
+        </RadioGroup>
+
+        {draft.customerMode === "existing" ? (
+          draft.customer ? (
+            <div className="flex items-center gap-3 rounded-control border border-border bg-surface-subtle px-3 py-2">
+              <UserRound className="size-5 shrink-0 text-foreground-subtle" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-body font-medium text-foreground">{draft.customer.name}</p>
+                <p className="truncate text-meta text-foreground-muted tabular-nums">
+                  {draft.customer.phone ?? draft.customer.email ?? "Aucune coordonnée enregistrée"}
+                </p>
+              </div>
+              <Button size="compact" icon={X} onClick={() => onChange({ customer: null })}>
+                Changer
+              </Button>
+            </div>
+          ) : (
+            <>
+              <FormField label="Rechercher un client" id="sale-customer-search" error={errors.customer}>
+                <Input
+                  type="search"
+                  leadingIcon={Search}
+                  placeholder="Nom, téléphone ou e-mail"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  autoComplete="off"
+                />
+              </FormField>
+              {searching && (
+                <div aria-live="polite">
+                  {results.isError ? (
+                    <ErrorState
+                      title="La recherche a échoué"
+                      description={describeFailure(results.error).message}
+                      onRetry={() => results.refetch()}
+                      retrying={results.isFetching}
+                    />
+                  ) : results.isPending ? (
+                    <Skeleton className="h-12" role="status" aria-label="Recherche en cours" />
+                  ) : results.data.length === 0 ? (
+                    <p className="text-body text-foreground-muted">
+                      Aucun client ne correspond à « {search.trim()} ». Choisissez « Nouveau client » pour le créer.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-border rounded-control border border-border">
+                      {results.data.map((customer) => (
+                        <li key={customer.id} className="flex items-center gap-3 px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-body font-medium text-foreground">{customer.name}</p>
+                            <p className="truncate text-meta text-foreground-muted tabular-nums">
+                              {customer.phone ?? customer.email ?? "Aucune coordonnée enregistrée"}
+                            </p>
+                          </div>
+                          <Button size="compact" onClick={() => choose(customer)} aria-label={`Choisir ${customer.name}`}>
+                            Choisir
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            <FormField label="Nom complet" required id="sale-customer-name" error={errors.customerName} className="md:col-span-2">
+              <Input
+                autoComplete="off"
+                value={draft.newCustomer.name}
+                onChange={(event) => onChange({ newCustomer: { ...draft.newCustomer, name: event.target.value } })}
+              />
+            </FormField>
+            <FormField
+              label="Téléphone"
+              required
+              id="sale-customer-phone"
+              hint="Numéro du Burkina Faso, sans l'indicatif."
+              error={errors.customerPhone}
+            >
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                value={draft.newCustomer.phone}
+                onChange={(event) => onChange({ newCustomer: { ...draft.newCustomer, phone: event.target.value } })}
+              />
+            </FormField>
+            <FormField label="E-mail" id="sale-customer-email" error={errors.customerEmail}>
+              <Input
+                type="email"
+                autoComplete="off"
+                value={draft.newCustomer.email}
+                onChange={(event) => onChange({ newCustomer: { ...draft.newCustomer, email: event.target.value } })}
+              />
+            </FormField>
+          </div>
+        )}
+      </Section>
+    </Card>
+  );
+}
+
+// ── Step 3: handover ────────────────────────────────────────
+
+function DeliveryStep({ draft, errors, onChange }: StepProps) {
+  const shipping = draft.delivery === "shipping";
+  const agencies = useSaleAgencies(shipping);
+
+  return (
+    <Card>
+      <Section title="Livraison">
+        <RadioGroup
+          label="Comment le client reçoit-il ses articles ?"
+          value={draft.delivery}
+          onValueChange={(value) => onChange({ delivery: value as SaleDraft["delivery"] })}
+        >
+          <Radio
+            value="pickup"
+            label="Vente au comptoir"
+            description="Le client repart avec ses articles. La vente est enregistrée comme livrée et encaissée."
+          />
+          <Radio
+            value="shipping"
+            label="Livraison par une agence"
+            description="La commande est créée « Confirmée », à payer à la livraison. Les frais de livraison sont fixés ensuite avec l'agence."
+          />
+        </RadioGroup>
+
+        {shipping && (
+          <div className="flex flex-col gap-3">
+            {agencies.isError ? (
+              <ErrorState
+                title="Les agences n'ont pas pu être chargées"
+                description={describeFailure(agencies.error).message}
+                onRetry={() => agencies.refetch()}
+                retrying={agencies.isFetching}
+              />
+            ) : agencies.isPending ? (
+              <Skeleton className="h-9" role="status" aria-label="Chargement des agences" />
+            ) : agencies.data.length === 0 ? (
+              <Alert tone="warning" title="Aucune agence de livraison disponible">
+                Aucune agence active n&apos;est proposée pour le moment. Choisissez « Vente au comptoir » ou réessayez plus tard.
+              </Alert>
+            ) : (
+              <AgencyField agencies={agencies.data} draft={draft} error={errors.agency} onChange={onChange} />
+            )}
+
+            <FormField label="Adresse de livraison" required id="sale-address" error={errors.addressLine} hint="Quartier, rue, repère.">
+              <Input
+                autoComplete="off"
+                value={draft.addressLine}
+                onChange={(event) => onChange({ addressLine: event.target.value })}
+              />
+            </FormField>
+            <FormField label="Ville">
+              <Input
+                autoComplete="off"
+                value={draft.addressCity}
+                onChange={(event) => onChange({ addressCity: event.target.value })}
+              />
+            </FormField>
+          </div>
+        )}
+
+        <FormField label="Note" hint="Facultative. Visible sur la commande et sur le bon de livraison.">
+          <Textarea rows={2} maxLength={2000} value={draft.note} onChange={(event) => onChange({ note: event.target.value })} />
+        </FormField>
+      </Section>
+    </Card>
+  );
+}
+
+function AgencyField({
+  agencies,
+  draft,
+  error,
+  onChange,
+}: {
+  agencies: SaleAgency[];
+  draft: SaleDraft;
+  error: string | undefined;
+  onChange: (patch: Partial<SaleDraft>) => void;
+}) {
+  return (
+    <FormField label="Agence de livraison" required id="sale-agency" error={error}>
+      <Select
+        placeholder="Choisir une agence"
+        value={draft.agencyId}
+        onChange={(event) => onChange({ agencyId: event.target.value })}
+        options={agencies.map((agency) => ({ value: agency.id, label: agency.name }))}
+      />
+    </FormField>
+  );
+}
+
+// ── Step 4: review ──────────────────────────────────────────
+
+function ReviewStep({
+  draft,
+  totals,
+  onEdit,
+}: {
+  draft: SaleDraft;
+  totals: SaleTotals;
+  onEdit: (step: SaleStep) => void;
+}) {
+  const agencies = useSaleAgencies(draft.delivery === "shipping");
+  const agencyName = agencies.data?.find((agency) => agency.id === draft.agencyId)?.name ?? null;
+  const customer =
+    draft.customerMode === "existing"
+      ? { name: draft.customer?.name ?? "—", contact: draft.customer?.phone ?? draft.customer?.email ?? null }
+      : { name: draft.newCustomer.name.trim() || "—", contact: draft.newCustomer.phone.trim() || null };
+
+  return (
+    <>
+      <Card>
+        <Section title="Articles" actions={<Button size="compact" onClick={() => onEdit("items")}>Modifier</Button>}>
+          <ul className="divide-y divide-border">
+            {draft.lines.map((line) => (
+              <li key={line.productId} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">
+                <span className="min-w-0 text-body text-foreground">
+                  <span className="tabular-nums">{line.quantity} × </span>
+                  {line.name}
+                </span>
+                <Money francs={line.unitPriceFrancs * line.quantity} className="text-body text-foreground" />
+              </li>
+            ))}
+          </ul>
+          <TotalsList totals={totals} />
+        </Section>
+      </Card>
+
+      <Card>
+        <Section title="Client" actions={<Button size="compact" onClick={() => onEdit("customer")}>Modifier</Button>}>
+          <DescriptionList
+            items={[
+              { label: draft.customerMode === "new" ? "Nouveau client" : "Client", value: customer.name },
+              ...(customer.contact ? [{ label: "Contact", value: <span className="tabular-nums">{customer.contact}</span> }] : []),
+            ]}
+          />
+        </Section>
+      </Card>
+
+      <Card>
+        <Section title="Livraison" actions={<Button size="compact" onClick={() => onEdit("delivery")}>Modifier</Button>}>
+          {draft.delivery === "pickup" ? (
+            <DescriptionList
+              items={[
+                { label: "Mode", value: "Vente au comptoir" },
+                { label: "Après enregistrement", value: "Commande livrée, paiement encaissé" },
+                ...(draft.note.trim() ? [{ label: "Note", value: draft.note.trim() }] : []),
+              ]}
+            />
+          ) : (
+            <DescriptionList
+              items={[
+                { label: "Mode", value: "Livraison par une agence" },
+                { label: "Agence", value: agencyName ?? "—" },
+                {
+                  label: "Adresse",
+                  value: [draft.addressLine.trim(), draft.addressCity.trim()].filter(Boolean).join(", ") || "—",
+                },
+                { label: "Après enregistrement", value: "Commande confirmée, paiement à la livraison" },
+                ...(draft.note.trim() ? [{ label: "Note", value: draft.note.trim() }] : []),
+              ]}
+            />
+          )}
+        </Section>
+      </Card>
+
+      <Alert tone="info" title="Le stock sera mis à jour">
+        Les quantités vendues sont retirées du stock dès l&apos;enregistrement.
+      </Alert>
+    </>
   );
 }
