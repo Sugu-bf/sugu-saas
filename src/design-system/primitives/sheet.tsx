@@ -15,6 +15,7 @@ const SIDE = {
     "inset-y-0 right-0 w-full max-w-md border-l border-border animate-ds-sheet-right",
   bottom:
     "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-panel border-t border-border animate-ds-sheet-bottom",
+  left: "inset-y-0 left-0 w-full max-w-xs border-r border-border animate-ds-sheet-left",
 } as const;
 
 export interface SheetContentProps {
@@ -22,7 +23,7 @@ export interface SheetContentProps {
   description?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
-  /** `right` for detail panels, `bottom` for phone menus and filters. */
+  /** `right` for detail panels, `bottom` for phone menus and filters, `left` for navigation drawers. */
   side?: keyof typeof SIDE;
   className?: string;
 }
@@ -53,7 +54,7 @@ export function SheetContent({ title, description, children, footer, side = "rig
             <IconButton icon={X} label="Fermer" size="compact" tooltip={false} className="-mr-1" />
           </DialogPrimitive.Close>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
         {footer && (
           <div className="flex flex-col-reverse gap-2 border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:flex-row md:justify-end">
             {footer}

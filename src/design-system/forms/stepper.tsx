@@ -114,7 +114,7 @@ export function FormActions({ children, sticky = false, className }: FormActions
       className={cn(
         "flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-end",
         sticky &&
-          "sticky bottom-0 z-sticky -mx-(--page-gutter) border-t border-border bg-surface px-(--page-gutter) py-3",
+          "sticky bottom-shell z-sticky -mx-(--page-gutter) border-t border-border bg-surface px-(--page-gutter) py-3",
         className,
       )}
     >

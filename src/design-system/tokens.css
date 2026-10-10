@@ -116,6 +116,7 @@
   --animate-ds-pop: ds-pop 140ms ease-out;
   --animate-ds-sheet-right: ds-sheet-right 180ms ease-out;
   --animate-ds-sheet-bottom: ds-sheet-bottom 180ms ease-out;
+  --animate-ds-sheet-left: ds-sheet-left 180ms ease-out;
   --animate-ds-spin: spin 0.8s linear infinite;
 
   @keyframes ds-fade {
@@ -134,12 +135,18 @@
     from { transform: translateY(100%); }
     to   { transform: translateY(0); }
   }
+  @keyframes ds-sheet-left {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+  }
 }
 
 /* ── Structure tokens (not Tailwind namespaces) ─────────── */
 :root {
   --z-sticky: 10;
   --z-header: 30;
+  /* Phone tab bar: above page content and its sticky bars, below overlays. */
+  --z-nav: 50;
   --z-dropdown: 60;
   --z-overlay: 70;
   --z-modal: 71;
@@ -148,6 +155,11 @@
 
   /* Page gutter: phone / tablet / desktop */
   --page-gutter: 1rem;
+
+  /* Height taken at the bottom of the viewport by the app shell (the phone
+     tab bar and its safe area). 0 outside the shell and from 768px up.
+     Anything pinned to the bottom of the screen offsets itself by it. */
+  --shell-bottom-inset: 0px;
 }
 
 @media (min-width: 48rem) {
@@ -160,6 +172,7 @@
 
 @utility z-sticky { z-index: var(--z-sticky); }
 @utility z-header { z-index: var(--z-header); }
+@utility z-nav { z-index: var(--z-nav); }
 @utility z-dropdown { z-index: var(--z-dropdown); }
 @utility z-overlay { z-index: var(--z-overlay); }
 @utility z-modal { z-index: var(--z-modal); }
@@ -169,6 +182,9 @@
 @utility px-page { padding-inline: var(--page-gutter); }
 @utility py-page { padding-block: var(--page-gutter); }
 @utility gap-page { gap: var(--page-gutter); }
+
+/* Pin to the bottom of the screen without sliding under the phone tab bar. */
+@utility bottom-shell { bottom: var(--shell-bottom-inset); }
 
 /* `touch:` — phones (below 768px) and any coarse pointer (tablets).
    Used to grow controls to a 44px target. */

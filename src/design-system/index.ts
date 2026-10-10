@@ -61,6 +61,8 @@ export { FormField } from "./forms/field";
 export type { FormFieldProps } from "./forms/field";
 export { Input, Select, Textarea } from "./forms/input";
 export type { InputProps, SelectOption, SelectProps, TextareaProps } from "./forms/input";
+export { PasswordInput } from "./forms/password-input";
+export type { PasswordInputProps } from "./forms/password-input";
 export { Checkbox, Radio, RadioGroup, Switch } from "./forms/choice";
 export { FormActions, StepActions, Stepper } from "./forms/stepper";
 export type { StepDefinition } from "./forms/stepper";
