@@ -535,6 +535,11 @@ export function RichTextEditor({
   minHeight = 180,
 }: RichTextEditorProps) {
   const editor = useEditor({
+    // Next renders this client component on the server first: Tiptap must
+    // wait for the browser (it throws in development otherwise, which made
+    // the product create / edit pages unusable locally). The null editor of
+    // the first render is already handled below.
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
