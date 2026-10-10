@@ -2,7 +2,13 @@ import type { NextConfig } from "next";
 import { reverbConnectSource } from "./src/lib/security/reverb-csp";
 
 // The realtime socket (lib/echo.ts) — its exact origin, from the same env.
-const reverbSource = reverbConnectSource(process.env);
+const reverbSource = reverbConnectSource({
+  // Named one by one: `process.env` as a whole only type-checks where a
+  // generated declaration lists these keys, which a clean checkout lacks.
+  NEXT_PUBLIC_REVERB_HOST: process.env.NEXT_PUBLIC_REVERB_HOST,
+  NEXT_PUBLIC_REVERB_PORT: process.env.NEXT_PUBLIC_REVERB_PORT,
+  NEXT_PUBLIC_REVERB_SCHEME: process.env.NEXT_PUBLIC_REVERB_SCHEME,
+});
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
