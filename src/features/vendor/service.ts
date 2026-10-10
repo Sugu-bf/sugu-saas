@@ -8,13 +8,12 @@
  *   services/
  *   ├── _shared.ts              — Shared utilities
  *   ├── dashboard.service.ts    — Dashboard data
- *   ├── orders.service.ts       — Orders list/detail + mutations
  *   ├── products.service.ts     — Products CRUD + creation
  *   ├── clients.service.ts      — Clients list/detail + export
  *   ├── inventory.service.ts    — Inventory + stock management
  *   ├── statistics.service.ts   — Analytics/statistics
  *   ├── marketing.service.ts    — Coupons + promotions
- *   ├── sales.service.ts        — Product/customer search + order creation
+ *   ├── sales.service.ts        — Product list for pickers
  *   ├── settings.service.ts     — Settings (real API + Fortify 2FA)
  *   └── tickets.service.ts      — Tickets (mock)
  *
@@ -24,18 +23,6 @@
 export {
   // Dashboard
   getVendorDashboard,
-  // Orders
-  getVendorOrders,
-  getVendorOrderDetail,
-  confirmOrder,
-  cancelOrder,
-  requestOrderDelivery,
-  markOrderShipped,
-  markOrderDelivered,
-  downloadDeliverySlip,
-  getOrderInvoiceLink,
-  getOrderPickupCodes,
-  confirmItemHandoff,
   // Products
   getVendorProducts,
   getVendorProductDetail,
@@ -69,12 +56,7 @@ export {
   updatePromotion,
   deletePromotion,
   // Sales
-  searchVendorProducts,
   getAllVendorProducts,
-  searchVendorCustomers,
-  createVendorCustomer,
-  createVendorOrder,
-  getDeliveryPartners,
   // Settings
   getVendorSettings,
   updateSettingsIdentity,

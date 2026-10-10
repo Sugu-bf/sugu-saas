@@ -6,21 +6,6 @@
 // Dashboard
 export { getVendorDashboard } from "./dashboard.service";
 
-// Orders
-export {
-  getVendorOrders,
-  getVendorOrderDetail,
-  confirmOrder,
-  cancelOrder,
-  requestOrderDelivery,
-  markOrderShipped,
-  markOrderDelivered,
-  downloadDeliverySlip,
-  getOrderInvoiceLink,
-  getOrderPickupCodes,
-  confirmItemHandoff,
-} from "./orders.service";
-
 // Products
 export {
   getVendorProducts,
@@ -69,12 +54,7 @@ export type { CreateCouponRequest, CreatePromotionRequest, UpdatePromotionReques
 
 // Sales (search + order creation)
 export {
-  searchVendorProducts,
   getAllVendorProducts,
-  searchVendorCustomers,
-  createVendorCustomer,
-  createVendorOrder,
-  getDeliveryPartners,
 } from "./sales.service";
 
 // Settings
