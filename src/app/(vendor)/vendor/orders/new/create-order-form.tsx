@@ -104,7 +104,12 @@ export function CreateOrderForm() {
   // ── API hooks
   const { data: productResults, isLoading: isSearchingProducts } = useProductSearch(productSearch);
   const { data: customerResults, isLoading: isSearchingCustomers } = useCustomerSearch(clientSearch);
-  const { data: deliveryPartners, isLoading: isLoadingPartners } = useDeliveryPartners();
+  const {
+    data: deliveryPartners,
+    isLoading: isLoadingPartners,
+    isError: isPartnersError,
+    refetch: refetchPartners,
+  } = useDeliveryPartners();
   const createOrderMutation = useCreateOrder();
   const createCustomerMutation = useCreateCustomer();
 
@@ -1111,6 +1116,20 @@ export function CreateOrderForm() {
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
                   <span className="ml-2 text-sm text-gray-400">Chargement des agences…</span>
+                </div>
+              ) : isPartnersError ? (
+                <div className="flex flex-col items-center justify-center py-12" role="alert">
+                  <Building2 className="h-10 w-10 text-red-300" />
+                  <p className="mt-3 text-sm font-medium text-gray-700">
+                    Impossible de charger les agences de livraison
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetchPartners()}
+                    className="mt-3 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Réessayer
+                  </button>
                 </div>
               ) : !deliveryPartners || deliveryPartners.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">

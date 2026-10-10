@@ -96,43 +96,46 @@ export async function createVendorOrder(data: CreateOrderRequest): Promise<Creat
   return createOrderResponseSchema.parse({ id: res.data.id, success: res.data.success ?? true });
 }
 
-/** Fetch available delivery partners (agencies) for order creation */
-export async function getDeliveryPartners(): Promise<DeliveryPartner[]> {
-  try {
-    const res = await api.get<{
-      success: boolean;
-      data: Array<{
-        id: string;
-        name: string;
-        slug: string;
-        type?: string;
-        logo_url?: string;
-        delivery_modes?: Array<{
-          key: string;
-          label: string;
-          estimated_time?: string;
-          cost?: number;
-        }>;
-      }>;
-    }>("sellers/sales/delivery-partners");
+/** Raw agency row from GET /v1/agencies (DeliveryPartnerLiteResource). */
+export interface RawDeliveryPartnerLite {
+  id: string;
+  name?: string | null;
+  code?: string | null;
+  logoUrl?: string | null;
+  isActive?: boolean;
+}
 
-    return (res.data ?? []).map((item) =>
+/** Map the canonical agency listing to the shape the sale form consumes. */
+export function mapDeliveryPartners(rows: RawDeliveryPartnerLite[]): DeliveryPartner[] {
+  return rows
+    .filter((row) => row.isActive !== false)
+    .map((row) =>
       deliveryPartnerSchema.parse({
-        id: item.id,
-        name: item.name,
-        slug: item.slug,
-        type: item.type ?? "agency",
-        logo: item.logo_url || undefined,
-        deliveryModes: (item.delivery_modes ?? []).map((mode) => ({
-          key: mode.key,
-          label: mode.label,
-          estimatedTime: mode.estimated_time ?? "2-4h",
-          cost: mode.cost ?? 0,
-        })),
+        id: String(row.id),
+        name: row.name ?? row.code ?? "Agence",
+        slug: row.code ?? String(row.id),
+        type: "agency",
+        logo: row.logoUrl || undefined,
+        // The listing carries no delivery modes or prices: none are invented here.
+        deliveryModes: [],
       }),
     );
-  } catch {
-    // Fallback: return empty array — the form will show a message to configure delivery partners
-    return [];
-  }
+}
+
+/**
+ * Fetch the agencies a vendor can hand a manual sale to.
+ *
+ * Canonical source: GET /v1/agencies (active delivery partners). The id is what
+ * POST /sellers/sales expects in `delivery.provider`.
+ *
+ * Errors are NOT swallowed: an unreachable API must not look like
+ * "no agency available".
+ */
+export async function getDeliveryPartners(): Promise<DeliveryPartner[]> {
+  const res = await api.get<{
+    success: boolean;
+    data: { partners: RawDeliveryPartnerLite[] };
+  }>("agencies", { params: { is_active: 1, per_page: 100 } });
+
+  return mapDeliveryPartners(res.data?.partners ?? []);
 }
