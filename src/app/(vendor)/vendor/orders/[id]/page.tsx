@@ -1,36 +1,59 @@
 "use client";
 
 import { use } from "react";
-import { useVendorOrderDetail } from "@/features/vendor/hooks";
-import { OrderDetailContent } from "./order-detail-content";
+import Link from "next/link";
+import { ArrowLeft, SearchX, ShieldAlert } from "lucide-react";
+import { Button, EmptyState, ErrorState } from "@/design-system";
+import { describeFailure } from "@/features/vendor/orders/errors";
+import { useOrder } from "@/features/vendor/orders/hooks";
 import OrderDetailLoading from "./loading";
-import { ErrorState } from "@/components/feedback";
+import { OrderDetailContent } from "./order-detail-content";
 
-export default function OrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const backToList = (
+  <Button asChild icon={ArrowLeft}>
+    <Link href="/vendor/orders">Retour aux commandes</Link>
+  </Button>
+);
+
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data, isLoading, isError, error, refetch } = useVendorOrderDetail(id);
+  const order = useOrder(id);
 
-  if (isLoading) return <OrderDetailLoading />;
+  if (order.data) return <OrderDetailContent order={order.data} />;
+  if (!order.isError) return <OrderDetailLoading />;
 
-  if (isError) {
+  const failure = describeFailure(order.error);
+
+  // An order of another seller answers 404 as well: nothing tells them apart.
+  if (failure.kind === "not_found") {
     return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center py-24">
-        <ErrorState
-          title="Erreur de chargement"
-          description={
-            error?.message ?? "Impossible de charger la commande."
-          }
-          onRetry={() => refetch()}
+      <div className="sugu-ui mx-auto w-full max-w-6xl rounded-panel border border-border bg-surface">
+        <EmptyState
+          icon={SearchX}
+          title="Commande introuvable"
+          description="Cette commande n'existe pas ou n'appartient pas à votre boutique."
+          action={backToList}
         />
       </div>
     );
   }
 
-  if (!data) return null;
+  if (failure.kind === "forbidden") {
+    return (
+      <div className="sugu-ui mx-auto w-full max-w-6xl rounded-panel border border-border bg-surface">
+        <EmptyState icon={ShieldAlert} title="Accès refusé" description={failure.message} action={backToList} />
+      </div>
+    );
+  }
 
-  return <OrderDetailContent data={data} />;
+  return (
+    <div className="sugu-ui mx-auto w-full max-w-6xl rounded-panel border border-border bg-surface">
+      <ErrorState
+        title="La commande n'a pas pu être chargée"
+        description={failure.message}
+        onRetry={() => order.refetch()}
+        retrying={order.isFetching}
+      />
+    </div>
+  );
 }
