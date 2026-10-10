@@ -1,12 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
+import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 45;
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get("sugu_token")?.value;
+  if (!checkSameOrigin(request.method, request.headers).ok) return forbiddenOrigin();
+
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!token) {
     return NextResponse.json(

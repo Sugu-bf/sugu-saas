@@ -31,7 +31,6 @@ export const loginResponseSchema = z.object({
   data: z.union([
     z.object({
       user: userSchema,
-      token: z.string(),
       courier_id: z.string().optional(),
       email_verification_required: z.boolean().optional(),
     }),

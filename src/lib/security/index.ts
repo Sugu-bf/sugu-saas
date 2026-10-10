@@ -1,43 +1,25 @@
 /**
- * Security utilities and policies.
+ * Security policy of the pro portal — what the code enforces.
  *
- * Token storage policy:
- * - We use httpOnly cookies set via Next.js Route Handlers.
- * - NO token is ever stored in localStorage to prevent XSS exfiltration.
- * - If the backend doesn't support httpOnly cookies natively (e.g. Sanctum SPA),
- *   the Next.js Route Handler acts as a BFF proxy.
+ * Session
+ * - The Sanctum token lives in an httpOnly, SameSite=Lax, host-only cookie
+ *   (`sugu_session`), Secure in production. It is set and cleared only by the
+ *   Next route handlers under /api/auth/*.
+ * - No script can read it: nothing in the browser holds the token — not
+ *   localStorage, not a JS-readable cookie, not a JSON answer, not a URL.
  *
- * Headers:
- * - All API requests include X-Request-Id for traceability.
- * - CSP is configured in next.config.ts.
+ * Transport
+ * - The browser talks to this origin only. /api/proxy/* relays to the Laravel
+ *   API and adds the token server-side (see lib/bff/upstream.ts for the path,
+ *   method and header rules that keep it from being an open proxy).
+ * - Private WebSocket channels are authorized through /api/broadcasting/auth.
  *
- * CSRF:
- * - If the backend uses Sanctum SPA mode, we call /sanctum/csrf-cookie first.
- * - For token‑based auth, CSRF is not needed (Bearer token = proof of possession).
+ * CSRF
+ * - The cookie is the only credential, so every state-changing route checks
+ *   that the request is same-origin (lib/bff/same-origin.ts), on top of
+ *   SameSite=Lax.
+ *
+ * Authorization
+ * - None of this grants anything. Laravel policies decide every request.
  */
-
-/** Cookie names */
-export const TOKEN_COOKIE = "sugu_token";
-export const REFRESH_COOKIE = "sugu_refresh";
-
-/** Set auth cookie (client-side, used only as fallback) */
-export function setTokenCookie(token: string, maxAge = 60 * 60 * 24 * 7) {
-  document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
-}
-
-/** Remove auth cookie */
-export function removeTokenCookie() {
-  document.cookie = `${TOKEN_COOKIE}=; path=/; max-age=0`;
-}
-
-/** Sanitise user input (basic XSS prevention) */
-export function sanitize(input: string): string {
-  const map: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#x27;",
-  };
-  return input.replace(/[&<>"']/g, (char) => map[char] ?? char);
-}
+export { SESSION_COOKIE } from "@/lib/auth/session-user";

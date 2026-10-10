@@ -1,9 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
+import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
+import { toSessionUser } from "@/lib/auth/session-user";
+import { setSessionCookie } from "@/lib/bff/session";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export async function POST(request: NextRequest) {
+  if (!checkSameOrigin(request.method, request.headers).ok) return forbiddenOrigin();
+
   try {
     const body = await request.json();
     
@@ -47,9 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     const responseData = {
-      data: { 
-        user, 
-        token,
+      data: {
+        user,
         courier_id: json.data?.courier_id,
         email_verification_required: json.data?.email_verification_required,
       },
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const res = NextResponse.json(responseData);
 
-    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(sessionMaxAge(json.data?.expires_at)));
+    setSessionCookie(res, token, json.data?.expires_at);
 
     return res;
   } catch (error) {

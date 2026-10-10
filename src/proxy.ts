@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/session-user";
 
 /**
  * Proxy — route protection.
@@ -46,7 +47,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("sugu_token")?.value;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   // No token → redirect to login
   if (!token) {
@@ -67,6 +68,8 @@ export const config = {
      * - _next/image (image optimization)
      * - favicon.ico, sitemap.xml, robots.txt
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    // /api/* is excluded: those routes authenticate themselves, and a matched
+    // request has its body buffered (and capped) — uploads must stream.
+    "/((?!api/|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };

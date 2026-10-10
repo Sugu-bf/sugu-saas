@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { toSessionUser } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
+import { SESSION_COOKIE, toSessionUser } from "@/lib/auth/session-user";
+import { clearSessionCookies } from "@/lib/bff/session";
 
 // ============================================================
 // GET /api/auth/me
@@ -7,10 +9,10 @@ import { toSessionUser } from "@/lib/auth/session-user";
 // Forwards the sugu_token cookie as Bearer token.
 // ============================================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get("sugu_token")?.value;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!token) {
     return NextResponse.json(
@@ -33,10 +35,13 @@ export async function GET(request: NextRequest) {
 
     if (!laravelRes.ok) {
       const json = await laravelRes.json().catch(() => ({}));
-      return NextResponse.json(
+      const res = NextResponse.json(
         { message: (json as Record<string, string>).message ?? "Token invalide" },
         { status: laravelRes.status },
       );
+      // Expired or revoked: do not keep a dead token on the browser.
+      if (laravelRes.status === 401) clearSessionCookies(res);
+      return res;
     }
 
     const json = await laravelRes.json();

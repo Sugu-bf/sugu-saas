@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
+import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
+import { toSessionUser } from "@/lib/auth/session-user";
+import { setSessionCookie } from "@/lib/bff/session";
 
 // ============================================================
 // POST /api/auth/set-password
@@ -7,9 +10,11 @@ import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } fr
 // Sets the returned token as a cookie for auto-login.
 // ============================================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export async function POST(request: NextRequest) {
+  if (!checkSameOrigin(request.method, request.headers).ok) return forbiddenOrigin();
+
   try {
     const body = await request.json();
 
@@ -63,12 +68,12 @@ export async function POST(request: NextRequest) {
 
     const res = NextResponse.json({
       success: true,
-      data: { user, token },
+      data: { user },
       message: json.message ?? "Mot de passe défini avec succès.",
     });
 
     // Set auth cookie for auto-login
-    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(sessionMaxAge(json.data?.expires_at)));
+    setSessionCookie(res, token, json.data?.expires_at);
 
     return res;
   } catch (error) {

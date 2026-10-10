@@ -1,6 +1,8 @@
 import { type NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 45;
@@ -9,7 +11,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ previewId: string }> },
 ) {
-  const token = request.cookies.get("sugu_token")?.value;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!token) {
     return Response.json(

@@ -1,15 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { apiBase } from "@/lib/bff/upstream";
+import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
+import { SESSION_COOKIE } from "@/lib/auth/session-user";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export async function POST(request: NextRequest) {
+  if (!checkSameOrigin(request.method, request.headers).ok) return forbiddenOrigin();
+
   try {
     const body = await request.json();
     
-    // Récupérer le token depuis le header ou les cookies
-    const authHeader = request.headers.get("Authorization");
-    const rawToken = authHeader?.replace(/^Bearer\s*/i, '') || request.cookies.get("sugu_token")?.value;
-    const token = rawToken ? `Bearer ${rawToken}` : '';
+    // The token comes from the httpOnly session cookie only — never from a
+    // header the browser could set.
+    const rawToken = request.cookies.get(SESSION_COOKIE)?.value;
+    if (!rawToken) {
+      return NextResponse.json({ message: "Non authentifié" }, { status: 401 });
+    }
+    const token = `Bearer ${rawToken}`;
 
     const laravelRes = await fetch(`${API_BASE}/web-auth/courier/update-vehicle`, {
       method: "POST",

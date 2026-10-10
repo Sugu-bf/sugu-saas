@@ -137,14 +137,19 @@ export function sessionMaxAge(expiresAt: unknown, now: number = Date.now()): num
   return Math.max(0, Math.min(remaining, SEVEN_DAYS));
 }
 
-export const SESSION_COOKIE = "sugu_token";
+export const SESSION_COOKIE = "sugu_session";
+
+/**
+ * Name of the pre-BFF cookie, which scripts could read. It is no longer
+ * honoured anywhere and is deleted whenever the server answers.
+ */
+export const LEGACY_SESSION_COOKIE = "sugu_token";
 
 export function sessionCookieOptions(maxAge: number) {
   return {
-    // Still readable by JavaScript: the browser calls the API directly with
-    // this token. Making it httpOnly requires routing those calls through the
-    // BFF — tracked as a separate migration (see docs/PRO_DASHBOARD_RECON.md §O).
-    httpOnly: false,
+    // Never readable by scripts: only the BFF routes (/api/auth/*, /api/proxy/*)
+    // read it, server-side. Host-only (no Domain), so it stays on this origin.
+    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",

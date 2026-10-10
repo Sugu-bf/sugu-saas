@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/session-user";
+import { apiBase } from "@/lib/bff/upstream";
 
 // ============================================================
 // GET /api/vendor/dashboard
@@ -6,10 +8,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // Server-to-server: no CORS issues.
 // ============================================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
+const API_BASE = apiBase();
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get("sugu_token")?.value;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!token) {
     return NextResponse.json(

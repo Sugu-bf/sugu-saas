@@ -30,7 +30,11 @@ describe("proxy — public paths", () => {
     }
   });
 
+  it("no longer accepts the old script-readable cookie as a session", () => {
+    expect(run("/vendor/dashboard", "sugu_token=x").headers.get("location")).toContain("/login");
+  });
+
   it("lets a request with a session cookie through", () => {
-    expect(run("/vendor/dashboard", "sugu_token=x").headers.get("location")).toBeNull();
+    expect(run("/vendor/dashboard", "sugu_session=x").headers.get("location")).toBeNull();
   });
 });

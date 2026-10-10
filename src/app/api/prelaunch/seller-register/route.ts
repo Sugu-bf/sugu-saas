@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
 
 export async function POST(request: NextRequest) {
+  if (!checkSameOrigin(request.method, request.headers).ok) return forbiddenOrigin();
+
   try {
     const body = await request.json();
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.mysugu.com/api/v1";
