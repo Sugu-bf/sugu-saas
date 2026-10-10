@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { reverbConnectSource } from "./src/lib/security/reverb-csp";
+
+// The realtime socket (lib/echo.ts) — its exact origin, from the same env.
+const reverbSource = reverbConnectSource(process.env);
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
@@ -14,7 +18,12 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https: http: https://res.cloudinary.com",
-      "connect-src 'self' http://localhost:8000 https://api.mysugu.com https://*.mysugu.com https://pro.sugu.pro https://*.sugu.pro https://res.cloudinary.com https://*.cloudinary.com",
+      [
+        "connect-src 'self' http://localhost:8000 https://api.mysugu.com https://*.mysugu.com https://pro.sugu.pro https://*.sugu.pro https://res.cloudinary.com https://*.cloudinary.com",
+        reverbSource,
+      ]
+        .filter(Boolean)
+        .join(" "),
       "worker-src 'self'",
       "manifest-src 'self'",
     ].join("; "),
