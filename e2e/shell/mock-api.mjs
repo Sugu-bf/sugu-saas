@@ -3,6 +3,8 @@
 // endpoint with an empty collection: the smoke checks the frame around the
 // pages, not their business contracts. Nothing here talks to a real backend.
 import { createServer } from "node:http";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4010);
 const PASSWORD = "Passw0rd!";
@@ -133,14 +135,28 @@ const routes = {
       : [404, { message: "Code de recrutement inconnu." }],
 };
 
+// A domain smoke can plug its own endpoints in front of the empty-collection
+// fallback: MOCK_API_EXTENSION points to a module whose default export is
+// `(context) => boolean | Promise<boolean>` (true once it has answered).
+const extension = process.env.MOCK_API_EXTENSION
+  ? (await import(pathToFileURL(resolve(process.env.MOCK_API_EXTENSION)).href)).default
+  : null;
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const path = url.pathname.replace(/^\/api\/v1/, "");
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
   const key = `${req.method} ${path}`;
-  log.push(key);
+  log.push(`${key}${url.search}`);
 
   if (path === "/__log") return send(res, 200, { requests: log });
+
+  if (extension && !path.startsWith("/web-auth/") && url.pathname.startsWith("/api/v1/")) {
+    const profile = sessions.get(token);
+    if (!profile) return send(res, 401, { message: "Unauthenticated." });
+    const handled = await extension({ req, res, url, path, method: req.method, profile, token, send, readJson });
+    if (handled) return;
+  }
 
   const handler = routes[key] ?? Object.entries(routes).find(([route]) => key.startsWith(route))?.[1];
   if (handler) {
