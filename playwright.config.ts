@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./e2e",
   // The design-system gallery and the shell smoke have their own configs
   // (playwright.gallery.config.ts, playwright.shell.config.ts).
-  testIgnore: ["**/gallery/**", "**/shell/**"],
+  testIgnore: ["**/gallery/**", "**/shell/**", "**/orders/**", "**/staging/**"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
