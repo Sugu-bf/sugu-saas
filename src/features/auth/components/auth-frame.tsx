@@ -10,7 +10,7 @@ export function AuthFrame({ children }: { children: ReactNode }) {
       <Link href="/" className="flex items-center gap-2 rounded-control" aria-label="SUGU Pro, retour au site">
         <BrandMark />
         <span className="text-section-title text-foreground">
-          SUGU <span className="text-primary">Pro</span>
+          SUGU <span className="font-normal text-foreground-muted">Pro</span>
         </span>
       </Link>
       <main className="mt-6 flex w-full flex-1 flex-col items-center md:mt-8">{children}</main>

@@ -78,7 +78,9 @@ export function LoginForm() {
       } else if (status === 429) {
         setServerError("Trop de tentatives. Veuillez réessayer dans un moment.");
       } else {
-        setServerError(error.message || "Une erreur inattendue est survenue.");
+        // Only an HTTP refusal carries a message written for the user; a
+        // network failure or an unexpected payload gets a plain sentence.
+        setServerError((status && error.message) || "Une erreur inattendue est survenue.");
       }
     }
   }
@@ -100,7 +102,9 @@ export function LoginForm() {
       });
     } catch (err: unknown) {
       const error = err as Error & { status?: number };
-      setServerError(error.message || "Code incorrect.");
+      setServerError(
+        error.status ? error.message || "Code incorrect." : "Vérification impossible pour le moment. Réessayez.",
+      );
     }
   }
 
