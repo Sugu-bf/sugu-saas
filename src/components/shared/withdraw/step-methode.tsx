@@ -6,11 +6,14 @@ import { cn } from "@/lib/utils";
 import type { WithdrawFormData, WithdrawConfig, SharedPayoutSetting } from "./types";
 import { WITHDRAWAL_FEE_PERCENT } from "./types";
 import { WithdrawSummaryCard } from "./withdraw-summary-card";
+import type { LoadState } from "@/lib/query/load-state";
 
 interface StepMethodeProps {
   data: WithdrawFormData;
   onChange: (field: keyof WithdrawFormData, value: string) => void;
   payoutSettings: SharedPayoutSetting[];
+  payoutSettingsState?: LoadState;
+  onRetryPayoutSettings?: () => void;
   config: WithdrawConfig<unknown>;
 }
 
@@ -18,6 +21,8 @@ export function StepMethode({
   data,
   onChange,
   payoutSettings,
+  payoutSettingsState = "ready",
+  onRetryPayoutSettings,
   config,
 }: StepMethodeProps) {
   const amount = parseFloat(data.amount) || 0;
@@ -60,8 +65,34 @@ export function StepMethode({
 
           {/* Method cards */}
           <div className="mt-4 space-y-3">
-            {/* Vendor empty state */}
-            {!isDriver && payoutSettings.length === 0 && (
+            {payoutSettingsState === "loading" && (
+              <p className="py-8 text-center text-sm text-gray-500" role="status">
+                Chargement de vos méthodes de versement…
+              </p>
+            )}
+
+            {payoutSettingsState === "error" && (
+              <div className="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <p className="text-sm font-semibold text-gray-700">
+                  Impossible de charger vos méthodes de versement
+                </p>
+                {onRetryPayoutSettings && (
+                  <button
+                    type="button"
+                    onClick={onRetryPayoutSettings}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Réessayer
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Empty state — only once the request has actually answered */}
+            {payoutSettingsState === "ready" && !isDriver && payoutSettings.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
                   <AlertCircle className="h-6 w-6" />

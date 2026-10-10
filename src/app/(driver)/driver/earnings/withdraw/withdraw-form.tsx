@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { loadStateOf } from "@/lib/query/load-state";
 
 import { WithdrawForm as SharedWithdrawForm } from "@/components/shared/withdraw";
 import { DRIVER_WITHDRAW_CONFIG } from "@/features/driver/withdraw-config";
@@ -11,9 +12,12 @@ import {
 } from "@/features/driver/hooks";
 import type { SharedPayoutSetting } from "@/components/shared/withdraw";
 
+const EMPTY_SETTINGS: never[] = [];
+
 export function WithdrawForm() {
   const { data: earningsData } = useDriverEarnings();
-  const { data: payoutSettings = [] } = useDriverPayoutSettings();
+  const payoutSettingsQuery = useDriverPayoutSettings();
+  const payoutSettings = payoutSettingsQuery.data ?? EMPTY_SETTINGS;
   const submitWithdrawal = useSubmitDriverWithdrawal();
 
   // Parse available balance from KPI data
@@ -44,6 +48,8 @@ export function WithdrawForm() {
       config={DRIVER_WITHDRAW_CONFIG}
       balance={availableBalance}
       payoutSettings={sharedSettings}
+      payoutSettingsState={loadStateOf(payoutSettingsQuery)}
+      onRetryPayoutSettings={() => payoutSettingsQuery.refetch()}
       submitMutation={submitWithdrawal}
     />
   );

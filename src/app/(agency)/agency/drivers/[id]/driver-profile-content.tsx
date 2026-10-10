@@ -61,7 +61,8 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
   const removeMutation = useRemoveCourier();
   const verifyMutation = useVerifyCourierKyc();
 
-  if (isLoading || !data) {
+  // Error first — see AgencyDashboardClient.
+  if (!isError && (isLoading || !data)) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-sugu-500" />
@@ -69,7 +70,7 @@ export function DriverProfileContent({ courierId }: { courierId: string }) {
     );
   }
 
-  if (isError) {
+  if (isError || !data) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2">
         <AlertTriangle className="h-8 w-8 text-amber-500" />

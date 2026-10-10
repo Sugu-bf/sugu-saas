@@ -1819,6 +1819,8 @@ export const nextPayoutSchema = z.object({
   amount: z.number(),
   scheduledDate: z.string(),
   method: payoutMethodSchema.nullable(),
+  /** true when payout settings could not be loaded (≠ none configured). */
+  methodUnavailable: z.boolean().optional(),
   minThreshold: z.number(),
 });
 export type NextPayout = z.infer<typeof nextPayoutSchema>;

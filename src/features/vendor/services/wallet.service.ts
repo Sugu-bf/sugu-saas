@@ -167,20 +167,26 @@ export async function getVendorWallet(): Promise<VendorWalletData> {
   // 3. Fetch payout settings for the store
   const storeId = storeWallet.owner_id;
   let payoutSettings: RawPayoutSetting[] = [];
+  let payoutSettingsUnavailable = false;
   try {
     const psRes = await api.get<RawPayoutSettingsResponse>(
       `stores/${storeId}/payout-settings`,
     );
     payoutSettings = psRes.data.payout_settings ?? [];
   } catch {
-    // Payout settings may not be set up yet — graceful fallback
-    payoutSettings = [];
+    // The balance and history are still worth showing, but the failure is
+    // carried to the UI: "could not load" must not read as "none configured"
+    // (an empty list is a normal 200 answer from this endpoint).
+    payoutSettingsUnavailable = true;
   }
 
   // 4. Assemble and validate
-  return vendorWalletDataSchema.parse(
-    _transformWalletData(detailRes.data.wallet, payoutSettings),
-  );
+  const data = _transformWalletData(detailRes.data.wallet, payoutSettings) as {
+    nextPayout: Record<string, unknown>;
+  };
+  if (payoutSettingsUnavailable) data.nextPayout.methodUnavailable = true;
+
+  return vendorWalletDataSchema.parse(data);
 }
 
 /**

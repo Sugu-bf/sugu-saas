@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { loadStateOf } from "@/lib/query/load-state";
 
 import { WithdrawForm as SharedWithdrawForm } from "@/components/shared/withdraw";
 import { AGENCY_WITHDRAW_CONFIG } from "@/features/agency/withdraw-config";
@@ -11,9 +12,12 @@ import {
 } from "@/features/agency/hooks";
 import type { SharedPayoutSetting } from "@/components/shared/withdraw";
 
+const EMPTY_SETTINGS: never[] = [];
+
 export function WithdrawForm() {
   const { data: earningsData } = useAgencyEarnings();
-  const { data: payoutSettings = [] } = useAgencyPayoutSettings();
+  const payoutSettingsQuery = useAgencyPayoutSettings();
+  const payoutSettings = payoutSettingsQuery.data ?? EMPTY_SETTINGS;
   const submitWithdrawal = useSubmitAgencyWithdrawal();
 
   // Parse available balance from KPI data
@@ -44,6 +48,8 @@ export function WithdrawForm() {
       config={AGENCY_WITHDRAW_CONFIG}
       balance={availableBalance}
       payoutSettings={sharedSettings}
+      payoutSettingsState={loadStateOf(payoutSettingsQuery)}
+      onRetryPayoutSettings={() => payoutSettingsQuery.refetch()}
       submitMutation={submitWithdrawal}
     />
   );

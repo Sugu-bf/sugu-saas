@@ -1,5 +1,6 @@
 "use client";
 
+import type { LoadState } from "@/lib/query/load-state";
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,9 @@ interface WithdrawFormProps<P = Record<string, unknown>> {
   config: WithdrawConfig<P>;
   balance: number;
   payoutSettings: SharedPayoutSetting[];
+  /** State of the payout-settings request. Defaults to "ready" for callers not yet migrated. */
+  payoutSettingsState?: LoadState;
+  onRetryPayoutSettings?: () => void;
   submitMutation: SubmitMutation<P>;
 }
 
@@ -50,6 +54,8 @@ export function WithdrawForm<P = Record<string, unknown>>({
   config,
   balance,
   payoutSettings,
+  payoutSettingsState = "ready",
+  onRetryPayoutSettings,
   submitMutation,
 }: WithdrawFormProps<P>) {
   const router = useRouter();
@@ -235,6 +241,8 @@ export function WithdrawForm<P = Record<string, unknown>>({
             data={formData}
             onChange={handleChange}
             payoutSettings={payoutSettings}
+            payoutSettingsState={payoutSettingsState}
+            onRetryPayoutSettings={onRetryPayoutSettings}
             config={config}
           />
         )}

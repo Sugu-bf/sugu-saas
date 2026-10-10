@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { loadStateOf } from "@/lib/query/load-state";
 
 import { WithdrawForm as SharedWithdrawForm } from "@/components/shared/withdraw";
 import { VENDOR_WITHDRAW_CONFIG } from "@/features/vendor/withdraw-config";
@@ -11,9 +12,12 @@ import {
 } from "@/features/vendor/hooks";
 import type { SharedPayoutSetting } from "@/components/shared/withdraw";
 
+const EMPTY_SETTINGS: never[] = [];
+
 export function WithdrawForm() {
   const { data: walletData } = useVendorWallet();
-  const { data: payoutSettings = [] } = usePayoutSettings();
+  const payoutSettingsQuery = usePayoutSettings();
+  const payoutSettings = payoutSettingsQuery.data ?? EMPTY_SETTINGS;
   const submitWithdrawal = useSubmitWithdrawal();
 
   // Parse available balance from KPI data
@@ -46,6 +50,8 @@ export function WithdrawForm() {
       config={VENDOR_WITHDRAW_CONFIG}
       balance={availableBalance}
       payoutSettings={sharedSettings}
+      payoutSettingsState={loadStateOf(payoutSettingsQuery)}
+      onRetryPayoutSettings={() => payoutSettingsQuery.refetch()}
       submitMutation={submitWithdrawal}
     />
   );

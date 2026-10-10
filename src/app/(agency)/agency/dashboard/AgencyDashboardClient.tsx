@@ -84,7 +84,9 @@ const DELIVERY_STATUS: Record<
 export default function AgencyDashboardClient() {
   const { data, isLoading, isError } = useAgencyDashboard();
 
-  if (isLoading || !data) {
+  // Error first: with no data, the old `isLoading || !data` check made the
+  // error branch below unreachable and the page spun forever.
+  if (!isError && (isLoading || !data)) {
     return (
       <div className="mx-auto max-w-7xl space-y-4 lg:space-y-6">
         <div className="flex h-96 items-center justify-center">
@@ -99,7 +101,7 @@ export default function AgencyDashboardClient() {
     );
   }
 
-  if (isError) {
+  if (isError || !data) {
     return (
       <div className="mx-auto max-w-7xl space-y-4 lg:space-y-6">
         <div className="flex flex-col items-center justify-center py-24 text-center">

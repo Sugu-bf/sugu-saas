@@ -59,7 +59,11 @@ export function WalletNextPayoutCard({
             </button>
           </div>
         ) : (
-          <p className="mt-2 text-sm text-gray-400">Aucune méthode configurée</p>
+          <p className="mt-2 text-sm text-gray-400" role={payout.methodUnavailable ? "alert" : undefined}>
+            {payout.methodUnavailable
+              ? "Méthodes de versement momentanément indisponibles"
+              : "Aucune méthode configurée"}
+          </p>
         )}
       </div>
 

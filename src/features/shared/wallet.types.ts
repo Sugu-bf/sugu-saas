@@ -50,6 +50,8 @@ export interface WalletPayoutInfo {
   amount: number;
   scheduledDate: string;
   method: WalletPayoutMethod | null;
+  /** true when payout settings could not be loaded (≠ none configured). */
+  methodUnavailable?: boolean;
   minThreshold: number;
 }
 

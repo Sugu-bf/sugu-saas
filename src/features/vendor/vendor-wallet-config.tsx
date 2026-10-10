@@ -127,6 +127,7 @@ export function mapVendorWalletToWalletData(data: VendorWalletData): WalletPageD
             isDefault: data.nextPayout.method.isDefault,
           }
         : null,
+      methodUnavailable: data.nextPayout.methodUnavailable,
       minThreshold: data.nextPayout.minThreshold,
     },
     transactions: data.transactions.map((t) => ({
