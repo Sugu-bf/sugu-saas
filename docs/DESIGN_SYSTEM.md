@@ -8,7 +8,7 @@ Fondations de l'interface professionnelle (vendeur, agence, coursier). Mode clai
 
 ## 1. Règles à connaître avant d'écrire une page
 
-1. **Envelopper la page dans `.sugu-ui`.** Les tokens `background`, `foreground`, `border` et l'anneau de focus n'ont leurs nouvelles valeurs que dans cette portée. Le futur AppShell (Phase B) la posera une fois pour toutes ; les overlays (dialog, menu, infobulle) la portent déjà eux-mêmes.
+1. **Envelopper la page dans `.sugu-ui`.** Les tokens `background`, `foreground`, `border` et l'anneau de focus n'ont leurs nouvelles valeurs que dans cette portée. L'AppShell (Phase B) la porte sur son cadre (sidebar, topbar, navigation mobile) mais **pas sur `<main>`** : les pages non migrées y gardent leur rendu actuel. Une page migrée pose donc elle-même `className="sugu-ui"` sur son conteneur racine. Les overlays (dialog, menu, infobulle) la portent déjà eux-mêmes.
 2. **Aucune classe `dark:`**, aucun `rounded-2xl/3xl`, aucun dégradé, aucune ombre colorée, aucun emoji dans du code neuf.
 3. **Un statut métier passe par `StatusBadge`.** Pas de table de correspondance locale.
 4. **Un montant passe par `formatMoneyFromCents` ou `formatMoneyFromFrancs`**, selon l'unité que l'endpoint renvoie réellement.
@@ -75,7 +75,8 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 
 ### Structure
 
-- Couches : `z-sticky` 10, `z-header` 30, `z-dropdown` 60, `z-overlay` 70, `z-modal` 71, `z-popover` 80, `z-tooltip` 90.
+- Couches : `z-sticky` 10, `z-header` 30, `z-nav` 50 (barre d'onglets téléphone), `z-dropdown` 60, `z-overlay` 70, `z-modal` 71, `z-popover` 80, `z-tooltip` 90.
+- Bas d'écran : `--shell-bottom-inset` vaut la hauteur de la barre d'onglets téléphone (zone sûre comprise) et 0 partout ailleurs. Tout élément collé en bas l'utilise via `bottom-shell` ; `FormActions sticky` le fait déjà. Ne jamais écrire `bottom-0` ou `bottom-20` pour éviter la barre.
 - Gouttière de page : `px-page`, `py-page`, `gap-page` (16 px téléphone, 24 px dès 768 px, 32 px dès 1280 px).
 - Variante `touch:` : téléphone (< 768 px) **ou** pointeur grossier (tablette). Les contrôles y passent à 44 px et les champs à 16 px de texte.
 - Mouvement : `animate-ds-fade`, `animate-ds-pop`, `animate-ds-sheet-*`, 120 à 180 ms. `prefers-reduced-motion` est respecté par la règle globale existante.
@@ -96,9 +97,9 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 |---|---|
 | Actions | `Button`, `IconButton`, `ButtonGroup`, `DropdownMenu` (+ `Item`, `Label`, `Separator`), `Tooltip` |
 | Information | `Badge`, `StatusBadge`, `Card`, `Section`, `Stat`, `Avatar`, `EmptyState`, `ErrorState`, `Skeleton`, `Alert`, `DescriptionList`, `Money` |
-| Formulaires | `FormField`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup` + `Radio`, `Switch`, `FormActions`, `FormErrorSummary`, `Stepper`, `StepActions` |
+| Formulaires | `FormField`, `Input`, `PasswordInput`, `Textarea`, `Select`, `Checkbox`, `RadioGroup` + `Radio`, `Switch`, `FormActions`, `FormErrorSummary`, `Stepper`, `StepActions` |
 | Navigation locale | `Tabs` (+ `List`, `Trigger`, `Content`), `Pagination`, `Breadcrumbs` |
-| Overlays | `Dialog` (+ `Trigger`, `Content`, `Close`), `ConfirmDialog`, `Sheet` (+ `Trigger`, `Content`, `Close`) |
+| Overlays | `Dialog` (+ `Trigger`, `Content`, `Close`), `ConfirmDialog`, `Sheet` (+ `Trigger`, `Content`, `Close` ; côtés `right`, `bottom`, `left`) |
 | Structure | `PageHeader`, `Toolbar`, `ToolbarSearch`, `ToolbarFilter`, `ToolbarCount`, `DataTable` |
 
 ### Button
@@ -245,3 +246,12 @@ La galerie n'envoie aucune requête métier ; le test Playwright le vérifie.
 - Hors production : accessible sans session.
 - En production : `proxy.ts` répond 404, avec ou sans session. Pour l'ouvrir sur un build de production local : `SUGU_UI_GALLERY=1` (variable serveur, jamais exposée au navigateur).
 - Données : synthétiques (`gallery-data.ts`).
+
+## 9. Cadre de l'application (Phase B)
+
+- Code : `src/components/app-shell/`. Les trois layouts de rôle rendent `<WorkspaceShell role="…">`.
+- **Navigation : un seul fichier**, `navigation.ts`. Sidebar, tiroir tablette, barre d'onglets, menu téléphone, contexte de la topbar et menu du compte en dérivent. Ajouter une rubrique = ajouter une entrée (`id`, `label`, `href`, `icon`, et `mobilePriority` seulement si elle mérite un des 4 onglets).
+- Une entrée conditionnelle utilise `visible: (user) => …` et ne lit que ce que la session porte réellement. Ce n'est jamais une autorisation.
+- Écrans d'authentification : `AuthFrame` (layout) et `AuthCard`, dans `src/features/auth/components/`.
+- Retour à l'ancien cadre : construire avec `NEXT_PUBLIC_PRO_SHELL=legacy`.
+- Tests : `npx vitest run src/components/app-shell src/features/auth`, puis `npx next build --webpack && npx playwright test -c playwright.shell.config.ts` (build de production, API simulée).
