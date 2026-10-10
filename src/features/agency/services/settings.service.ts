@@ -198,13 +198,23 @@ export interface UpdatePasswordPayload {
   password_confirmation: string;
 }
 
+/** Body expected by PUT /partners/settings/security/password. */
+export function toPartnerPasswordBody(data: UpdatePasswordPayload) {
+  return {
+    currentPassword: data.current_password,
+    newPassword: data.password,
+    newPassword_confirmation: data.password_confirmation,
+  };
+}
+
 /**
- * Change the authenticated user's password.
+ * Change the authenticated agency user's password.
  *
- * PUT /auth/password
+ * PUT /partners/settings/security/password — the delivery-partner contract.
+ * (This used to call PUT /auth/password, a route that never existed.)
  */
 export async function updatePassword(data: UpdatePasswordPayload): Promise<void> {
-  await api.put("auth/password", data);
+  await api.put("partners/settings/security/password", toPartnerPasswordBody(data));
 }
 
 // ── Logo Upload / Delete ─────────────────────────────────────
