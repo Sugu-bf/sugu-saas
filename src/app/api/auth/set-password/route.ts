@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } from "@/lib/auth/session-user";
 
 // ============================================================
 // POST /api/auth/set-password
@@ -49,19 +50,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Map user to frontend shape
-    const user = {
-      id: backendUser.id,
-      name: backendUser.name,
-      email: backendUser.email,
-      role: backendUser.can_sell || backendUser.store ? "vendor" as const : "vendor" as const,
-      avatar_url: backendUser.avatar_url ?? null,
-      email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
-      created_at: backendUser.created_at ?? new Date().toISOString(),
-      delivery_partner_id: null,
-      business_name: backendUser.store?.name ?? null,
-      store_id: backendUser.store?.id ?? null,
-    };
+    // Same mapping as login: the first-access flow is not vendor-only by
+    // contract, and an unsupported profile must not be signed in as a vendor.
+    const user = toSessionUser(backendUser);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Ce compte n'a pas accès à l'espace professionnel." },
+        { status: 403 },
+      );
+    }
 
     const res = NextResponse.json({
       success: true,
@@ -70,13 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Set auth cookie for auto-login
-    res.cookies.set("sugu_token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(sessionMaxAge(json.data?.expires_at)));
 
     return res;
   } catch (error) {

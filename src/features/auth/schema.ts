@@ -22,6 +22,9 @@ export const userSchema = z.object({
   delivery_partner_id: z.string().nullable(),
   business_name: z.string().nullable(),
   store_id: z.string().nullable().optional().default(null),
+  // CourierStatus from the API (4 = KYC pending). Without this key Zod strips
+  // the field and the KYC barrier in RoleGuard can never fire.
+  courier_status: z.number().nullable().optional().default(null),
 });
 
 export const loginResponseSchema = z.object({

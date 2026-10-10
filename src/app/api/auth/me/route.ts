@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { toSessionUser } from "@/lib/auth/session-user";
 
 // ============================================================
 // GET /api/auth/me
@@ -51,21 +52,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Map backend user shape → frontend User shape
-    const store = backendUser.store as Record<string, unknown> | undefined;
+    const user = toSessionUser(backendUser);
 
-    const user = {
-      id: backendUser.id,
-      name: backendUser.name,
-      email: backendUser.email,
-      role: _mapRole(backendUser),
-      avatar_url: backendUser.avatar_url ?? store?.logo_url ?? null,
-      email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
-      created_at: backendUser.created_at ?? new Date().toISOString(),
-      delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
-      business_name: _extractBusinessName(backendUser),
-      store_id: store?.id ? String(store.id) : null,
-    };
+    // Authenticated, but not a vendor / agency / courier: say so explicitly.
+    // (This used to fall back to "vendor".)
+    if (!user) {
+      return NextResponse.json(
+        { message: "Ce compte n'a pas accès à l'espace professionnel.", code: "UNSUPPORTED_PROFILE" },
+        { status: 403 },
+      );
+    }
 
     return NextResponse.json({ data: user });
   } catch (error) {
@@ -73,33 +69,4 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error.message : "Erreur réseau.";
     return NextResponse.json({ message }, { status: 502 });
   }
-}
-
-/**
- * Map backend user profile to frontend UserRole.
- */
-/**
- * Extract the business name (store or agency) from the backend user.
- */
-function _extractBusinessName(backendUser: Record<string, unknown>): string | null {
-  const store = backendUser.store as Record<string, unknown> | undefined;
-  if (store?.name) return String(store.name);
-  const agency = backendUser.agency as Record<string, unknown> | undefined;
-  if (agency?.company_name) return String(agency.company_name);
-  if (agency?.name) return String(agency.name);
-  const dp = backendUser.delivery_partner as Record<string, unknown> | undefined;
-  if (dp?.company_name) return String(dp.company_name);
-  if (dp?.name) return String(dp.name);
-  return null;
-}
-
-function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" {
-  // Check roles array first (most explicit)
-  const roles = backendUser.roles as string[] | undefined;
-  if (roles?.includes("courier")) return "courier";
-  if (roles?.includes("delivery_partner")) return "agency";
-  // Then check entity presence
-  if (backendUser.agency || backendUser.delivery_partner) return "agency";
-  if (backendUser.can_sell || backendUser.store) return "vendor";
-  return "vendor";
 }

@@ -75,22 +75,48 @@ export async function logout(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" });
 }
 
+/** Raised when the session cannot be established for a reason other than "not signed in". */
+export class SessionError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code: "UNSUPPORTED_PROFILE" | "UNAVAILABLE",
+  ) {
+    super(message);
+    this.name = "SessionError";
+  }
+}
+
 /**
  * Get current user via BFF route handler (/api/auth/me).
- * The route handler reads the cookie and returns the user.
+ *
+ * - 401 → `null`: nobody is signed in.
+ * - 403 UNSUPPORTED_PROFILE → SessionError: signed in, but not a pro profile.
+ * - anything else (5xx, network) → SessionError: an outage must not look
+ *   like a logout.
  */
-export async function getMe(): Promise<User> {
-  const res = await fetch("/api/auth/me", {
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error("Not authenticated");
+export async function getMe(): Promise<User | null> {
+  let res: Response;
+  try {
+    res = await fetch("/api/auth/me", { headers: { "Content-Type": "application/json" } });
+  } catch {
+    throw new SessionError("Impossible de joindre le serveur.", 0, "UNAVAILABLE");
   }
 
-  const json = await res.json();
-  const validated = meResponseSchema.parse(json);
-  return validated.data;
+  if (res.status === 401) return null;
+
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const unsupported = res.status === 403 && json?.code === "UNSUPPORTED_PROFILE";
+    throw new SessionError(
+      json?.message ?? "Impossible de vérifier votre session.",
+      res.status,
+      unsupported ? "UNSUPPORTED_PROFILE" : "UNAVAILABLE",
+    );
+  }
+
+  return meResponseSchema.parse(json).data;
 }
 
 /**

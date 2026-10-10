@@ -4,6 +4,7 @@ import { useSession } from "@/features/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { UserRole } from "@/types";
+import { COURIER_STATUS_PENDING_KYC, homePathFor } from "@/lib/auth/session-user";
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -13,36 +14,29 @@ interface RoleGuardProps {
 
 /**
  * Checks the user's role against allowedRoles.
- * Redirects to the appropriate dashboard if role doesn't match.
+ * Redirects to the user's own space if the role doesn't match.
+ *
+ * This is navigation comfort, not security: the API enforces every rule
+ * (including the courier KYC barrier — see `courier.operational`).
  */
 export function RoleGuard({ children, allowedRoles, fallback }: RoleGuardProps) {
   const { data: user, isLoading } = useSession();
   const router = useRouter();
 
+  const allowed = !!user && allowedRoles.includes(user.role);
+  const pendingKyc = user?.role === "courier" && user.courier_status === COURIER_STATUS_PENDING_KYC;
+
   useEffect(() => {
-    if (!isLoading && user) {
-      if (!allowedRoles.includes(user.role)) {
-        // Redirect to the user's own dashboard
-        const dest = user.role === "vendor"
-          ? "/vendor/dashboard"
-          : user.role === "agency"
-            ? "/agency/dashboard"
-            : user.role === "courier"
-              ? (user.courier_status === 4 ? "/signup/driver?step=pending" : "/driver/dashboard")
-              : "/vendor/dashboard"; // fallback
-        router.replace(dest);
-      } else if (user.role === "courier" && user.courier_status === 4) {
-        // Even if courier is allowed, block them if pending KYC
-        router.replace("/signup/driver?step=pending");
-      }
+    if (!isLoading && user && (!allowed || pendingKyc)) {
+      router.replace(homePathFor(user));
     }
-  }, [isLoading, user, allowedRoles, router]);
+  }, [isLoading, user, allowed, pendingKyc, router]);
 
   if (isLoading) {
     return fallback ?? null;
   }
 
-  if (!user || !allowedRoles.includes(user.role) || (user.role === "courier" && user.courier_status === 4)) {
+  if (!allowed || pendingKyc) {
     return null; // Don't render protected content
   }
 

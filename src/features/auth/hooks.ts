@@ -6,6 +6,13 @@ import * as authService from "./service";
 import type { LoginPayload, VerifyOtpPayload } from "./schema";
 import { useRouter } from "next/navigation";
 import type { User } from "@/types";
+import { postLoginPath } from "@/lib/auth/session-user";
+
+/** `?redirect=` set by the proxy (or by the expired-session handler). */
+function requestedRedirect(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("redirect");
+}
 
 /**
  * Hook: current authenticated user (cached).
@@ -13,13 +20,9 @@ import type { User } from "@/types";
 export function useSession() {
   return useQuery<User | null>({
     queryKey: queryKeys.auth.me(),
-    queryFn: async () => {
-      try {
-        return await authService.getMe();
-      } catch {
-        return null;
-      }
-    },
+    // null = not signed in. A thrown SessionError = outage or unsupported
+    // profile; the guards show it instead of bouncing to /login.
+    queryFn: () => authService.getMe(),
     staleTime: 5 * 60 * 1000, // 5 min
     retry: false,
   });
@@ -44,23 +47,7 @@ export function useLogin() {
       const authenticatedResult = result as { user: User };
       qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
 
-      const user = authenticatedResult.user;
-
-      // Redirect based on role
-      if (user.role === "vendor") {
-        router.push("/vendor/dashboard");
-      } else if (user.role === "agency") {
-        router.push("/agency/dashboard");
-      } else if (user.role === "courier") {
-        // Enforce PENDING KYC barrier
-        if (user.courier_status === 4) {
-          router.push("/signup/driver?step=pending");
-        } else {
-          router.push("/driver/dashboard");
-        }
-      } else {
-        router.push("/vendor/dashboard"); // fallback
-      }
+      router.push(postLoginPath(authenticatedResult.user, requestedRedirect()));
     },
   });
 }
@@ -81,21 +68,7 @@ export function useVerifyOtp() {
       const authenticatedResult = result as { user: User };
       qc.setQueryData(queryKeys.auth.me(), authenticatedResult.user);
 
-      const user = authenticatedResult.user;
-
-      if (user.role === "vendor") {
-        router.push("/vendor/dashboard");
-      } else if (user.role === "agency") {
-        router.push("/agency/dashboard");
-      } else if (user.role === "courier") {
-        if (user.courier_status === 4) {
-          router.push("/signup/driver?step=pending");
-        } else {
-          router.push("/driver/dashboard");
-        }
-      } else {
-        router.push("/vendor/dashboard"); // fallback
-      }
+      router.push(postLoginPath(authenticatedResult.user, requestedRedirect()));
     },
   });
 }

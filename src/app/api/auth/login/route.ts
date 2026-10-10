@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } from "@/lib/auth/session-user";
 
 // ============================================================
 // POST /api/auth/login
@@ -62,11 +63,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mappedRole = _mapRole(backendUser);
-    
-    // Strict rule: Deny access silently to any user not having SaaS roles
-    // We send a generic validation error identical to bad password
-    if (!mappedRole) {
+    const user = toSessionUser(backendUser);
+
+    // Strict rule: a profile with no place on the pro portal is refused with
+    // the same generic error as a bad password.
+    if (!user) {
       return NextResponse.json(
         {
           message: "Email ou mot de passe incorrect.",
@@ -76,35 +77,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Map backend user shape → frontend User shape
-    const user = {
-      id: backendUser.id,
-      name: backendUser.name,
-      email: backendUser.email,
-      role: mappedRole,
-      avatar_url: backendUser.avatar_url ?? backendUser.store?.logo_url ?? null,
-      email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
-      created_at: backendUser.created_at ?? new Date().toISOString(),
-      delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
-      business_name: _extractBusinessName(backendUser),
-      courier_status: backendUser.courier?.status ?? null,
-    };
-
-    const responseData = {
+    const res = NextResponse.json({
       data: { user, token },
       message: json.message ?? "Connexion réussie",
-    };
-
-    const res = NextResponse.json(responseData);
-
-    // Set token as cookie (httpOnly: false so the client-side apiRequest can read it)
-    res.cookies.set("sugu_token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
+
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(sessionMaxAge(json.data?.expires_at)));
 
     return res;
   } catch (error) {
@@ -112,46 +90,4 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Erreur réseau lors de la connexion.";
     return NextResponse.json({ message }, { status: 502 });
   }
-}
-
-/**
- * Map the backend user profile to the frontend UserRole.
- * Backend: `can_sell`, `store`, `agency`, roles[]
- * Frontend: "vendor" | "agency"
- */
-export function _mapRole(backendUser: Record<string, unknown>): "vendor" | "agency" | "courier" | null {
-  // Use the explicit user_type if it exists from the backend UserType enum
-  const type = backendUser.user_type as string | undefined;
-  
-  if (type === 'seller') return "vendor";
-  if (type === 'delivery_partner' || type === 'partner') return "agency";
-  if (type === 'courier') return "courier";
-
-  // Fallback to checking the roles array
-  const roles = backendUser.roles as string[] | undefined;
-  if (roles?.includes("courier")) return "courier";
-  if (roles?.includes("delivery_partner") || roles?.includes("partner") || roles?.includes("agency")) return "agency";
-  if (roles?.includes("seller") || roles?.includes("vendor")) return "vendor";
-
-  // Then check entity presence
-  if (backendUser.agency || backendUser.delivery_partner) return "agency";
-  if (backendUser.can_sell === true || backendUser.store) return "vendor";
-
-  // Unauthorized profile
-  return null;
-}
-
-/**
- * Extract the business name (store or agency) from the backend user.
- */
-export function _extractBusinessName(backendUser: Record<string, unknown>): string | null {
-  const store = backendUser.store as Record<string, unknown> | undefined;
-  if (store?.name) return String(store.name);
-  const agency = backendUser.agency as Record<string, unknown> | undefined;
-  if (agency?.company_name) return String(agency.company_name);
-  if (agency?.name) return String(agency.name);
-  const dp = backendUser.delivery_partner as Record<string, unknown> | undefined;
-  if (dp?.company_name) return String(dp.company_name);
-  if (dp?.name) return String(dp.name);
-  return null;
 }

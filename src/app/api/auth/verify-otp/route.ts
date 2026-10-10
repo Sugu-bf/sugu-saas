@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { _mapRole, _extractBusinessName } from "../login/route";
+import { SESSION_COOKIE, sessionCookieOptions, sessionMaxAge, toSessionUser } from "@/lib/auth/session-user";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com/api/v1";
 
@@ -39,47 +39,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mappedRole = _mapRole(backendUser);
+    const user = toSessionUser(backendUser);
 
-    if (!mappedRole) {
+    if (!user) {
       return NextResponse.json(
         {
           message: "Code invalide.",
-          errors: { code: ["Le code de vérification est invalide."] }
+          errors: { code: ["Le code de vérification est invalide."] },
         },
         { status: 422 },
       );
     }
 
-    // Map backend user shape → frontend User shape
-    const user = {
-      id: backendUser.id,
-      name: backendUser.name,
-      email: backendUser.email,
-      role: mappedRole,
-      avatar_url: backendUser.avatar_url ?? backendUser.store?.logo_url ?? null,
-      email_verified_at: backendUser.email_verified ? new Date().toISOString() : null,
-      created_at: backendUser.created_at ?? new Date().toISOString(),
-      delivery_partner_id: backendUser.delivery_partner?.id ?? backendUser.agency?.id ?? null,
-      business_name: _extractBusinessName(backendUser),
-      store_id: backendUser.store?.id ?? null,
-    };
-
-    const responseData = {
+    const res = NextResponse.json({
       data: { user, token },
       message: json.message ?? "Connexion réussie",
-    };
-
-    const res = NextResponse.json(responseData);
-
-    // Set token as cookie (httpOnly: false so the client-side apiRequest can read it)
-    res.cookies.set("sugu_token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
+
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(sessionMaxAge(json.data?.expires_at)));
 
     return res;
   } catch (error) {
