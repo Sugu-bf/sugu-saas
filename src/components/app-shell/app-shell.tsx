@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/design-system";
 import { useLogout, useSession } from "@/features/auth";
@@ -50,6 +50,7 @@ export function AppShell({ role, children }: AppShellProps) {
   const logout = useLogout();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
+  const menuOpener = useRef<HTMLElement | null>(null);
 
   const groups = visibleGroups(workspace, user);
   const activeId = findActiveItem(groups, pathname)?.id ?? null;
@@ -59,6 +60,10 @@ export function AppShell({ role, children }: AppShellProps) {
   // A menu opened on another page is closed: navigating dismisses it.
   const menu = openMenu && openMenu.pathname === pathname ? openMenu : null;
   const closeMenu = () => setOpenMenu(null);
+  const openMenuFrom = (side: "bottom" | "left", opener: HTMLElement) => {
+    menuOpener.current = opener;
+    setOpenMenu({ side, pathname });
+  };
   const signOut = () => logout.mutate();
 
   return (
@@ -95,7 +100,7 @@ export function AppShell({ role, children }: AppShellProps) {
           context={shellContextFor(groups, pathname)}
           sidebarCollapsed={collapsed}
           onToggleSidebar={() => setCollapsed(!collapsed)}
-          onOpenDrawer={() => setOpenMenu({ side: "left", pathname })}
+          onOpenDrawer={(opener) => openMenuFrom("left", opener)}
           drawerOpen={menu?.side === "left"}
           userMenuItems={userMenuItems(groups)}
           onLogout={signOut}
@@ -118,7 +123,7 @@ export function AppShell({ role, children }: AppShellProps) {
           activeId={activeId}
           menuActive={activeId !== null && !tabs.some((tab) => tab.id === activeId)}
           menuOpen={menu?.side === "bottom"}
-          onOpenMenu={() => setOpenMenu({ side: "bottom", pathname })}
+          onOpenMenu={(opener) => openMenuFrom("bottom", opener)}
         />
       )}
 
@@ -126,6 +131,7 @@ export function AppShell({ role, children }: AppShellProps) {
         side={menu?.side ?? "bottom"}
         open={menu !== null}
         onClose={closeMenu}
+        getOpener={() => menuOpener.current}
         groups={menu?.side === "left" ? groups : mobileMenuGroups(groups)}
         activeId={activeId}
         name={name}

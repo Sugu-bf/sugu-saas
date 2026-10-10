@@ -25,11 +25,25 @@ export interface SheetContentProps {
   footer?: ReactNode;
   /** `right` for detail panels, `bottom` for phone menus and filters, `left` for navigation drawers. */
   side?: keyof typeof SIDE;
+  /**
+   * Where focus goes on close. Only needed when the sheet is opened without a
+   * `SheetTrigger` (controlled `open`): call `event.preventDefault()` and focus
+   * the control that opened it.
+   */
+  onCloseAutoFocus?: (event: Event) => void;
   className?: string;
 }
 
 /** Side or bottom panel. Same focus and Escape behaviour as `Dialog`. */
-export function SheetContent({ title, description, children, footer, side = "right", className }: SheetContentProps) {
+export function SheetContent({
+  title,
+  description,
+  children,
+  footer,
+  side = "right",
+  onCloseAutoFocus,
+  className,
+}: SheetContentProps) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="sugu-ui fixed inset-0 z-overlay bg-black/45 animate-ds-fade" />
@@ -39,6 +53,7 @@ export function SheetContent({ title, description, children, footer, side = "rig
           SIDE[side],
           className,
         )}
+        onCloseAutoFocus={onCloseAutoFocus}
         {...(description ? {} : { "aria-describedby": undefined })}
       >
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">

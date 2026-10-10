@@ -11,7 +11,7 @@ export interface MobileNavigationProps {
   /** The current page lives in the menu, not in a tab. */
   menuActive: boolean;
   menuOpen: boolean;
-  onOpenMenu: () => void;
+  onOpenMenu: (opener: HTMLElement) => void;
 }
 
 const SLOT = "relative flex h-16 w-full flex-col items-center justify-center gap-1 text-meta";
@@ -58,7 +58,7 @@ export function MobileNavigation({ tabs, activeId, menuActive, menuOpen, onOpenM
             type="button"
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
-            onClick={onOpenMenu}
+            onClick={(event) => onOpenMenu(event.currentTarget)}
             className={cn(SLOT, menuHighlighted ? "font-medium text-foreground" : "text-foreground-muted")}
           >
             <TabContent icon={Menu} label="Menu" active={menuHighlighted} />

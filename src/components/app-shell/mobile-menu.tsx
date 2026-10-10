@@ -10,6 +10,8 @@ export interface MobileMenuProps {
   side: "bottom" | "left";
   open: boolean;
   onClose: () => void;
+  /** The control that opened the panel; it gets the focus back on close. */
+  getOpener: () => HTMLElement | null;
   groups: NavGroup[];
   activeId: string | null;
   name: string;
@@ -27,6 +29,7 @@ export function MobileMenu({
   side,
   open,
   onClose,
+  getOpener,
   groups,
   activeId,
   name,
@@ -36,7 +39,18 @@ export function MobileMenu({
 }: MobileMenuProps) {
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
-      <SheetContent side={side} title={name} description={spaceLabel}>
+      <SheetContent
+        side={side}
+        title={name}
+        description={spaceLabel}
+        onCloseAutoFocus={(event) => {
+          const opener = getOpener();
+          if (opener?.isConnected) {
+            event.preventDefault();
+            opener.focus();
+          }
+        }}
+      >
         <nav aria-label={side === "left" ? "Navigation principale" : "Autres rubriques"}>
           <NavList groups={groups} activeId={activeId} touch onNavigate={onClose} />
         </nav>

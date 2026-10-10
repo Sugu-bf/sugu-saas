@@ -9,6 +9,8 @@ import type { NavItem, ShellContext } from "./navigation";
 import { SIDEBAR_ID } from "./sidebar";
 import { UserMenu } from "./user-menu";
 
+export const TOPBAR_ID = "shell-topbar";
+
 export interface TopbarProps {
   user: User | null | undefined;
   home: string;
@@ -18,7 +20,7 @@ export interface TopbarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   /** Opens the navigation drawer (tablet). */
-  onOpenDrawer: () => void;
+  onOpenDrawer: (opener: HTMLElement) => void;
   drawerOpen: boolean;
   userMenuItems: NavItem[];
   onLogout: () => void;
@@ -45,7 +47,7 @@ export function Topbar({
   loggingOut,
 }: TopbarProps) {
   return (
-    <header className="sugu-ui z-header flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 md:px-4 lg:h-16 lg:px-6">
+    <header id={TOPBAR_ID} className="sugu-ui z-header flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 md:px-4 lg:h-16 lg:px-6">
       {/* Phone: no sidebar, so the bar carries the identity of the space. */}
       <WorkspaceBrand href={home} name={name} caption={context.page ?? spaceLabel} className="md:hidden" />
 
@@ -54,7 +56,7 @@ export function Topbar({
         label="Ouvrir le menu"
         aria-haspopup="dialog"
         aria-expanded={drawerOpen}
-        onClick={onOpenDrawer}
+        onClick={(event) => onOpenDrawer(event.currentTarget)}
         className="hidden md:inline-flex lg:hidden"
       />
       <IconButton
