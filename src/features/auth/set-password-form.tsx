@@ -1,48 +1,66 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Lock, CheckCircle, AlertTriangle, ArrowRight } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, KeyRound, Loader2, Lock, RefreshCw, Send } from "lucide-react";
+import { Alert, Button, FormField, PasswordInput } from "@/design-system";
+import { postLoginPath } from "@/lib/auth/session-user";
 import { queryKeys } from "@/lib/query";
+import { userSchema } from "./schema";
 
 interface Props {
   token: string;
   email: string;
 }
 
-type TokenStatus = "checking" | "valid" | "invalid";
+/**
+ * `unavailable` is not `invalid`: an outage must not tell someone their
+ * link is dead.
+ */
+type TokenStatus = "checking" | "valid" | "invalid" | "unavailable";
 
+const LINK = "rounded-compact font-medium text-primary underline underline-offset-2 hover:text-primary-hover";
+
+/** First access: the link received by e-mail lets the owner choose a password. Needs no session. */
 export function SetPasswordForm({ token, email }: Props) {
   const router = useRouter();
   const qc = useQueryClient();
+  const incomplete = !token || !email;
 
   const [tokenStatus, setTokenStatus] = useState<TokenStatus>("checking");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Verify token on mount
+  // Verify the link on mount (and on retry).
   useEffect(() => {
+    if (incomplete) return;
+    let cancelled = false;
     async function verifyToken() {
+      let status: TokenStatus;
       try {
         const res = await fetch("/api/auth/verify-reset-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, token }),
         });
-        const json = await res.json();
-        setTokenStatus(json.data?.valid ? "valid" : "invalid");
+        const json = await res.json().catch(() => ({}));
+        if (res.status >= 500) status = "unavailable";
+        else status = res.ok && json.data?.valid ? "valid" : "invalid";
       } catch {
-        setTokenStatus("invalid");
+        status = "unavailable";
       }
+      if (!cancelled) setTokenStatus(status);
     }
     verifyToken();
-  }, [email, token]);
+    return () => {
+      cancelled = true;
+    };
+  }, [email, token, incomplete, attempt]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -58,7 +76,8 @@ export function SetPasswordForm({ token, email }: Props) {
     if (!password) newErrors.password = "Le mot de passe est requis.";
     else if (password.length < 8) newErrors.password = "Minimum 8 caractères.";
     if (!passwordConfirmation) newErrors.password_confirmation = "Confirmez le mot de passe.";
-    else if (password !== passwordConfirmation) newErrors.password_confirmation = "Les mots de passe ne correspondent pas.";
+    else if (password !== passwordConfirmation)
+      newErrors.password_confirmation = "Les mots de passe ne correspondent pas.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -95,195 +114,131 @@ export function SetPasswordForm({ token, email }: Props) {
         return;
       }
 
-      // Success — cache user and redirect
-      if (json.data?.user) {
-        qc.setQueryData(queryKeys.auth.me(), json.data.user);
-      }
-
+      // The route signed the user in. Land in THEIR space: the profile is
+      // re-validated here, and anything unexpected goes through /login
+      // rather than being assumed to be a vendor.
+      const user = userSchema.safeParse(json.data?.user);
       setSuccess(true);
-
-      // Auto-redirect after delay
-      setTimeout(() => {
-        router.push("/vendor/dashboard");
-      }, 2000);
+      if (user.success) {
+        qc.setQueryData(queryKeys.auth.me(), user.data);
+        router.replace(postLoginPath(user.data));
+      } else {
+        router.replace("/login");
+      }
     } catch {
       setServerError("Erreur réseau. Veuillez réessayer.");
       setLoading(false);
     }
   }
 
-  // Token verification loading
+  if (incomplete) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Alert tone="danger" title="Lien incomplet">
+          Ce lien ne contient pas toutes les informations nécessaires. Ouvrez-le directement depuis l&apos;e-mail
+          reçu, ou demandez-en un nouveau.
+        </Alert>
+        <RecoveryLinks />
+      </div>
+    );
+  }
+
   if (tokenStatus === "checking") {
     return (
-      <div className="flex flex-col items-center gap-4 py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-sugu-500" />
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Vérification de votre lien...
-        </p>
+      <div className="flex flex-col items-center gap-3 py-6" role="status">
+        <Loader2 className="size-6 animate-ds-spin text-foreground-subtle" aria-hidden="true" />
+        <p className="text-body text-foreground-muted">Vérification de votre lien…</p>
       </div>
     );
   }
 
-  // Token invalid/expired
+  if (tokenStatus === "unavailable") {
+    return (
+      <div className="flex flex-col gap-4">
+        <Alert tone="warning" title="Vérification impossible pour le moment">
+          Le service ne répond pas. Votre lien n&apos;est pas remis en cause : réessayez dans un instant.
+        </Alert>
+        <Button
+          variant="primary"
+          icon={RefreshCw}
+          onClick={() => {
+            setTokenStatus("checking");
+            setAttempt((current) => current + 1);
+          }}
+          className="h-touch w-full"
+        >
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+
   if (tokenStatus === "invalid") {
     return (
-      <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/20">
-          <AlertTriangle className="h-7 w-7 text-red-500" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            Lien expiré ou invalide
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau lien.
-          </p>
-        </div>
-        <Link
-          href="/forgot-password"
-          className="mt-2 flex items-center gap-2 rounded-full bg-sugu-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sugu-500/25 transition-all hover:bg-sugu-600 hover:shadow-sugu-500/40"
-        >
-          Demander un nouveau lien
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-gray-500 hover:text-gray-700 hover:underline dark:text-gray-400"
-        >
-          Retour à la connexion
-        </Link>
+      <div className="flex flex-col gap-4">
+        <Alert tone="danger" title="Lien expiré ou invalide">
+          Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau code pour définir votre mot de passe.
+        </Alert>
+        <RecoveryLinks />
       </div>
     );
   }
 
-  // Success state
   if (success) {
     return (
-      <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 dark:bg-green-900/20">
-          <CheckCircle className="h-7 w-7 text-green-500" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            Mot de passe défini ! 🎉
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Redirection vers votre tableau de bord...
-          </p>
-        </div>
-        <Loader2 className="h-5 w-5 animate-spin text-sugu-500" />
+      <div className="flex flex-col items-center gap-3 py-6" role="status">
+        <Loader2 className="size-6 animate-ds-spin text-foreground-subtle" aria-hidden="true" />
+        <p className="text-body font-medium text-foreground">Mot de passe défini</p>
+        <p className="text-body text-foreground-muted">Ouverture de votre espace…</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-      {/* Email display */}
-      <div className="rounded-xl border border-sugu-100 bg-sugu-50/50 px-4 py-3 dark:border-sugu-900/30 dark:bg-sugu-950/20">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-          Compte
-        </p>
-        <p className="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">
-          {email}
-        </p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      <div className="rounded-control border border-border bg-surface-subtle px-3 py-2">
+        <p className="text-meta text-foreground-muted">Compte</p>
+        <p className="text-body font-medium break-all text-foreground">{email}</p>
       </div>
 
-      {/* Server error */}
-      {serverError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400">
-          {serverError}
-        </div>
-      )}
+      {serverError && <Alert tone="danger" title={serverError} />}
 
-      {/* Password */}
-      <div>
-        <label htmlFor="password" className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-200">
-          Nouveau mot de passe
-        </label>
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <Lock className="h-5 w-5" />
-          </div>
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            placeholder="Minimum 8 caractères"
-            className="w-full rounded-full border border-gray-200 bg-white/50 py-3.5 pl-11 pr-12 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-sugu-500 focus:bg-white focus:ring-4 focus:ring-sugu-500/10 dark:border-gray-700 dark:bg-gray-800/50 dark:text-white dark:focus:bg-gray-800"
-            aria-invalid={!!errors.password}
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </button>
-        </div>
-        {errors.password && (
-          <p className="mt-1.5 text-sm text-red-500">{errors.password}</p>
-        )}
-      </div>
+      <FormField label="Nouveau mot de passe" id="password" hint="8 caractères minimum." error={errors.password} required>
+        <PasswordInput name="password" autoComplete="new-password" leadingIcon={Lock} />
+      </FormField>
 
-      {/* Confirm Password */}
-      <div>
-        <label htmlFor="password_confirmation" className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-200">
-          Confirmer le mot de passe
-        </label>
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <Lock className="h-5 w-5" />
-          </div>
-          <input
-            id="password_confirmation"
-            name="password_confirmation"
-            type={showConfirm ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            placeholder="Retapez votre mot de passe"
-            className="w-full rounded-full border border-gray-200 bg-white/50 py-3.5 pl-11 pr-12 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-sugu-500 focus:bg-white focus:ring-4 focus:ring-sugu-500/10 dark:border-gray-700 dark:bg-gray-800/50 dark:text-white dark:focus:bg-gray-800"
-            aria-invalid={!!errors.password_confirmation}
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={() => setShowConfirm(!showConfirm)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </button>
-        </div>
-        {errors.password_confirmation && (
-          <p className="mt-1.5 text-sm text-red-500">{errors.password_confirmation}</p>
-        )}
-      </div>
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="mt-2 flex w-full items-center justify-center rounded-full bg-[#ea580c] px-6 py-4 text-base font-bold text-white shadow-xl shadow-orange-500/25 transition-all hover:bg-[#dea83f] hover:shadow-orange-500/40 disabled:opacity-70 dark:bg-[#ea580c] dark:shadow-orange-500/20"
+      <FormField
+        label="Confirmer le mot de passe"
+        id="password_confirmation"
+        error={errors.password_confirmation}
+        required
       >
-        {loading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <>
-            Définir et accéder à ma boutique
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </>
-        )}
-      </button>
+        <PasswordInput name="password_confirmation" autoComplete="new-password" leadingIcon={Lock} />
+      </FormField>
 
-      {/* Back to login */}
-      <div className="pt-2 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
+      <Button type="submit" variant="primary" icon={KeyRound} loading={loading} className="h-touch w-full">
+        Définir mon mot de passe
+      </Button>
+
+      <p className="text-center text-body text-foreground-muted">
         Vous avez déjà un mot de passe ?{" "}
-        <Link href="/login" className="text-sugu-500 hover:text-sugu-600 hover:underline">
+        <Link href="/login" className={LINK}>
           Se connecter
         </Link>
-      </div>
+      </p>
     </form>
+  );
+}
+
+function RecoveryLinks() {
+  return (
+    <>
+      <Button asChild variant="primary" icon={Send} className="h-touch w-full">
+        <Link href="/forgot-password">Demander un nouveau code</Link>
+      </Button>
+      <Button asChild variant="quiet" icon={ArrowLeft} className="w-full">
+        <Link href="/login">Retour à la connexion</Link>
+      </Button>
+    </>
   );
 }

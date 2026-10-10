@@ -1,11 +1,9 @@
+import { AuthFrame } from "@/features/auth/components/auth-frame";
+
 /**
- * (auth) layout — minimal, no sidebar, no topbar.
- * Used for login, register, forgot password, etc.
+ * (auth) layout — brand, one card, no navigation.
+ * Used by login, password recovery, first access and courier signup.
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-sugu-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {children}
-    </div>
-  );
+  return <AuthFrame>{children}</AuthFrame>;
 }

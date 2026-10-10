@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthCard } from "@/features/auth/components/auth-frame";
 import { LoginForm } from "@/features/auth/login-form";
 
 export const metadata: Metadata = {
@@ -8,34 +9,8 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md animate-fade-in space-y-6">
-        {/* Header Section */}
-        <div className="text-center">
-          <div className="mb-2 flex items-center justify-center gap-2">
-            <span className="text-4xl font-black tracking-tight text-sugu-500">
-              SUGU
-            </span>
-          </div>
-          <p className="text-base font-medium text-gray-800 dark:text-gray-200">
-            La marketplace africaine nouvelle génération
-          </p>
-        </div>
-
-        {/* Form Card */}
-        <div className="relative rounded-[2rem] border border-white/40 bg-white/70 p-8 shadow-2xl backdrop-blur-xl dark:border-gray-800/50 dark:bg-gray-900/70 sm:p-10">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Bienvenue sur SUGU Pro 👋
-            </h1>
-            <p className="mt-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-              Connectez-vous pour accéder à votre espace
-            </p>
-          </div>
-          
-          <LoginForm />
-        </div>
-      </div>
-    </div>
+    <AuthCard title="Connexion" description="Accédez à votre espace vendeur, agence ou coursier.">
+      <LoginForm />
+    </AuthCard>
   );
 }
