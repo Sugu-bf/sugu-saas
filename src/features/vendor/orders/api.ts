@@ -1,0 +1,189 @@
+import { api, apiFetch } from "@/lib/http/client";
+import { ApiError } from "@/lib/http/api-error";
+import {
+  parseOrderCounts,
+  parseOrderDetail,
+  parseOrderListPage,
+  parsePickupCodes,
+  type OrderActionKey,
+  type OrderCounts,
+  type OrderDetail,
+  type OrderListPage,
+  type PickupCode,
+} from "./contract";
+
+// ============================================================
+// Seller orders — HTTP calls. Every call goes through the BFF;
+// Laravel authorises each one (scope: the seller's own stores).
+// ============================================================
+
+export const ORDERS_PAGE_SIZE = 25;
+
+export type OrderSortKey = "date" | "amount";
+export type OrderOrigin = "direct" | "marketplace";
+
+/** Filters of the list, exactly as `GET sellers/orders` understands them. */
+export interface OrderListFilters {
+  status?: string;
+  search?: string;
+  origin?: OrderOrigin;
+  /** Inclusive bounds, `YYYY-MM-DD`. */
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: OrderSortKey;
+  direction?: "asc" | "desc";
+}
+
+export interface OrderListQuery extends OrderListFilters {
+  page: number;
+}
+
+function filterParams(filters: OrderListFilters): Record<string, string | undefined> {
+  return {
+    status: filters.status || undefined,
+    search: filters.search?.trim() || undefined,
+    origin: filters.origin,
+    date_from: filters.dateFrom || undefined,
+    date_to: filters.dateTo || undefined,
+    sort: filters.sort,
+    direction: filters.direction,
+  };
+}
+
+export async function fetchOrders(query: OrderListQuery): Promise<OrderListPage> {
+  const response = await api.get<{ data: unknown }>("sellers/orders", {
+    params: { ...filterParams(query), page: query.page, limit: ORDERS_PAGE_SIZE },
+  });
+  return parseOrderListPage(response.data, { page: query.page, pageSize: ORDERS_PAGE_SIZE });
+}
+
+export async function fetchOrderCounts(): Promise<OrderCounts> {
+  const response = await api.get<{ data: unknown }>("sellers/orders/stats");
+  return parseOrderCounts(response.data);
+}
+
+export async function fetchOrder(id: string): Promise<OrderDetail> {
+  const response = await api.get<{ data: { order: unknown } }>(`sellers/orders/${encodeURIComponent(id)}`);
+  return parseOrderDetail(response.data.order);
+}
+
+// ── Transitions ─────────────────────────────────────────────
+
+const ACTION_ENDPOINT: Record<OrderActionKey, string> = {
+  confirm: "confirm",
+  cancel: "cancel",
+  requestDelivery: "request-delivery",
+  markShipped: "mark-shipped",
+  markDelivered: "mark-delivered",
+};
+
+export async function runOrderAction(id: string, action: OrderActionKey): Promise<void> {
+  await api.post(`sellers/orders/${encodeURIComponent(id)}/${ACTION_ENDPOINT[action]}`);
+}
+
+// ── Courier handoff ─────────────────────────────────────────
+
+/**
+ * Pickup codes of the seller's stores for this order. The backend answers
+ * 404 until a courier has accepted the shipment: that is "no code yet",
+ * not a failure. Any other error is thrown.
+ */
+export async function fetchPickupCodes(orderId: string): Promise<PickupCode[]> {
+  try {
+    const response = await api.get<{ data: unknown }>(`sellers/orders/${encodeURIComponent(orderId)}/pickup-code`);
+    return parsePickupCodes(response.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return [];
+    throw error;
+  }
+}
+
+export async function confirmItemHandoff(orderId: string, itemId: string): Promise<void> {
+  await api.post(
+    `sellers/orders/${encodeURIComponent(orderId)}/items/${encodeURIComponent(itemId)}/confirm-handoff`,
+  );
+}
+
+// ── Documents ───────────────────────────────────────────────
+
+/** Turn a failed binary response into the same `ApiError` a JSON call throws. */
+async function failedDownload(response: Response): Promise<ApiError> {
+  let message = `HTTP ${response.status}`;
+  try {
+    const body = (await response.json()) as { message?: string };
+    if (body.message) message = body.message;
+  } catch {
+    // Not JSON: keep the status.
+  }
+  return new ApiError({ message, status: response.status });
+}
+
+async function download(path: string, init: RequestInit): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await apiFetch(path, init);
+  } catch {
+    throw new ApiError({ message: "Network error", status: 0, code: "NETWORK" });
+  }
+  if (!response.ok) throw await failedDownload(response);
+  return response.blob();
+}
+
+/** Hand a blob to the browser as a file. */
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * CSV of the orders matching the filters, or of an explicit selection.
+ * Built by the server over the whole matching population, not from the
+ * rows loaded in the page.
+ */
+export async function exportOrdersCsv(filters: OrderListFilters, ids?: string[]): Promise<void> {
+  const body = { ...filterParams(filters), ...(ids && ids.length > 0 ? { ids } : {}) };
+  const blob = await download("sellers/orders/export", {
+    method: "POST",
+    headers: { Accept: "text/csv", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  saveBlob(blob, `commandes-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+/** Delivery slip (PDF) generated by the backend. */
+export async function downloadDeliverySlip(orderId: string, reference: string | null): Promise<void> {
+  const blob = await download(`sellers/orders/${encodeURIComponent(orderId)}/delivery-slip`, {
+    method: "GET",
+    headers: { Accept: "application/pdf" },
+  });
+  saveBlob(blob, `bon-livraison-${reference ?? orderId}.pdf`);
+}
+
+/**
+ * Public link of the order's invoice (created on first request).
+ * `marketplaceBase` is the buyer-facing site that serves `/invoices/{token}`.
+ */
+export async function fetchInvoiceLink(
+  orderId: string,
+  marketplaceBase: string,
+): Promise<{ url: string; invoiceNumber: string | null }> {
+  const response = await api.get<{
+    url?: string;
+    public_url?: string;
+    access_token?: string;
+    invoice_number?: string;
+  }>(`sellers/orders/${encodeURIComponent(orderId)}/invoice`);
+
+  const url = response.access_token
+    ? `${marketplaceBase.replace(/\/+$/, "")}/invoices/${response.access_token}`
+    : (response.public_url ?? response.url);
+  if (!url) throw new ApiError({ message: "Invoice link missing", status: 502 });
+
+  return { url, invoiceNumber: response.invoice_number ?? null };
+}
