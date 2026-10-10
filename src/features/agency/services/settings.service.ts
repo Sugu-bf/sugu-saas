@@ -1,4 +1,4 @@
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import { agencySettingsResponseSchema, type AgencySettingsResponse } from "../schema";
 import { formatRelativeDate } from "./utils";
 
@@ -234,21 +234,8 @@ export async function uploadAgencyLogo(
   const formData = new FormData();
   formData.append("logo", file);
 
-  // Read token from cookie (same logic as the central HTTP client)
-  const token = typeof window !== "undefined"
-    ? document.cookie.match(/(?:^|; )sugu_token=([^;]*)/)?.[1]
-    : null;
-
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.endsWith("/")
-    ? process.env.NEXT_PUBLIC_API_BASE_URL
-    : `${process.env.NEXT_PUBLIC_API_BASE_URL}/`;
-
-  const res = await fetch(`${baseUrl}agencies/${agencyId}/settings/logo`, {
+  const res = await apiFetch(`agencies/${agencyId}/settings/logo`, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}),
-    },
     body: formData,
   });
 

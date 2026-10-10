@@ -10,7 +10,7 @@ import {
   type OrderDetail,
   type PickupCodesResponse,
 } from "../schema";
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import { mapPaymentStatusCode } from "@/lib/utils/payment-status";
 import {
   normalizeStatus,
@@ -253,19 +253,10 @@ export async function markOrderDelivered(id: string): Promise<{ success: boolean
 
 /** Download the delivery slip PDF for an order (opens in new tab). */
 export async function downloadDeliverySlip(orderId: string): Promise<void> {
-  const { env } = await import("@/lib/env");
-  const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-    ? env.NEXT_PUBLIC_API_BASE_URL
-    : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-  const url = new URL(`sellers/orders/${orderId}/delivery-slip`, baseUrl).toString();
-
-  const tokenMatch = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
-
-  const headers: Record<string, string> = { Accept: "application/pdf" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(url, { method: "GET", headers });
+  const response = await apiFetch(`sellers/orders/${orderId}/delivery-slip`, {
+    method: "GET",
+    headers: { Accept: "application/pdf" },
+  });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   const blob = await response.blob();

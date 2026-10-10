@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/http/client";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +11,6 @@ import { useRegisterCourier } from "@/features/agency/hooks";
 import { useSession } from "@/features/auth/hooks";
 import { DEFAULT_CREATE_COURIER } from "@/features/agency/schema";
 import type { CreateCourierFormData } from "@/features/agency/schema";
-import { env } from "@/lib/env";
 
 import { SectionPersonal } from "./_components/section-personal";
 import { SectionVehicle } from "./_components/section-vehicle";
@@ -43,22 +43,10 @@ export function CreateDriverForm() {
     return null;
   };
 
-  /** Read auth token from cookie for raw fetch calls */
-  const getToken = (): string | null => {
-    if (typeof document === "undefined") return null;
-    const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  };
-
   /** Upload KYC documents after courier creation (non-blocking) */
   const uploadDocuments = async (courierId: string): Promise<void> => {
     const docsWithFiles = formData.documents.filter((doc) => doc.file);
     if (docsWithFiles.length === 0) return;
-
-    const base = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-      ? env.NEXT_PUBLIC_API_BASE_URL
-      : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-    const token = getToken();
 
     // Map frontend document types to backend expected types
     const typeMap: Record<string, string> = {
@@ -75,17 +63,10 @@ export function CreateDriverForm() {
         fd.append("document_type", typeMap[doc.type] ?? "other");
         fd.append("document_name", doc.name || doc.type);
 
-        await fetch(
-          `${base}agencies/${agencyId}/couriers/${courierId}/kyc-documents`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: fd,
-          },
-        );
+        await apiFetch(`agencies/${agencyId}/couriers/${courierId}/kyc-documents`, {
+          method: "POST",
+          body: fd,
+        });
       } catch {
         // Non-blocking: courier is already created, doc upload failure is not fatal
       }

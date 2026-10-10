@@ -77,7 +77,9 @@ export function DriverSignupWizard() {
   const hasNumber = /[0-9]/.test(password);
 
   const [courierId, setCourierId] = useState("");
-  const [authToken, setAuthToken] = useState("");
+  // The session lives in an httpOnly cookie set by the register route; the
+  // page only needs to know that it exists.
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const handleRegisterUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +113,7 @@ export function DriverSignupWizard() {
       await getMe().catch(() => {});
       
       if ("courier_id" in res && res.courier_id) setCourierId(res.courier_id);
-      if ("token" in res && res.token) setAuthToken(res.token);
+      if ("user" in res) setIsRegistered(true);
 
       if ("email_verification_required" in res && res.email_verification_required) {
         setStep("VERIFY_EMAIL");
@@ -196,16 +198,13 @@ export function DriverSignupWizard() {
   const [uploadError, setUploadError] = useState("");
 
   const handleUploadDocuments = async () => {
-    if (!courierId || !authToken) {
+    if (!courierId || !isRegistered) {
       setStep("PENDING");
       return;
     }
     setIsUploading(true);
     try {
-      const { env } = await import("@/lib/env");
-      const base = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-        ? env.NEXT_PUBLIC_API_BASE_URL
-        : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
+      const { apiFetch } = await import("@/lib/http/client");
 
       const upload = async (file: File, type: string) => {
         const controller = new AbortController();
@@ -214,12 +213,8 @@ export function DriverSignupWizard() {
         fd.append("files[]", file);
         fd.append("document_type", type);
         fd.append("document_name", type);
-        const res = await fetch(`${base}agencies/${partnerId}/couriers/${courierId}/kyc-documents`, {
+        const res = await apiFetch(`agencies/${partnerId}/couriers/${courierId}/kyc-documents`, {
           method: "POST",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${authToken}`
-          },
           body: fd,
           signal: controller.signal,
         });

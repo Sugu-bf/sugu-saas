@@ -12,24 +12,11 @@ if (typeof window !== "undefined") {
 let echoInstance: Echo<"reverb"> | null = null;
 
 /**
- * Read the sugu_token cookie (SaaS auth pattern).
+ * Private channels are authorized by our own server route, which adds the
+ * session token from the httpOnly cookie. The browser holds no credential:
+ * the socket itself opens with the public app key only.
  */
-function getAuthToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-/**
- * Build the broadcasting auth endpoint from the API base URL.
- * env.NEXT_PUBLIC_API_BASE_URL = "https://api.mysugu.com/api/v1"
- * → origin = "https://api.mysugu.com"
- * → authEndpoint = "https://api.mysugu.com/api/broadcasting/auth"
- */
-function buildAuthEndpoint(): string {
-  const origin = new URL(env.NEXT_PUBLIC_API_BASE_URL).origin;
-  return `${origin}/api/broadcasting/auth`;
-}
+const CHANNEL_AUTH_ENDPOINT = "/api/broadcasting/auth";
 
 /**
  * Get or create the singleton Echo instance.
@@ -37,12 +24,6 @@ function buildAuthEndpoint(): string {
  */
 export function getEcho(): Echo<"reverb"> {
   if (echoInstance) return echoInstance;
-
-  // Security guard: don't open a WS connection without authentication
-  const currentToken = getAuthToken();
-  if (!currentToken) {
-    throw new Error("Cannot initialize Echo: user is not authenticated");
-  }
 
   echoInstance = new Echo({
     broadcaster: "reverb",
@@ -59,15 +40,13 @@ export function getEcho(): Echo<"reverb"> {
         socketId: string,
         callback: (error: Error | null, authData: { auth: string; channel_data?: string } | null) => void,
       ) => {
-        const token = getAuthToken();
-        fetch(buildAuthEndpoint(), {
+        fetch(CHANNEL_AUTH_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          credentials: "include",
+          credentials: "same-origin",
           body: JSON.stringify({
             socket_id: socketId,
             channel_name: channel.name,

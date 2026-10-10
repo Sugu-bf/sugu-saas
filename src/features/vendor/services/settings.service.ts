@@ -8,7 +8,7 @@
  *
  * 2FA uses Laravel Fortify endpoints (POST /user/two-factor-authentication, etc.)
  */
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import {
   vendorSettingsSchema,
   vendorSettingsApiSchema,
@@ -251,20 +251,8 @@ async function _uploadFile(endpoint: string, fieldName: string, file: File): Pro
   const formData = new FormData();
   formData.append(fieldName, file);
 
-  const token = typeof window !== "undefined"
-    ? document.cookie.match(/(?:^|; )sugu_token=([^;]*)/)?.[1]
-    : null;
-
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.endsWith("/")
-    ? process.env.NEXT_PUBLIC_API_BASE_URL
-    : `${process.env.NEXT_PUBLIC_API_BASE_URL}/`;
-
-  const res = await fetch(`${baseUrl}${SETTINGS_BASE}/${endpoint}`, {
+  const res = await apiFetch(`${SETTINGS_BASE}/${endpoint}`, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}),
-    },
     body: formData,
   });
 

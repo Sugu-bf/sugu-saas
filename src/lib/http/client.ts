@@ -3,6 +3,10 @@ import { ApiError } from "./api-error";
 
 // ============================================================
 // Central HTTP Client
+//
+// In the browser every call goes to the same-origin BFF
+// (/api/proxy/*), which adds the session token server-side.
+// The browser never holds — and can no longer read — that token.
 // ============================================================
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -22,21 +26,42 @@ interface RequestOptions<TBody = unknown> {
   next?: NextFetchRequestConfig;
 }
 
+/** Same-origin prefix of the authenticated relay. */
+export const API_PROXY_PREFIX = "/api/proxy/";
+
 /** Generate a simple correlation id */
 function requestId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const cleanPath = (path: string) => path.replace(/^\/+/, "");
+
+/**
+ * URL of an API path as the BROWSER must call it: through the BFF.
+ * Use it for the rare raw `fetch` (multipart upload, binary download) that
+ * cannot go through `apiRequest`. Never build a direct API URL client-side.
+ */
+export function apiUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
+  const query = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.set(key, String(value));
+    });
+  }
+  const qs = query.toString();
+  return `${API_PROXY_PREFIX}${cleanPath(path)}${qs ? `?${qs}` : ""}`;
+}
+
 /** Build URL with query params */
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
-  // Ensure base URL has trailing slash so relative paths resolve correctly.
-  // new URL("/sellers/x", "https://host/api/v1")  → https://host/sellers/x  ❌ (absolute path strips base)
-  // new URL("sellers/x",  "https://host/api/v1/") → https://host/api/v1/sellers/x ✅
+  if (typeof window !== "undefined") return apiUrl(path, params);
+
+  // Server side (public, unauthenticated reads only): straight to the API.
+  // new URL("sellers/x", "https://host/api/v1/") → https://host/api/v1/sellers/x
   const base = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
     ? env.NEXT_PUBLIC_API_BASE_URL
     : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-  const url = new URL(cleanPath, base);
+  const url = new URL(cleanPath(path), base);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) {
@@ -47,22 +72,16 @@ function buildUrl(path: string, params?: Record<string, string | number | boolea
   return url.toString();
 }
 
-/** Get stored token (reads from cookie on server, memory on client) */
-function getToken(): string | null {
-  if (typeof window === "undefined") {
-    // Server-side: read from cookies via next/headers (dynamic import to avoid build errors)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { cookies } = require("next/headers");
-      const cookieStore = cookies();
-      return (cookieStore as { get: (name: string) => { value: string } | undefined }).get("sugu_token")?.value ?? null;
-    } catch {
-      return null;
-    }
-  }
-  // Client-side: read from cookie
-  const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+/**
+ * Raw authenticated `fetch` through the BFF, for multipart bodies and binary
+ * responses. The session cookie travels automatically (same origin); no
+ * Authorization header is — or can be — set here.
+ */
+export function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  headers.delete("Authorization");
+  return fetch(apiUrl(path), { ...init, headers, credentials: "same-origin" });
 }
 
 /** Sleep helper for retries */
@@ -89,7 +108,6 @@ export async function apiRequest<T>(
 
   const url = buildUrl(path, params);
   const correlationId = requestId();
-  const token = getToken();
 
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
@@ -103,15 +121,12 @@ export async function apiRequest<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   const fetchOptions: RequestInit & { next?: NextFetchRequestConfig } = {
     method,
     headers,
     signal,
     next: nextOpts,
+    credentials: "same-origin",
   };
 
   if (body !== undefined) {

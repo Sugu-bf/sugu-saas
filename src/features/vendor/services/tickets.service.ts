@@ -18,7 +18,7 @@ import {
   type TicketMessage,
   type CreateTicketRequest,
 } from "../schema";
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import { initials } from "./_shared";
 
 // ── Raw API Types ──────────────────────────────────────────
@@ -347,19 +347,10 @@ export async function sendTicketMessage(
       fd.append("attachments[]", file);
     });
 
-    const { env } = await import("@/lib/env");
-    const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-      ? env.NEXT_PUBLIC_API_BASE_URL
-      : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-    const url = new URL(`sellers/support/tickets/${ticketId}/messages`, baseUrl).toString();
-
-    const tokenMatch = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-    const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
-
-    const headers: Record<string, string> = { Accept: "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const response = await fetch(url, { method: "POST", headers, body: fd });
+    const response = await apiFetch(`sellers/support/tickets/${ticketId}/messages`, {
+      method: "POST",
+      body: fd,
+    });
 
     if (!response.ok) {
       const errorJson = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));

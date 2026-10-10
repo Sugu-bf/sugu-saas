@@ -6,7 +6,7 @@ import {
   type DriverDeliveryStatus,
   type DriverCodMixte,
 } from "./schema";
-import { api, apiRequest } from "@/lib/http/client";
+import { api, apiFetch, apiRequest } from "@/lib/http/client";
 import type { ApiSuccessResponse } from "@/types";
 
 // ============================================================
@@ -1144,7 +1144,6 @@ import type {
   DriverNotifications,
 } from "./schema";
 import { driverSettingsSchema } from "./schema";
-import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http/api-error";
 
 // ── Base path ──────────────────────────────────────────────
@@ -1304,14 +1303,6 @@ function _transformSettingsResponse(raw: RawCourierSettingsResponse): unknown {
   };
 }
 
-// ── Helper: get auth token for raw fetch calls ─────────────
-
-function _getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 // ═══════════════════════════════════════════════════════════
 // GET — Settings complètes
 // ═══════════════════════════════════════════════════════════
@@ -1375,25 +1366,12 @@ export async function updateDriverVehicle(data: Partial<DriverVehicle>): Promise
  * multipart/form-data uploads.
  */
 export async function uploadKycDocument(docType: string, file: File): Promise<void> {
-  const base = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
-    ? env.NEXT_PUBLIC_API_BASE_URL
-    : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
-
   const fd = new FormData();
   fd.append("document_type", docType);
   fd.append("file", file);
 
-  const token = _getToken();
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${base}${COURIER_SETTINGS_BASE}/kyc/upload`, {
+  const response = await apiFetch(`${COURIER_SETTINGS_BASE}/kyc/upload`, {
     method: "POST",
-    headers,
     body: fd,
   });
 

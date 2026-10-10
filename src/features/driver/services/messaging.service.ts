@@ -1,4 +1,4 @@
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import type { Conversation, Message, PresenceInfo } from "@/lib/messaging/types";
 
 // ── ID Validation ─────────
@@ -56,16 +56,7 @@ export async function sendCourierMessage(convId: string, body: string, attachmen
     const formData = new FormData();
     formData.append("body", body);
     attachments.forEach((f) => formData.append("attachments[]", f));
-    let token = "";
-    if (typeof window !== "undefined") {
-      const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-      token = match ? decodeURIComponent(match[1]) : "";
-    }
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-    const baseUrl = base.endsWith("/") ? base : `${base}/`;
-    const res = await fetch(`${baseUrl}courier/conversations/${id}/messages`, {
-      method: "POST", headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: formData,
-    });
+    const res = await apiFetch(`courier/conversations/${id}/messages`, { method: "POST", body: formData });
     if (!res.ok) throw new Error("Envoi échoué");
     return res.json() as Promise<SingleMessageResponse>;
   }

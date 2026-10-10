@@ -2,7 +2,7 @@
  * Messaging Service — Seller Endpoints
  * Handles: GET/POST /seller/conversations, messages, actions
  */
-import { api } from "@/lib/http/client";
+import { api, apiFetch } from "@/lib/http/client";
 import type {
   Conversation,
   Message,
@@ -144,20 +144,10 @@ export async function sendSellerMessage(
     formData.append("body", body);
     attachments.forEach((f) => formData.append("attachments[]", f));
 
-    const token = _getToken();
-    const baseUrl = _getBaseUrl();
-
-    const res = await fetch(
-      `${baseUrl}seller/conversations/${id}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      },
-    );
+    const res = await apiFetch(`seller/conversations/${id}/messages`, {
+      method: "POST",
+      body: formData,
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: "Send failed" }));
       throw new Error(
@@ -243,13 +233,3 @@ export async function getRecommendedProducts(
 
 // ── Internal helpers ───────────────────────────────────────
 
-function _getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const match = document.cookie.match(/(?:^|; )sugu_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function _getBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-  return base.endsWith("/") ? base : `${base}/`;
-}
