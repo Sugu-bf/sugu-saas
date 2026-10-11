@@ -350,3 +350,39 @@ describe("WorkspaceShell — guards are preserved", () => {
     for (const value of [undefined, "", "1", "true", "LEGACY", "new"]) expect(isLegacyShellEnabled(value)).toBe(false);
   });
 });
+
+describe("AppShell — the main action of a space", () => {
+  it("agency: « Nouvelle course » sits at the foot of the sidebar and leads to the form", () => {
+    signIn("agency", "/agency/dashboard");
+    render(<AppShell role="agency">x</AppShell>);
+    expect(sidebar().getByRole("link", { name: "Nouvelle course" })).toHaveAttribute("href", "/agency/deliveries/new");
+  });
+
+  it("keeps its name on the icon rail", async () => {
+    signIn("agency", "/agency/dashboard");
+    render(<AppShell role="agency">x</AppShell>);
+    await userEvent.click(screen.getByRole("button", { name: "Réduire le menu" }));
+    const action = sidebar().getByRole("link", { name: "Nouvelle course" });
+    expect(action).toHaveAttribute("href", "/agency/deliveries/new");
+    expect(action).not.toHaveTextContent("Nouvelle course");
+  });
+
+  it("is offered in the tablet drawer too, and closes it when followed", async () => {
+    signIn("agency", "/agency/dashboard");
+    render(<AppShell role="agency">x</AppShell>);
+    await userEvent.click(screen.getByRole("button", { name: "Ouvrir le menu" }));
+    const drawer = within(screen.getByRole("dialog"));
+    await userEvent.click(drawer.getByRole("link", { name: "Nouvelle course" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("vendor and courier have none: no button is added where no action was decided", () => {
+    signIn("vendor", "/vendor/dashboard");
+    const { unmount } = render(<AppShell role="vendor">x</AppShell>);
+    expect(sidebar().queryByRole("link", { name: /Nouvelle/ })).not.toBeInTheDocument();
+    unmount();
+    signIn("courier", "/driver/dashboard");
+    render(<AppShell role="courier">x</AppShell>);
+    expect(sidebar().queryByRole("link", { name: /Nouvelle/ })).not.toBeInTheDocument();
+  });
+});

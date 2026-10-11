@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { Button, Sheet, SheetContent } from "@/design-system";
 import { NavList } from "./nav-list";
-import type { NavGroup } from "./navigation";
+import type { NavGroup, WorkspaceNavigation } from "./navigation";
 
 export interface MobileMenuProps {
   /** `bottom`: phone menu (entries that are not tabs). `left`: tablet drawer (everything). */
@@ -16,6 +17,8 @@ export interface MobileMenuProps {
   activeId: string | null;
   name: string;
   spaceLabel: string;
+  /** The main action of the space, under the navigation. */
+  action?: WorkspaceNavigation["action"];
   onLogout: () => void;
   loggingOut: boolean;
 }
@@ -34,6 +37,7 @@ export function MobileMenu({
   activeId,
   name,
   spaceLabel,
+  action,
   onLogout,
   loggingOut,
 }: MobileMenuProps) {
@@ -54,7 +58,14 @@ export function MobileMenu({
         <nav aria-label={side === "left" ? "Navigation principale" : "Autres rubriques"}>
           <NavList groups={groups} activeId={activeId} touch onNavigate={onClose} />
         </nav>
-        <div className="mt-4 border-t border-border pt-4">
+        <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+          {action && (
+            <Button asChild variant="primary" icon={action.icon} className="w-full">
+              <Link href={action.href} onClick={onClose}>
+                {action.label}
+              </Link>
+            </Button>
+          )}
           <Button icon={LogOut} onClick={onLogout} loading={loggingOut} className="w-full">
             Se déconnecter
           </Button>

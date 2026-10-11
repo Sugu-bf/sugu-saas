@@ -91,6 +91,7 @@ export function AppShell({ role, children }: AppShellProps) {
         home={workspace.home}
         name={name}
         spaceLabel={workspace.spaceLabel}
+        action={workspace.action}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -138,6 +139,7 @@ export function AppShell({ role, children }: AppShellProps) {
         activeId={activeId}
         name={name}
         spaceLabel={workspace.spaceLabel}
+        action={workspace.action}
         onLogout={signOut}
         loggingOut={logout.isPending}
       />

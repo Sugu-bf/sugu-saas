@@ -1,7 +1,6 @@
 import {
   ArrowLeftRight,
   BadgePercent,
-  Bike,
   Boxes,
   ChartColumn,
   CircleHelp,
@@ -16,9 +15,10 @@ import {
   PackageCheck,
   PackageMinus,
   PackagePlus,
+  Plus,
   Settings,
   ShoppingBag,
-  Truck,
+  Users,
   Wallet,
   Warehouse,
   type LucideIcon,
@@ -77,6 +77,12 @@ export interface WorkspaceNavigation {
   fallbackName: string;
   home: string;
   groups: NavGroup[];
+  /**
+   * What this space starts most often ("Nouvelle course"), kept at the foot
+   * of the sidebar and of the tablet drawer. A real destination, like every
+   * entry: the page it opens carries its own button too.
+   */
+  action?: { label: string; href: string; icon: LucideIcon };
   /** Full-screen routes on phones: the tab bar is hidden (chat composer). */
   immersiveRoutes: RegExp[];
 }
@@ -140,14 +146,15 @@ const agency: WorkspaceNavigation = {
   spaceLabel: "Agence de livraison",
   fallbackName: "Mon agence",
   home: "/agency/dashboard",
+  action: { label: "Nouvelle course", href: "/agency/deliveries/new", icon: Plus },
   immersiveRoutes: [/^\/agency\/messages\/[^/]+$/],
   groups: [
     {
       id: "agency-operations",
       items: [
         { id: "agency-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/agency/dashboard", icon: LayoutDashboard, mobilePriority: 1 },
-        { id: "agency-deliveries", label: "Livraisons", href: "/agency/deliveries", icon: Truck, mobilePriority: 2 },
-        { id: "agency-drivers", label: "Livreurs", href: "/agency/drivers", icon: Bike, mobilePriority: 3 },
+        { id: "agency-deliveries", label: "Livraisons", href: "/agency/deliveries", icon: Package, mobilePriority: 2 },
+        { id: "agency-drivers", label: "Livreurs", href: "/agency/drivers", icon: Users, mobilePriority: 3 },
       ],
     },
     {
