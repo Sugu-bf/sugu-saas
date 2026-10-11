@@ -281,10 +281,11 @@ export function OrdersContent() {
             activeFilterCount={activeFilterCount}
             onResetFilters={() => setState({ origin: "", period: "" })}
             count={<ToolbarCount total={page?.total} noun={{ one: "commande", other: "commandes" }} selected={selectedIds.length} />}
-            actions={
+            countAction={
               narrowed ? (
                 <Button
                   variant="quiet"
+                  size="compact"
                   icon={X}
                   onClick={() => setState({ status: "", search: "", origin: "", period: "" })}
                 >
