@@ -62,6 +62,12 @@ export interface DataTableSelection<Row> {
 export interface DataTableProps<Row> {
   /** Accessible name of the table, e.g. "Commandes". */
   caption: string;
+  /**
+   * Heading of the card, above the table: what the list holds ("248
+   * livraisons"), a line about it, and the actions on the whole list
+   * (export). Stays visible when the list is empty or failed.
+   */
+  header?: { title: ReactNode; description?: ReactNode; actions?: ReactNode };
   columns: DataTableColumn<Row>[];
   /** The rows of the current page, in the order the server returned them. */
   rows: Row[];
@@ -85,6 +91,14 @@ export interface DataTableProps<Row> {
   bulkActions?: (selectedIds: string[]) => ReactNode;
   /** Per-row actions: an `IconButton`, or a `DropdownMenu` when there are several. */
   rowActions?: (row: Row) => ReactNode;
+  /**
+   * Shows the heading of the actions column ("Actions") and aligns the
+   * actions with it, for rows whose action is a labelled button. That
+   * column then stays in view while the others scroll under it: what a row
+   * asks for is never off screen. Without it the column has a hidden
+   * heading and its content sits on the right.
+   */
+  rowActionsLabel?: string;
   /** Server pagination. Omit for short, complete lists. */
   pagination?: Omit<PaginationProps, "className">;
   /** Narrow containers (under 672px): declarative cards (default) or the table itself, scrolling sideways. */
@@ -95,6 +109,11 @@ export interface DataTableProps<Row> {
    * action as wide as the card allows, for a labelled button.
    */
   mobileRowActions?: "header" | "footer";
+  /**
+   * `compact`: 13px cells with less padding, for a list of nine columns
+   * that has to fit beside a sidebar. Phone cards are unchanged.
+   */
+  density?: "default" | "compact";
   /** Skeleton rows shown during the first load. */
   loadingRowCount?: number;
   className?: string;
@@ -119,12 +138,17 @@ export function DataTable<Row>({
   selection,
   bulkActions,
   rowActions,
+  rowActionsLabel,
+  header,
   pagination,
   mobileLayout = "cards",
   mobileRowActions = "header",
+  density = "default",
   loadingRowCount = 8,
   className,
 }: DataTableProps<Row>) {
+  const compact = density === "compact";
+  const cellPadding = compact ? "px-2" : "px-3";
   // Phone cards opened with "Voir plus".
   const [openCards, setOpenCards] = useState<ReadonlySet<string>>(new Set());
   const toggleCard = (id: string) =>
@@ -136,10 +160,20 @@ export function DataTable<Row>({
     });
 
   const shell = cn("@container overflow-hidden rounded-panel border border-border bg-surface", className);
+  const heading = header && (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-4 py-3">
+      <div className="min-w-0">
+        <h2 className="text-section-title text-foreground tabular-nums">{header.title}</h2>
+        {header.description && <p className="mt-0.5 text-body text-foreground-muted">{header.description}</p>}
+      </div>
+      {header.actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{header.actions}</div>}
+    </div>
+  );
 
   if (state === "error") {
     return (
       <div className={shell}>
+        {heading}
         <ErrorState {...error} />
       </div>
     );
@@ -148,6 +182,7 @@ export function DataTable<Row>({
   if (state === "ready" && rows.length === 0) {
     return (
       <div className={shell}>
+        {heading}
         <EmptyState {...empty} />
       </div>
     );
@@ -194,6 +229,7 @@ export function DataTable<Row>({
 
   return (
     <div className={shell} aria-busy={loading || refreshing || undefined}>
+      {heading}
       {loading && (
         <p role="status" className="sr-only">
           Chargement…
@@ -228,7 +264,7 @@ export function DataTable<Row>({
           <thead>
             <tr className="border-b border-border bg-surface-subtle">
               {selection && (
-                <th scope="col" className="w-10 px-3">
+                <th scope="col" className={compact ? "w-8 pr-1 pl-3" : "w-10 px-3"}>
                   <Checkbox
                     aria-label="Sélectionner toutes les lignes de cette page"
                     checked={allOnPageSelected}
@@ -256,7 +292,8 @@ export function DataTable<Row>({
                         : undefined
                     }
                     className={cn(
-                      "h-9 px-3 text-meta font-medium whitespace-nowrap text-foreground-muted",
+                      "h-9 text-meta font-medium whitespace-nowrap text-foreground-muted",
+                      cellPadding,
                       column.numeric && "text-right",
                       column.className,
                     )}
@@ -279,11 +316,19 @@ export function DataTable<Row>({
                   </th>
                 );
               })}
-              {rowActions && (
-                <th scope="col" className="w-12 px-3">
-                  <span className="sr-only">Actions</span>
-                </th>
-              )}
+              {rowActions &&
+                (rowActionsLabel ? (
+                  <th
+                    scope="col"
+                    className={cn("sticky right-0 h-9 bg-surface-subtle text-meta font-medium whitespace-nowrap text-foreground-muted shadow-[-1px_0_0_var(--border)]", cellPadding)}
+                  >
+                    {rowActionsLabel}
+                  </th>
+                ) : (
+                  <th scope="col" className="w-12 px-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                ))}
             </tr>
           </thead>
           <tbody>
@@ -306,10 +351,10 @@ export function DataTable<Row>({
                     <tr
                       key={id}
                       data-selected={selected || undefined}
-                      className="border-b border-border last:border-b-0 hover:bg-surface-subtle data-[selected]:bg-brand-subtle"
+                      className="group/row border-b border-border last:border-b-0 hover:bg-surface-subtle data-[selected]:bg-brand-subtle"
                     >
                       {selection && (
-                        <td className="px-3">
+                        <td className={compact ? "pr-1 pl-3" : "px-3"}>
                           <Checkbox
                             aria-label={`Sélectionner ${selection.getRowLabel(row)}`}
                             checked={selected}
@@ -322,7 +367,9 @@ export function DataTable<Row>({
                         <td
                           key={column.id}
                           className={cn(
-                            "h-11 px-3 py-1.5 text-body text-foreground",
+                            "h-11 py-1.5 text-foreground",
+                            cellPadding,
+                            compact ? "text-label font-normal" : "text-body",
                             column.numeric && "text-right whitespace-nowrap tabular-nums",
                             column.className,
                           )}
@@ -331,8 +378,14 @@ export function DataTable<Row>({
                         </td>
                       ))}
                       {rowActions && (
-                        <td className="px-2 text-right">
-                          <div className="flex justify-end gap-1">{rowActions(row)}</div>
+                        <td
+                          className={
+                            rowActionsLabel
+                              ? cn("sticky right-0 bg-surface py-1.5 shadow-[-1px_0_0_var(--border)] group-hover/row:bg-surface-subtle group-data-[selected]/row:bg-brand-subtle", cellPadding)
+                              : "px-2 text-right"
+                          }
+                        >
+                          <div className={cn("flex items-center gap-1", !rowActionsLabel && "justify-end")}>{rowActions(row)}</div>
                         </td>
                       )}
                     </tr>

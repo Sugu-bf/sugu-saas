@@ -13,7 +13,7 @@ const merge = extendTailwindMerge({
   extend: {
     theme: {
       text: ["page-title", "section-title", "body", "label", "meta", "kpi"],
-      radius: ["compact", "control", "panel", "pill", "button"],
+      radius: ["compact", "control", "panel", "pill", "button", "badge"],
       spacing: ["control-sm", "control", "touch"],
       shadow: ["raised", "overlay"],
       color: [

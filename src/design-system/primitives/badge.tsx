@@ -6,7 +6,7 @@ import { cn } from "../cn";
 export type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
 export const badgeVariants = cva(
-  "inline-flex h-6 max-w-full items-center gap-1 rounded-pill border px-2 text-meta font-medium whitespace-nowrap",
+  "inline-flex h-6 max-w-full items-center gap-1 rounded-badge border px-2 text-meta font-medium whitespace-nowrap",
   {
     variants: {
       tone: {
@@ -34,7 +34,7 @@ export interface BadgeProps
   icon?: LucideIcon;
 }
 
-/** Compact label. The pill shape is reserved for this kind of marker. */
+/** Compact label. Its shape is the token `--radius-badge`: a pill, like the buttons, in every workspace. */
 export function Badge({ tone, icon: Icon, className, children, ...props }: BadgeProps) {
   return (
     <span className={cn(badgeVariants({ tone }), className)} {...props}>

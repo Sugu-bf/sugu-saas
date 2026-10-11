@@ -21,6 +21,8 @@ export const buttonVariants = cva(
           "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover",
         secondary:
           "border-border-strong bg-surface text-foreground hover:bg-surface-subtle active:bg-surface-hover aria-pressed:bg-surface-hover",
+        // The next step of a row (assign, follow, relaunch): visible without competing with the page's primary button.
+        outline: "border-primary bg-surface text-primary hover:bg-brand-subtle active:bg-brand-subtle",
         quiet:
           "border-transparent bg-transparent text-foreground-muted hover:bg-surface-hover hover:text-foreground active:bg-surface-hover aria-pressed:bg-surface-hover aria-pressed:text-foreground",
         destructive:

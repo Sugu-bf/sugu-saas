@@ -4,12 +4,15 @@ import {
   Ban,
   Banknote,
   CheckCircle2,
+  CircleAlert,
   CircleDashed,
   Clock,
+  Coffee,
   EyeOff,
   FileSearch,
   Globe,
   Hourglass,
+  Inbox,
   Loader,
   MapPin,
   MessageSquareWarning,
@@ -24,6 +27,7 @@ import {
   Truck,
   Undo2,
   UserCheck,
+  UserPlus,
   UserX,
   XCircle,
 } from "lucide-react";
@@ -127,6 +131,45 @@ export const deliveryStatus = defineStatusRegistry({
   },
 });
 
+/**
+ * The same shipment as the AGENCY works on it: what it has to do next.
+ * `to_accept` is not a status of the enum: it is a request the agency has
+ * not decided on yet (`awaiting_decision` in the agency endpoints).
+ */
+export const agencyDeliveryStatus = defineStatusRegistry({
+  domain: "agency-delivery",
+  statuses: {
+    to_accept: { label: "À accepter", tone: "warning", icon: Inbox, description: "Demande reçue : à accepter ou à refuser." },
+    pending: { label: "À assigner", tone: "warning", icon: UserPlus, description: "Aucun livreur n'est encore assigné." },
+    awaiting_fee_payment: {
+      label: "Frais attendus",
+      tone: "warning",
+      icon: Hourglass,
+      description: "COD Mixte : le client doit régler les frais de livraison.",
+    },
+    assigned: { label: "À ramasser", tone: "warning", icon: Package, description: "Le livreur doit collecter le colis." },
+    picked_up: { label: "Colis collecté", tone: "info", icon: PackageCheck },
+    in_transit: { label: "En livraison", tone: "info", icon: Truck },
+    arrived: { label: "Chez le client", tone: "info", icon: MapPin },
+    delivery_failed: { label: "Échec", tone: "danger", icon: CircleAlert, description: "La tentative de livraison a échoué." },
+    delivered: { label: "Livrée", tone: "success", icon: CheckCircle2 },
+  },
+});
+
+/** Whether the money of a delivery is in: `OrderPaymentStatus`, in the short words of a delivery list. */
+export const deliveryPaymentStatus = defineStatusRegistry({
+  domain: "delivery-payment",
+  statuses: {
+    paid: { label: "Payé", tone: "success", icon: Banknote },
+    partial: { label: "Payé en partie", tone: "warning", icon: CircleDashed, description: "COD Mixte : un seul des deux frais est réglé." },
+    cod_pending: { label: "À encaisser", tone: "warning", icon: Banknote, description: "Montant à collecter à la remise du colis." },
+    pending: { label: "En attente", tone: "warning", icon: Clock, description: "Le paiement de la commande n'est pas encore reçu." },
+    hold: { label: "En vérification", tone: "warning", icon: ShieldAlert },
+    refunded: { label: "Remboursé", tone: "neutral", icon: Undo2 },
+    failed: { label: "Non payé", tone: "danger", icon: XCircle },
+  },
+});
+
 /** `App\Enums\Products\ProductStatus` (integer-backed: 0–6). */
 export const productStatus = defineStatusRegistry({
   domain: "product",
@@ -210,6 +253,21 @@ export const courierStatus = defineStatusRegistry({
   aliases: { "1": "active", "2": "suspended", "3": "inactive", "4": "pending_kyc" },
 });
 
+/**
+ * What a courier is doing, as `AgencyCourierOverviewService` reads it from
+ * his account, his verification and the shipments he carries.
+ */
+export const courierActivity = defineStatusRegistry({
+  domain: "courier-activity",
+  statuses: {
+    on_delivery: { label: "En livraison", tone: "info", icon: Truck, description: "Au moins une livraison en cours." },
+    available: { label: "Disponible", tone: "success", icon: CheckCircle2, description: "En attente d'une course." },
+    paused: { label: "En pause", tone: "neutral", icon: Coffee, description: "Compte mis en pause : aucune course ne lui est proposée." },
+    to_verify: { label: "À vérifier", tone: "warning", icon: CircleAlert, description: "Pièces justificatives à vérifier." },
+    suspended: { label: "Suspendu", tone: "danger", icon: Ban },
+  },
+});
+
 /** `App\Domain\SuguBox\Enums\InboundStatus` — stock received at the warehouse. */
 export const suguBoxInboundStatus = defineStatusRegistry({
   domain: "sugu-box-inbound",
@@ -249,12 +307,15 @@ export const statusRegistries = {
   payment: paymentStatus,
   orderPayment: orderPaymentStatus,
   delivery: deliveryStatus,
+  agencyDelivery: agencyDeliveryStatus,
+  deliveryPayment: deliveryPaymentStatus,
   product: productStatus,
   stock: stockStatus,
   payout: payoutStatus,
   kycDocument: kycDocumentStatus,
   kycRequest: kycRequestStatus,
   courier: courierStatus,
+  courierActivity,
   suguBoxInbound: suguBoxInboundStatus,
   suguBoxOutbound: suguBoxOutboundStatus,
   suguBoxListing: suguBoxListingStatus,

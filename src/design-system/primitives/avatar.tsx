@@ -7,7 +7,8 @@ export interface AvatarProps {
   /** Full name: used for the initials and as the accessible name. */
   name: string;
   src?: string | null;
-  size?: "sm" | "md" | "lg";
+  /** `xl` is for the top of a profile page. */
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
 
@@ -15,6 +16,7 @@ const SIZE = {
   sm: "size-6 text-meta",
   md: "size-8 text-meta",
   lg: "size-10 text-body",
+  xl: "size-16 text-section-title md:size-20 md:text-kpi",
 } as const;
 
 export function initialsOf(name: string): string {

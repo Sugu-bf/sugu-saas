@@ -76,6 +76,8 @@
   /* Product decision: every button is fully rounded. One token, so the
      choice can be revisited without touching components. */
   --radius-button: 9999px;
+  /* Badges follow the buttons: pills, in every workspace. */
+  --radius-badge: 9999px;
 
   /* ── Control heights (h-control, min-h-touch, size-control…) ── */
   --spacing-control-sm: 2rem;
@@ -203,6 +205,61 @@
 /* `touch:` — phones (below 768px) and any coarse pointer (tablets).
    Used to grow controls to a 44px target. */
 @custom-variant touch (@media (pointer: coarse) or (max-width: 47.9375rem));
+
+/* ── The agency workspace ───────────────────────────────── */
+/* The agency screens follow their own mock-ups ("SUGU Pro V3"): controls a
+   little taller, titles and key figures larger and bolder. Buttons and
+   badges stay fully rounded, as everywhere in the portal: that is a product
+   decision, and the mock-ups do not override it. Set on the root, so that
+   what is rendered in a portal (dialogs, menus, sheets) follows the
+   workspace it opens from. */
+:root:has([data-shell="pro"][data-role="agency"]) {
+  --spacing-control: 2.5rem;
+
+  --text-page-title: 1.5rem;
+  --text-page-title--line-height: 2rem;
+  --text-page-title--font-weight: 700;
+  --text-section-title: 1.0625rem;
+  --text-section-title--font-weight: 700;
+  /* On a phone the key figures are a grid of small cards, two a row. */
+  --text-kpi: 1.375rem;
+  --text-kpi--line-height: 1.75rem;
+  --text-kpi--font-weight: 700;
+}
+
+@media (min-width: 48rem) {
+  :root:has([data-shell="pro"][data-role="agency"]) {
+    --text-page-title: 1.875rem;
+    --text-page-title--line-height: 2.375rem;
+    --text-kpi: 1.75rem;
+    --text-kpi--line-height: 2.25rem;
+  }
+}
+
+/* ── Printing a page of the portal ──────────────────────── */
+/* A printed page is its content. The frame (sidebar, top bar, phone tab bar,
+   skip link) stays on the screen, and the scroller the pages live in lets the
+   whole page out instead of the one screen of it. */
+@media print {
+  [data-shell="pro"] {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  [data-shell="pro"] > aside,
+  [data-shell="pro"] > a,
+  [data-shell="pro"] > nav,
+  [data-shell="pro"] #shell-topbar {
+    display: none !important;
+  }
+
+  [data-shell="pro"] main {
+    overflow: visible;
+    padding: 0;
+    background: none;
+  }
+}
 
 /* ── Scope ──────────────────────────────────────────────── */
 .sugu-ui {

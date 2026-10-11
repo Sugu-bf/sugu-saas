@@ -20,7 +20,7 @@ export { Tooltip } from "./primitives/tooltip";
 // Information
 export { Badge } from "./primitives/badge";
 export type { BadgeProps, Tone } from "./primitives/badge";
-export { Card, Section } from "./primitives/card";
+export { Card, Section, iconTileClass } from "./primitives/card";
 export { Stat } from "./primitives/stat";
 export type { StatProps, StatTrend } from "./primitives/stat";
 export { Avatar } from "./primitives/avatar";
@@ -75,7 +75,10 @@ export { StatusBadge } from "./status/status-badge";
 export { UNKNOWN_STATUS_LABEL, defineStatusRegistry } from "./status/registry";
 export type { ResolvedStatus, StatusDefinition, StatusRegistry } from "./status/registry";
 export {
+  agencyDeliveryStatus,
+  courierActivity,
   courierStatus,
+  deliveryPaymentStatus,
   deliveryStatus,
   kycDocumentStatus,
   kycRequestStatus,
