@@ -29,7 +29,7 @@ export default defineConfig({
     {
       command: "node e2e/shell/mock-api.mjs",
       url: `http://127.0.0.1:${API_PORT}/api/v1/__log`,
-      env: { MOCK_API_PORT: String(API_PORT), MOCK_API_EXTENSION: "e2e/catalog/mock-catalog.mjs" },
+      env: { MOCK_API_PORT: String(API_PORT), MOCK_API_EXTENSION: "e2e/catalog/mock-catalog.mjs", MOCK_APP_ORIGIN: `http://localhost:${APP_PORT}` },
       reuseExistingServer: false,
     },
     {
