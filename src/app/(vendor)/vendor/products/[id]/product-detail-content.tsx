@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Boxes, Pencil, Send, Trash2 } from "lucide-react";
+import { Boxes, ImagePlus, Pencil, Send, Trash2 } from "lucide-react";
 import {
   Alert,
   Badge,
@@ -128,10 +128,14 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
   if (product.createdAt) facts.push({ label: "Créé le", value: formatOrderDateTime(product.createdAt) });
   if (product.updatedAt) facts.push({ label: "Modifié le", value: formatOrderDateTime(product.updatedAt) });
 
+  // Under the title: what tells this product from its neighbours in the list.
+  const reference = [product.sku, product.category].filter(Boolean).join(" · ");
+
   return (
-    <div className="sugu-ui mx-auto flex w-full max-w-6xl flex-col gap-4">
+    <div className="sugu-ui @container/page mx-auto flex w-full max-w-6xl flex-col gap-4">
       <PageHeader
         title={product.name}
+        description={reference || undefined}
         breadcrumbs={[{ label: "Produits", href: "/vendor/products" }, { label: product.name }]}
         titleAddon={<StatusBadge domain="product" code={product.status} />}
         primaryAction={
@@ -156,75 +160,90 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
         </Alert>
       )}
 
-      {/* Summary: the picture, the price and the stock, read at a glance.
-          Phone: picture and figures side by side, the rest underneath.
-          Wider: the picture spans both rows, the rest sits next to it. */}
-      <Card className="@container">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-3 @md:gap-x-5">
-          <div className="relative aspect-square w-24 self-start overflow-hidden rounded-control border border-border bg-surface-subtle @md:row-span-2 @md:w-36 @2xl:w-44">
-            <ProductImage src={shown?.url ?? null} alt={shown ? `Photo de ${product.name}` : ""} sizes="(min-width: 768px) 176px, 96px" fit="contain" />
-          </div>
-
-          <dl className="grid grid-cols-1 content-start gap-x-8 gap-y-2 @md:grid-cols-2 @2xl:flex @2xl:flex-wrap">
-            <div className="@md:col-span-2">
-              <dt className="text-label text-foreground-muted">Prix de vente</dt>
-              <dd className="flex flex-wrap items-baseline gap-x-2">
-                <Money francs={product.priceFrancs} className="text-page-title text-foreground" />
-                {product.compareAtFrancs !== null && (
-                  <span className="text-body text-foreground-muted line-through">
-                    <span className="sr-only">Prix barré : </span>
-                    <Money francs={product.compareAtFrancs} />
-                  </span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-label text-foreground-muted">Stock</dt>
-              <dd className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-section-title text-foreground tabular-nums">
-                  {product.stock === null ? "Non communiqué" : `${formatUnits(product.stock)} unité${product.stock > 1 ? "s" : ""}`}
-                </span>
-                {product.stockLevel && <StatusBadge domain="stock" code={product.stockLevel} />}
-              </dd>
-            </div>
-            {variants.length > 0 && (
-              <div>
-                <dt className="text-label text-foreground-muted">Variantes</dt>
-                <dd className="text-section-title text-foreground tabular-nums">{variants.length}</dd>
-              </div>
-            )}
-          </dl>
-
-          {(product.pictures.length !== 1 || product.shortDescription || product.bulkPrices.length > 0) && (
-            <div className="col-span-2 flex min-w-0 flex-col gap-3 @md:col-span-1 @md:col-start-2">
-              {product.pictures.length > 1 && (
-                <ul className="flex flex-wrap gap-1.5" aria-label="Photos du produit">
-                  {product.pictures.map((picture, index) => (
-                    <PictureButton key={picture.id} url={picture.url} number={index + 1} current={picture.id === shown?.id} onSelect={() => setShownId(picture.id)} />
-                  ))}
-                </ul>
-              )}
-              {product.pictures.length === 0 && <p className="text-meta text-foreground-muted">Ce produit n&apos;a pas encore de photo.</p>}
-              {product.shortDescription && <p className="text-body text-foreground">{product.shortDescription}</p>}
-              {product.bulkPrices.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <p className="text-label font-medium text-foreground">Prix par quantité</p>
-                  <ul className="flex flex-col gap-0.5 text-body text-foreground-muted @md:flex-row @md:flex-wrap @md:gap-x-5">
-                    {product.bulkPrices.map((tier) => (
-                      <li key={tier.id}>
-                        À partir de {formatUnits(tier.minQuantity)} unités : <Money francs={tier.priceFrancs} className="font-medium text-foreground" />
-                      </li>
+      {/* From 896px of page: what is sold on two thirds, what files it in the margin.
+          Narrower, one column: the facts close the page. */}
+      <div className="flex flex-col gap-4 @4xl/page:grid @4xl/page:grid-cols-3 @4xl/page:items-start">
+        <div className="flex min-w-0 flex-col gap-4 @4xl/page:col-span-2">
+          {/* The product at a glance: its pictures next to its price and stock;
+              on a phone, the picture first, across the card. */}
+          <Card role="region" aria-label="Résumé du produit" className="@container">
+            <div className="flex flex-col gap-4 @md:flex-row @md:gap-5">
+              <div className="flex shrink-0 flex-col gap-2 @md:w-48 @2xl:w-64">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-control border border-border bg-surface-subtle @md:aspect-square">
+                  <ProductImage
+                    src={shown?.url ?? null}
+                    alt={shown ? `Photo de ${product.name}` : ""}
+                    sizes="(min-width: 1280px) 256px, (min-width: 768px) 192px, 100vw"
+                    fit="contain"
+                    caption
+                  />
+                </div>
+                {product.pictures.length > 1 && (
+                  <ul className="flex flex-wrap gap-1.5" aria-label="Photos du produit">
+                    {product.pictures.map((picture, index) => (
+                      <PictureButton key={picture.id} url={picture.url} number={index + 1} current={picture.id === shown?.id} onSelect={() => setShownId(picture.id)} />
                     ))}
                   </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </Card>
+                )}
+                {product.pictures.length === 0 && (
+                  <Button asChild size="compact" icon={ImagePlus} className="self-start">
+                    <Link href={`/vendor/products/${product.id}/edit?step=photos`}>Ajouter des photos</Link>
+                  </Button>
+                )}
+              </div>
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:items-start">
-        <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
+                <dl>
+                  <div>
+                    <dt className="text-label text-foreground-muted">Prix de vente</dt>
+                    <dd className="flex flex-wrap items-baseline gap-x-2">
+                      <Money francs={product.priceFrancs} className="text-kpi text-foreground" />
+                      {product.compareAtFrancs !== null && (
+                        <span className="text-body text-foreground-muted line-through">
+                          <span className="sr-only">Prix barré : </span>
+                          <Money francs={product.compareAtFrancs} />
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+                <dl className="grid grid-cols-2 gap-x-6 border-t border-border pt-3">
+                  <div className={cn(variants.length === 0 && "col-span-2")}>
+                    <dt className="text-label text-foreground-muted">Stock</dt>
+                    <dd className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-section-title text-foreground tabular-nums">
+                        {product.stock === null ? "Non communiqué" : `${formatUnits(product.stock)} unité${product.stock > 1 ? "s" : ""}`}
+                      </span>
+                      {product.stockLevel && <StatusBadge domain="stock" code={product.stockLevel} />}
+                    </dd>
+                  </div>
+                  {variants.length > 0 && (
+                    <div>
+                      <dt className="text-label text-foreground-muted">Variantes</dt>
+                      <dd className="mt-0.5 text-section-title text-foreground tabular-nums">{variants.length}</dd>
+                    </div>
+                  )}
+                </dl>
+
+                {product.shortDescription && <p className="border-t border-border pt-3 text-body text-foreground">{product.shortDescription}</p>}
+
+                {product.bulkPrices.length > 0 && (
+                  <div className="flex flex-col gap-1 border-t border-border pt-3">
+                    <p className="text-label text-foreground-muted">Prix par quantité</p>
+                    <ul className="flex flex-col">
+                      {product.bulkPrices.map((tier) => (
+                        <li key={tier.id} className="flex items-baseline justify-between gap-4 py-0.5 text-body text-foreground">
+                          <span>À partir de {formatUnits(tier.minQuantity)} unités</span>
+                          <Money francs={tier.priceFrancs} className="font-medium" />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
           {variants.length > 0 && (
             <Card flush className="@container overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-2 p-4 pb-3">
@@ -260,12 +279,15 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
         {facts.length > 0 && (
           <Card className="@container">
             <Section title="Informations">
-              {/* Pairs side by side: twice as dense as one fact per line, at every width. */}
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 @xl:grid-cols-3 @3xl:grid-cols-4">
+              {/* One fact a line, its value at the end; two columns of them where the card is wide. */}
+              <dl className="grid gap-x-8 @xl:grid-cols-2">
                 {facts.map((fact) => (
-                  <div key={fact.label} className="min-w-0">
-                    <dt className="text-meta text-foreground-muted">{fact.label}</dt>
-                    <dd className="text-body break-words text-foreground">{fact.value}</dd>
+                  <div
+                    key={fact.label}
+                    className="flex min-w-0 items-baseline justify-between gap-4 border-t border-border py-2 first:border-t-0 first:pt-0 @xl:[&:nth-child(2)]:border-t-0 @xl:[&:nth-child(2)]:pt-0"
+                  >
+                    <dt className="shrink-0 text-body text-foreground-muted">{fact.label}</dt>
+                    <dd className="min-w-0 text-right text-body font-medium break-words text-foreground">{fact.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -321,6 +343,8 @@ function PictureButton({ url, number, current, onSelect }: { url: string; number
 
 function VariantRow({ variant }: { variant: ProductVariant }) {
   const options = Object.entries(variant.options);
+  // A variant taken off sale has no stock to report as missing.
+  const soldOut = variant.isActive && variant.stock <= 0;
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 @lg:grid-cols-[minmax(0,1fr)_8rem_7rem]">
       <div className="min-w-0">
@@ -332,10 +356,18 @@ function VariantRow({ variant }: { variant: ProductVariant }) {
       </div>
       <p className="row-span-2 text-right text-body @lg:row-span-1">
         {variant.priceFrancs !== null && <Money francs={variant.priceFrancs} className="font-medium text-foreground" />}
-        <span className="block text-meta text-foreground-muted tabular-nums @lg:hidden">{formatUnits(variant.stock)} en stock</span>
+        <span className="mt-0.5 block text-meta text-foreground-muted tabular-nums @lg:hidden">
+          {soldOut ? <StatusBadge domain="stock" code="out_of_stock" /> : `${formatUnits(variant.stock)} en stock`}
+        </span>
       </p>
       <p className="hidden text-right text-body text-foreground tabular-nums @lg:block">
-        {formatUnits(variant.stock)} <span className="text-foreground-muted">en stock</span>
+        {soldOut ? (
+          <StatusBadge domain="stock" code="out_of_stock" />
+        ) : (
+          <>
+            {formatUnits(variant.stock)} <span className="text-foreground-muted">en stock</span>
+          </>
+        )}
       </p>
     </li>
   );
