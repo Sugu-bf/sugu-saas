@@ -1,785 +1,522 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
-  Users,
-  Truck,
-  Star,
-  Target,
-  Search,
-  ChevronDown,
-  Plus,
-  RefreshCw,
-  X,
-  Phone,
-  MessageCircle,
-  AlertTriangle,
-  Bike,
-  Pencil,
   Ban,
-  UserMinus,
-  Wifi,
-  WifiOff,
-  Loader2,
-  PlayCircle,
+  Bike,
+  BellRing,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  CirclePause,
+  CirclePlay,
+  Coffee,
+  Download,
+  Eye,
+  FileWarning,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Send,
+  ShieldCheck,
+  TrendingDown,
+  Truck,
+  UserCheck,
+  UserPlus,
+  UserX,
+  Users,
+  X,
+  type LucideIcon,
 } from "lucide-react";
-import type {
-  DriverCard,
-  DriverDetail,
-  DriverStatusVal,
-} from "@/features/agency/schema";
 import {
-  useAgencyDrivers,
-  useDriverDetail as useDriverDetailHook,
-  useSuspendCourier,
-  useActivateCourier,
-  useRemoveCourier,
-} from "@/features/agency/hooks";
-import { useQueryClient } from "@tanstack/react-query";
-import { InvitationCodeCard } from "./_components/invitation-code-card";
-import { queryKeys } from "@/lib/query";
+  Avatar,
+  Badge,
+  Button,
+  DataTable,
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  IconButton,
+  Money,
+  PageHeader,
+  Skeleton,
+  Stat,
+  StatusBadge,
+  Toolbar,
+  ToolbarFilter,
+  ToolbarSearch,
+  cn,
+  courierActivity,
+  type DataTableColumn,
+  type SortState,
+  type Tone,
+} from "@/design-system";
+import { loadStateOf } from "@/lib/query/load-state";
+import { replaceUrlQuery } from "@/lib/utils/replace-url-query";
+import { CourierActionDialogs, courierAbilities, type CourierIntent } from "@/features/agency/components/courier-actions";
+import { CourierCell, SuccessRate } from "@/features/agency/components/courier-bits";
+import { InvitationCode } from "@/features/agency/components/invitation-code";
+import { AgencyPage, KpiRow } from "@/features/agency/components/page";
+import { Panel } from "@/features/agency/components/panel";
+import { exportCouriersCsv, COURIER_PAGE_SIZE } from "@/features/agency/couriers/api";
+import { COURIER_ACTIVITIES, documentLabel, type Courier, type CourierActivity, type CourierAlerts, type CourierOverview } from "@/features/agency/couriers/contract";
+import { useCouriers } from "@/features/agency/couriers/hooks";
+import { describeAgencyFailure } from "@/features/agency/errors";
+import { formatCount, formatRate, relativeTime, telHref, whatsappHref } from "@/features/agency/format";
+import { useAgencyId } from "@/features/agency/session";
+import { CLEARED_FILTERS, filtersOf, isNarrowed, readListState, writeListState, type ListState } from "./list-state";
 
-// ────────────────────────────────────────────────────────────
-// Status config
-// ────────────────────────────────────────────────────────────
+// ── What the page offers ────────────────────────────────────
 
-const DRIVER_STATUS_CFG: Record<
-  DriverStatusVal,
-  { label: string; bg: string; text: string; dot: string }
-> = {
-  online: {
-    label: "En ligne",
-    bg: "bg-green-50 dark:bg-green-950/30",
-    text: "text-green-600 dark:text-green-400",
-    dot: "bg-green-500",
-  },
-  offline: {
-    label: "Hors ligne",
-    bg: "bg-gray-100 dark:bg-gray-800",
-    text: "text-gray-500 dark:text-gray-400",
-    dot: "bg-red-400",
-  },
-  suspended: {
-    label: "Suspendu",
-    bg: "bg-red-50 dark:bg-red-950/30",
-    text: "text-red-600 dark:text-red-400",
-    dot: "bg-red-500",
-  },
-};
-
-// ────────────────────────────────────────────────────────────
-// KPI Card
-// ────────────────────────────────────────────────────────────
-
-function KpiCard({
-  icon,
-  label,
-  children,
-  delay,
-}: {
-  icon: ReactNode;
-  label: string;
-  children: ReactNode;
-  delay: number;
-}) {
-  return (
-    <div
-      className="glass-card animate-card-enter rounded-2xl p-4"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        {icon}
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-          {label}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Driver Grid Card
-// ────────────────────────────────────────────────────────────
-
-function DriverGridCard({
-  driver,
-  isSelected,
-  onClick,
-}: {
-  driver: DriverCard;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  const statusCfg = DRIVER_STATUS_CFG[driver.status];
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group relative flex flex-col items-center rounded-2xl border bg-white/80 p-5 text-left transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 dark:bg-gray-900/60",
-        isSelected
-          ? "border-sugu-400 ring-2 ring-sugu-200 shadow-md dark:ring-sugu-900/50"
-          : "border-gray-200/70 dark:border-gray-800",
-      )}
-      aria-label={`Voir le profil de ${driver.name}`}
-    >
-      {/* Status dot */}
-      <div className="absolute right-3 top-3 flex items-center gap-1.5">
-        <span className={cn("h-2 w-2 rounded-full", statusCfg.dot)} />
-        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
-          {statusCfg.label}
-        </span>
-      </div>
-
-      {/* Avatar + rank */}
-      <div className="relative mt-2">
-        <div
-          className={cn(
-            "flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold ring-2 ring-white dark:ring-gray-900",
-            driver.avatarColor,
-          )}
-        >
-          {driver.initials}
-        </div>
-        {driver.rank && (
-          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-sugu-500 text-[9px] font-black text-white">
-            {driver.rank}er
-          </span>
-        )}
-      </div>
-
-      {/* Name + phone */}
-      <h3 className="mt-3 text-sm font-bold text-gray-900 dark:text-white">
-        {driver.name}
-      </h3>
-      <p className="text-[10px] text-gray-400">{driver.phone}</p>
-
-      {/* Vehicle badge */}
-      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-        <Bike className="h-3 w-3" />
-        {driver.vehicle.charAt(0).toUpperCase() + driver.vehicle.slice(1)}
-      </span>
-
-      {/* Stats row */}
-      <div className="mt-3 flex w-full items-center justify-center gap-4 text-center">
-        <div>
-          <p className="text-base font-extrabold text-gray-900 dark:text-white">
-            {driver.totalDeliveries}
-          </p>
-          <p className="text-[9px] text-gray-400">livraisons</p>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-          <span className="text-base font-extrabold text-gray-900 dark:text-white">
-            {driver.rating}
-          </span>
-          <span className="text-[9px] text-gray-400 ml-0.5">{driver.ratingLabel}</span>
-        </div>
-      </div>
-
-      {/* Footer badges */}
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-        {driver.todayDeliveries > 0 && (
-          <span className="rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-semibold text-green-600 dark:bg-green-950/30 dark:text-green-400">
-            {driver.todayDeliveries} aujourd&apos;hui
-          </span>
-        )}
-        {driver.currentActivityLabel && (
-          <span className="rounded-full bg-sugu-50 px-2 py-0.5 text-[9px] font-semibold text-sugu-600 dark:bg-sugu-950/30 dark:text-sugu-400">
-            {driver.currentActivityLabel}
-          </span>
-        )}
-        {driver.warningLabel && (
-          <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
-            <AlertTriangle className="h-2.5 w-2.5" />
-            {driver.successRate}% réussite
-          </span>
-        )}
-        {!driver.warningLabel && (
-          <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[9px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-            {driver.successRate}% réussite
-          </span>
-        )}
-      </div>
-
-      {/* Last seen for offline */}
-      {driver.lastSeen && (
-        <p className="mt-1 text-[9px] italic text-gray-400">{driver.lastSeen}</p>
-      )}
-
-      {/* View profile link */}
-      <Link
-        href={`/agency/drivers/${driver.id}`}
-        onClick={(e) => e.stopPropagation()}
-        className="mt-3 flex items-center gap-1 text-xs font-semibold text-sugu-500 opacity-70 group-hover:opacity-100 transition-opacity hover:underline"
-      >
-        Voir le profil →
-      </Link>
-    </button>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Add Driver Placeholder Card
-// ────────────────────────────────────────────────────────────
-
-function AddDriverCard() {
-  return (
-    <Link
-      href="/agency/drivers/new"
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/40 p-8 text-gray-400 transition-all hover:border-sugu-300 hover:text-sugu-500 dark:border-gray-800 dark:bg-gray-900/20 dark:hover:border-sugu-700"
-      aria-label="Ajouter un livreur"
-    >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-current">
-        <Plus className="h-6 w-6" />
-      </div>
-      <span className="text-sm font-semibold">Ajouter un livreur</span>
-    </Link>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Detail Panel
-// ────────────────────────────────────────────────────────────
-
-function DriverDetailPanel({
-  detail,
-  onClose,
-  isLoading,
-}: {
-  detail: DriverDetail | null;
-  onClose: () => void;
-  isLoading?: boolean;
-}) {
-  const suspendMutation = useSuspendCourier();
-  const activateMutation = useActivateCourier();
-  const removeMutation = useRemoveCourier();
-
-  if (isLoading || !detail) {
-    return (
-      <aside className={cn(
-        "fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col items-center justify-center border-l border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-gray-800/60 dark:bg-gray-950/95",
-        "lg:relative lg:inset-auto lg:z-auto lg:max-w-none lg:w-[360px] lg:flex-shrink-0 lg:shadow-none",
-      )}>
-        <Loader2 className="h-6 w-6 animate-spin text-sugu-500" />
-        <p className="mt-2 text-xs text-gray-400">Chargement…</p>
-      </aside>
-    );
-  }
-  const statusCfg = DRIVER_STATUS_CFG[detail.status];
-
-  return (
-    <aside
-      className={cn(
-        "fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto border-l border-gray-200/60 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-gray-800/60 dark:bg-gray-950/95",
-        "lg:relative lg:inset-auto lg:z-auto lg:max-w-none lg:w-[360px] lg:flex-shrink-0 lg:shadow-none",
-      )}
-    >
-      {/* Panel header */}
-      <div className="relative flex flex-col items-center border-b border-gray-100 px-5 pb-5 pt-4 dark:border-gray-800">
-        <button
-          onClick={onClose}
-          aria-label="Fermer le panneau"
-          className="absolute right-3 top-3 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* Avatar */}
-        <div className="relative">
-          <div
-            className={cn(
-              "flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold ring-3 ring-white dark:ring-gray-900",
-              detail.avatarColor,
-            )}
-          >
-            {detail.initials}
-          </div>
-          {detail.rank && (
-            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-sugu-500 text-[10px] font-black text-white">
-              #{detail.rank}
-            </span>
-          )}
-        </div>
-        <h2 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">
-          {detail.name}
-        </h2>
-        <div className="mt-1 flex items-center gap-1.5">
-          <span className={cn("h-2 w-2 rounded-full", statusCfg.dot)} />
-          <span className={cn("text-xs font-semibold", statusCfg.text)}>
-            {statusCfg.label}
-          </span>
-        </div>
-        <p className="mt-1 text-xs text-gray-400">
-          {detail.phone} · {detail.email}
-        </p>
-      </div>
-
-      <div className="flex-1 space-y-4 p-4">
-        {/* ── Informations ── */}
-        <section aria-labelledby="detail-info-heading">
-          <h3
-            id="detail-info-heading"
-            className="mb-2 text-xs font-bold text-gray-900 dark:text-white"
-          >
-            Informations
-          </h3>
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
-            <div className="text-left">
-              <p className="text-[10px] font-medium text-gray-400">Véhicule</p>
-              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                {detail.vehicle.charAt(0).toUpperCase() + detail.vehicle.slice(1)}
-              </p>
-            </div>
-            <div className="text-left">
-              <p className="text-[10px] font-medium text-gray-400">Plaque d&apos;immatriculation</p>
-              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                {detail.vehicleId || "—"}
-              </p>
-            </div>
-            <div className="text-left">
-              <p className="text-[10px] font-medium text-gray-400">Statut KYC</p>
-              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                {detail.verified ? "Vérifié (CNI OK)" : "En attente"}
-              </p>
-            </div>
-            <div className="text-left">
-              <p className="text-[10px] font-medium text-gray-400">Date d&apos;embauche</p>
-              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                {detail.joinedDate}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Performance ── */}
-        <section aria-labelledby="detail-perf-heading">
-          <h3
-            id="detail-perf-heading"
-            className="mb-2 text-xs font-bold text-gray-900 dark:text-white"
-          >
-            Performance globale
-          </h3>
-          <div className="rounded-xl bg-gray-50/80 p-3 dark:bg-gray-900/60">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <p className="text-lg font-extrabold text-gray-900 dark:text-white">
-                  {detail.totalDeliveries}
-                </p>
-                <p className="text-[9px] text-gray-400">Livraisons</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-extrabold text-green-600">
-                  {detail.successRate}%
-                </p>
-                <p className="text-[9px] text-gray-400">Réussite</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-extrabold text-gray-900 dark:text-white">
-                  {detail.rating}
-                </p>
-                <p className="text-[9px] text-gray-400">Note clients</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* ── Action buttons ── */}
-      <div className="space-y-2 border-t border-gray-100 p-4 dark:border-gray-800">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => { const phone = detail.phone.replace(/\s/g, ""); window.open(`tel:${phone}`); }}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-sugu-500 py-2.5 text-xs font-semibold text-white transition-all hover:bg-sugu-600"
-          >
-            <Phone className="h-3.5 w-3.5" />
-            Appeler
-          </button>
-          <button
-            onClick={() => { const phone = detail.phone.replace(/[\s+]/g, ""); window.open(`https://wa.me/${phone}`); }}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-green-500 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-green-600 transition-colors"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-            WhatsApp
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {detail.status === "suspended" ? (
-            <button
-              onClick={() => activateMutation.mutate({ courierId: detail.id })}
-              disabled={activateMutation.isPending}
-              className="flex items-center justify-center gap-1 rounded-xl border border-green-200 bg-green-50 py-2 text-[11px] font-semibold text-green-700 hover:bg-green-100 dark:border-green-900/40 dark:bg-green-950/20 dark:text-green-400 disabled:opacity-50"
-            >
-              {activateMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlayCircle className="h-3 w-3" />}
-              Réactiver
-            </button>
-          ) : (
-            <button
-              onClick={() => suspendMutation.mutate({ courierId: detail.id })}
-              disabled={suspendMutation.isPending}
-              className="flex items-center justify-center gap-1 rounded-xl border border-amber-200 bg-amber-50 py-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-400 disabled:opacity-50"
-            >
-              {suspendMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Ban className="h-3 w-3" />}
-              Suspendre
-            </button>
-          )}
-          <Link
-            href={`/agency/drivers/${detail.id}/edit`}
-            className="flex items-center justify-center gap-1 rounded-xl border border-gray-200 bg-white py-2 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-          >
-            <Pencil className="h-3 w-3" />
-            Modifier
-          </Link>
-          <button
-            onClick={() => { if (confirm("Êtes-vous sûr de vouloir retirer ce livreur ?")) removeMutation.mutate({ courierId: detail.id }); }}
-            disabled={removeMutation.isPending}
-            className="flex items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 py-2 text-[11px] font-semibold text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 disabled:opacity-50"
-          >
-            {removeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserMinus className="h-3 w-3" />}
-            Retirer
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Main Component
-// ────────────────────────────────────────────────────────────
-
-type StatusFilter = "all" | "online" | "offline" | "suspended";
-
-type StatusTabItem = {
-  key: StatusFilter;
-  label: string;
-  icon: ReactNode;
-  iconClass: string;
-};
-
-const STATUS_TABS: StatusTabItem[] = [
-  { key: "all", label: "Tous", icon: <Users className="h-3.5 w-3.5" />, iconClass: "text-sugu-500" },
-  { key: "online", label: "En ligne", icon: <Wifi className="h-3.5 w-3.5" />, iconClass: "text-green-500" },
-  { key: "offline", label: "Hors ligne", icon: <WifiOff className="h-3.5 w-3.5" />, iconClass: "text-red-400" },
-  { key: "suspended", label: "Suspendus", icon: <Ban className="h-3.5 w-3.5" />, iconClass: "text-gray-400" },
+/** The groups counted above the list. Each figure is the size of the list its card filters. */
+const GROUPS: { activity: CourierActivity; count: keyof CourierOverview; label: string; hint: string; icon: LucideIcon }[] = [
+  { activity: "on_delivery", count: "onDelivery", label: "En livraison", hint: "Actuellement sur le terrain", icon: Truck },
+  { activity: "available", count: "available", label: "Disponibles", hint: "En attente de courses", icon: CircleCheck },
+  { activity: "paused", count: "paused", label: "En pause", hint: "Temporairement indisponibles", icon: Coffee },
+  { activity: "to_verify", count: "toVerify", label: "À vérifier", hint: "Pièces à contrôler", icon: CircleAlert },
 ];
 
+const ACTIVITY_OPTIONS = [
+  { value: "", label: "Tous les statuts" },
+  ...COURIER_ACTIVITIES.map((code) => ({ value: code as string, label: courierActivity.resolve(code).label })),
+];
+
+// ── Rows ────────────────────────────────────────────────────
+
+/** A heading of two words on two lines, over a column of figures. */
+const TWO_LINES = "@2xl:[&:is(th)]:w-20 @2xl:[&:is(th)]:leading-tight @2xl:[&:is(th)]:whitespace-normal";
+
+const COLUMNS: DataTableColumn<Courier>[] = [
+  {
+    id: "name",
+    header: "Livreur",
+    sortable: true,
+    mobile: "title",
+    className: "@2xl:max-w-44",
+    cell: (courier) => <CourierCell courier={courier} />,
+  },
+  {
+    id: "phone",
+    header: "Téléphone",
+    className: "whitespace-nowrap",
+    cell: (courier) =>
+      courier.phone ? (
+        <a href={telHref(courier.phone)} className="rounded-compact tabular-nums underline-offset-2 hover:underline">
+          {courier.phone}
+        </a>
+      ) : (
+        <span className="text-foreground-muted">—</span>
+      ),
+  },
+  { id: "activity", header: "Statut", mobile: "badge", cell: (courier) => <StatusBadge domain="courierActivity" code={courier.activity} /> },
+  {
+    id: "quartier",
+    header: "Zone",
+    className: "@2xl:max-w-24",
+    cell: (courier) => (courier.quartier ? <span className="block truncate">{courier.quartier}</span> : <span className="text-foreground-muted">—</span>),
+    mobileCell: (courier) => courier.quartier,
+  },
+  // Two-line headings, as narrow as the figures under them.
+  { id: "today", header: "Livraisons aujourd'hui", numeric: true, className: TWO_LINES, cell: (courier) => formatCount(courier.deliveriesToday) },
+  { id: "rate", header: "Taux de réussite", className: cn(TWO_LINES, "@2xl:[&:is(th)]:w-16"), cell: (courier) => <SuccessRate rate={courier.successRate} /> },
+  { id: "revenue", header: "Gains du jour", numeric: true, mobile: "detail", className: TWO_LINES, cell: (courier) => <Money francs={courier.revenueTodayFrancs} /> },
+  {
+    id: "last",
+    header: "Dernière activité",
+    mobile: "detail",
+    // Left out while the list is narrower than 880px (a 1440px screen with the menu open): it is on the page of the courier.
+    className: cn(TWO_LINES, "whitespace-nowrap @2xl:hidden @[55rem]:table-cell"),
+    cell: (courier) => relativeTime(courier.lastActivityAt) ?? <span className="text-foreground-muted">—</span>,
+    mobileCell: (courier) => relativeTime(courier.lastActivityAt),
+  },
+];
+
+// ── Alerts ──────────────────────────────────────────────────
+
+/** The document types, in a word: an alert names the courier first. */
+const SHORT_DOCUMENT: Record<string, string> = { id_card: "Identité", driver_license: "Permis", vehicle_registration: "Carte grise", insurance: "Assurance" };
+
+function AlertGroup({ title, icon: Icon, total, shown, children }: { title: string; icon: LucideIcon; total: number; shown: number; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+        <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        {title}
+        <span className="ml-auto text-meta font-normal text-foreground-muted tabular-nums">{formatCount(total)}</span>
+      </h3>
+      {total === 0 ? (
+        <p className="text-meta text-foreground-muted">Rien à signaler.</p>
+      ) : (
+        <ul className="flex flex-col">{children}</ul>
+      )}
+      {total > shown && <p className="text-meta text-foreground-muted">et {formatCount(total - shown)} autre{total - shown > 1 ? "s" : ""}.</p>}
+    </section>
+  );
+}
+
+function AlertRow({ courierId, name, employeeId, badge, tone, detail }: { courierId: string; name: string; employeeId: string | null; badge: string; tone: Tone; detail: string }) {
+  return (
+    <li>
+      <Link href={`/agency/drivers/${courierId}`} className="group -mx-2 flex items-center gap-2.5 rounded-control px-2 py-2 hover:bg-surface-subtle">
+        <Avatar name={name} size="md" />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          {/* The name is never cut: the badge goes under it when the two do not fit a line. */}
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-body font-medium text-foreground">{name}</span>
+            <Badge tone={tone}>{badge}</Badge>
+          </span>
+          <span className="text-meta text-foreground-muted">{[employeeId, detail].filter(Boolean).join(" · ")}</span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
+      </Link>
+    </li>
+  );
+}
+
+/** "Expire dans 3 jours", "Expiré depuis 2 jours", "Expire aujourd'hui". */
+function expiry(daysLeft: number): string {
+  if (daysLeft === 0) return "Expire aujourd'hui";
+  const days = Math.abs(daysLeft);
+  return daysLeft > 0 ? `Expire dans ${days} jour${days > 1 ? "s" : ""}` : `Expiré depuis ${days} jour${days > 1 ? "s" : ""}`;
+}
+
+function CourierAlertsPanel({ alerts, loading, failed }: { alerts: CourierAlerts | null; loading: boolean; failed: boolean }) {
+  const total = alerts ? alerts.documents.total + alerts.lowPerformance.total + alerts.inactive.total : 0;
+  return (
+    <Panel title="Alertes et suivi" icon={BellRing} tone="warning" actions={alerts && <Badge tone={total > 0 ? "warning" : "neutral"}>{formatCount(total)}</Badge>}>
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-10 w-full" />
+          ))}
+        </div>
+      ) : failed ? (
+        <p className="text-body text-foreground-muted">Les alertes n&apos;ont pas pu être chargées.</p>
+      ) : !alerts ? (
+        <p className="text-body text-foreground-muted">Les alertes sont réservées au responsable de l&apos;agence.</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <AlertGroup title="Documents à renouveler" icon={FileWarning} total={alerts.documents.total} shown={alerts.documents.items.length}>
+            {alerts.documents.items.map((entry) => (
+              <AlertRow
+                key={`${entry.courierId}-${entry.documentType}`}
+                courierId={entry.courierId}
+                name={entry.name}
+                employeeId={entry.employeeId}
+                badge={SHORT_DOCUMENT[entry.documentType] ?? documentLabel(entry.documentType)}
+                tone={entry.daysLeft < 0 ? "danger" : "warning"}
+                detail={expiry(entry.daysLeft)}
+              />
+            ))}
+          </AlertGroup>
+          <AlertGroup title="Performance faible" icon={TrendingDown} total={alerts.lowPerformance.total} shown={alerts.lowPerformance.items.length}>
+            {alerts.lowPerformance.items.map((entry) => (
+              <AlertRow
+                key={entry.courierId}
+                courierId={entry.courierId}
+                name={entry.name}
+                employeeId={entry.employeeId}
+                badge={formatRate(entry.successRate)}
+                tone="danger"
+                detail={`Taux de réussite bas sur ${formatCount(entry.totalDeliveries)} livraisons`}
+              />
+            ))}
+          </AlertGroup>
+          <AlertGroup title="Inactifs récemment" icon={UserX} total={alerts.inactive.total} shown={alerts.inactive.items.length}>
+            {alerts.inactive.items.map((entry) => (
+              <AlertRow
+                key={entry.courierId}
+                courierId={entry.courierId}
+                name={entry.name}
+                employeeId={entry.employeeId}
+                badge="Sans livraison"
+                tone="neutral"
+                detail={`Depuis ${formatCount(entry.days)} jour${entry.days > 1 ? "s" : ""}`}
+              />
+            ))}
+          </AlertGroup>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────
+
 export function DriversContent() {
-  const [activeTab, setActiveTab] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const agencyId = useAgencyId();
 
-  // Fetch drivers via React Query hook
-  const { data, isLoading, isError } = useAgencyDrivers();
+  // The list state lives here and is mirrored in the URL, as on the deliveries list.
+  const [state, setListState] = useState<ListState>(() => readListState(searchParams));
+  const setState = useCallback((patch: Partial<ListState>) => {
+    setListState((current) => ({ ...current, page: 1, ...patch }));
+  }, []);
 
-  // Fetch selected driver detail dynamically
-  const { data: detailData, isLoading: detailLoading } = useDriverDetailHook(selectedDriverId);
+  const query = writeListState(state).toString();
+  const urlQuery = writeListState(readListState(searchParams)).toString();
+  const writtenQuery = useRef(urlQuery);
 
-  // Auto-select first driver when data loads
-  const drivers = data?.drivers ?? [];
-  const summary = data?.summary ?? { totalDrivers: 0, activeDrivers: 0, inProgressDeliveries: 0, averageRating: 0, totalReviews: 0, successRate: 0, successTarget: 95 };
-  const statusCounts = data?.statusCounts ?? { all: 0, online: 0, offline: 0, suspended: 0 };
-  const lastUpdated = data?.lastUpdated ?? "—";
+  useEffect(() => {
+    if (query === writtenQuery.current) return;
+    writtenQuery.current = query;
+    replaceUrlQuery(pathname, query);
+  }, [pathname, query]);
 
-  // Filter drivers client-side
-  const filteredDrivers = drivers.filter((d) => {
-    const matchesTab = activeTab === "all" || d.status === activeTab;
-    const matchesSearch =
-      !search ||
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.phone.includes(search);
-    return matchesTab && matchesSearch;
-  });
+  useEffect(() => {
+    if (urlQuery === writtenQuery.current) return;
+    writtenQuery.current = urlQuery;
+    setListState(readListState(new URLSearchParams(urlQuery)));
+  }, [urlQuery]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-sugu-500" />
-      </div>
-    );
+  const [searchInput, setSearchInput] = useState(state.search);
+  useEffect(() => setSearchInput(state.search), [state.search]);
+
+  const filters = useMemo(() => filtersOf(state), [state]);
+  const couriers = useCouriers({ ...filters, page: state.page, pageSize: COURIER_PAGE_SIZE });
+
+  const [intent, setIntent] = useState<CourierIntent | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const page = couriers.data;
+  const loadState = loadStateOf(couriers);
+  const overview = page?.overview ?? null;
+  const narrowed = isNarrowed(state);
+  const clearFilters = () => setState({ ...CLEARED_FILTERS });
+
+  const quartierOptions = useMemo(
+    () => [{ value: "", label: "Toutes les zones" }, ...(page?.quartiers ?? []).map((entry) => ({ value: entry.name, label: `${entry.name} (${entry.count})` }))],
+    [page?.quartiers],
+  );
+
+  async function runExport() {
+    if (!agencyId) return;
+    setExporting(true);
+    try {
+      await exportCouriersCsv(agencyId, filters);
+      toast.success("Export des livreurs téléchargé.");
+    } catch (error) {
+      toast.error(`Export impossible. ${describeAgencyFailure(error).message}`);
+    } finally {
+      setExporting(false);
+    }
   }
 
-  // Error state
-  if (isError) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <AlertTriangle className="h-8 w-8 text-amber-500" />
-        <p className="text-sm text-gray-500">Erreur lors du chargement des livreurs.</p>
-        <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.agency.drivers() })}
-          className="text-sm font-semibold text-sugu-500 hover:text-sugu-600"
-        >
-          Réessayer
-        </button>
-      </div>
-    );
-  }
+  const sort: SortState | null = state.sort === "name" ? { columnId: "name", direction: state.direction } : null;
 
   return (
-    <div className="flex h-full min-h-0 gap-0">
-      {/* ════ Main area ════ */}
-      <div className="flex min-w-0 flex-1 flex-col space-y-4">
-        {/* ── Header ── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Livreurs{" "}
-            <span className="text-base font-normal text-gray-400">
-              ({summary.totalDrivers} livreurs)
-            </span>
-          </h1>
-          <Link
-            href="/agency/drivers/new"
-            id="btn-add-driver"
-            className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-sugu-600 active:scale-[0.97]"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter un livreur
-          </Link>
-        </div>
+    <AgencyPage>
+      <PageHeader
+        title="Livreurs"
+        description="Pilotez votre flotte, suivez la disponibilité et la performance."
+        hideDescriptionOnPhone
+        primaryAction={{ label: "Nouveau livreur", icon: UserPlus, href: "/agency/drivers/new" }}
+      />
 
-        {/* ── Invitation Code Card ── */}
-        <InvitationCodeCard />
+      <KpiRow label="Livreurs par situation">
+        <Stat
+          layout="figure"
+          label="Actifs"
+          icon={Users}
+          value={overview ? formatCount(overview.active) : "—"}
+          hint={overview ? `Sur ${formatCount(overview.total)} livreur${overview.total > 1 ? "s" : ""}` : undefined}
+          loading={loadState === "loading"}
+        />
+        {GROUPS.map((group) => (
+          <Stat
+            layout="figure"
+            key={group.activity}
+            label={group.label}
+            icon={group.icon}
+            value={overview ? formatCount(overview[group.count]) : "—"}
+            hint={group.hint}
+            loading={loadState === "loading"}
+            pressed={state.activity === group.activity}
+            onSelect={() => setState({ activity: state.activity === group.activity ? "" : group.activity })}
+          />
+        ))}
+      </KpiRow>
 
-        {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {/* Active drivers */}
-          <KpiCard
-            icon={<Users className="h-4 w-4 text-green-500" />}
-            label="Livreurs actifs"
-            delay={0}
-          >
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-gray-900 dark:text-white">
-                {summary.activeDrivers}
-              </span>
-              <span className="text-sm text-gray-400">/ {summary.totalDrivers}</span>
-            </div>
-            <p className="text-[10px] text-gray-400">En service maintenant</p>
-            {/* Mini bar chart placeholder */}
-            <div className="mt-1.5 flex items-end gap-0.5 h-4">
-              {[40, 60, 80, 50, 90, 70, 95].map((h, i) => (
-                <div
-                  key={i}
-                  className="w-1.5 rounded-sm bg-green-400"
-                  style={{ height: `${h}%` }}
-                />
-              ))}
-            </div>
-          </KpiCard>
-
-          {/* In-progress deliveries */}
-          <KpiCard
-            icon={<Truck className="h-4 w-4 text-sugu-500" />}
-            label="Livraisons en cours"
-            delay={60}
-          >
-            <p className="text-2xl font-black text-sugu-600">
-              {summary.inProgressDeliveries}
-            </p>
-            <p className="text-[10px] text-gray-400">Assignées maintenant</p>
-          </KpiCard>
-
-          {/* Average rating */}
-          <KpiCard
-            icon={<Star className="h-4 w-4 fill-amber-400 text-amber-400" />}
-            label="Note moyenne"
-            delay={120}
-          >
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-gray-900 dark:text-white">
-                {summary.averageRating}
-              </span>
-              <span className="text-sm text-gray-400">/ 5</span>
-              <div className="ml-1 flex">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className={cn(
-                      "h-3 w-3",
-                      s <= Math.round(summary.averageRating)
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-gray-200 dark:text-gray-700",
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-            <p className="text-[10px] text-gray-400">
-              Basé sur {summary.totalReviews.toLocaleString("fr-FR")} avis
-            </p>
-          </KpiCard>
-
-          {/* Success rate */}
-          <KpiCard
-            icon={<Target className="h-4 w-4 text-sugu-500" />}
-            label="Taux de réussite"
-            delay={180}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-black text-gray-900 dark:text-white">
-                {summary.successRate}%
-              </span>
-              {/* Mini ring */}
-              <div className="relative h-10 w-10">
-                <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90">
-                  <circle
-                    cx="18" cy="18" r="15.9155"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    className="text-gray-200/60 dark:text-gray-700/40"
-                  />
-                  <circle
-                    cx="18" cy="18" r="15.9155"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeDasharray={`${summary.successRate}, 100`}
-                    strokeLinecap="round"
-                    className="text-green-500"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-gray-600 dark:text-gray-300">
-                  {Math.round(summary.successRate)}%
-                </span>
-              </div>
-            </div>
-            <p className="text-[10px] text-gray-400">
-              Objectif: {summary.successTarget}%{" "}
-              {summary.successRate >= summary.successTarget ? "" : ""}
-            </p>
-          </KpiCard>
-        </div>
-
-        {/* ── Status Tabs + Search ── */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-            {STATUS_TABS.map((tab) => {
-              const count = statusCounts[tab.key];
-              const isActive = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-150",
-                    isActive
-                      ? "bg-sugu-500 text-white shadow-sm"
-                      : "bg-white/60 text-gray-600 hover:bg-white/80 dark:bg-gray-900/40 dark:text-gray-400 dark:hover:bg-gray-900/60",
-                  )}
-                >
-                  <span className={cn("flex items-center", isActive ? "text-white" : tab.iconClass)}>
-                    {tab.icon}
-                  </span>
-                  {tab.label}
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 text-[10px] font-bold",
-                      isActive
-                        ? "bg-white/25 text-white"
-                        : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-                    )}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search + sort */}
-          <div className="flex flex-1 items-center gap-2 sm:ml-auto sm:max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher un livreur…"
-                aria-label="Rechercher un livreur"
-                className="form-input pl-9 py-2"
-              />
-            </div>
-            <button className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/70 px-3 py-2 text-xs font-medium text-gray-600 backdrop-blur-sm hover:bg-white dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300">
-              Véhicule
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/70 px-3 py-2 text-xs font-medium text-gray-600 backdrop-blur-sm hover:bg-white dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300">
-              Trier: Performance
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Drivers Grid ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredDrivers.map((driver) => (
-            <DriverGridCard
-              key={driver.id}
-              driver={driver}
-              isSelected={selectedDriverId === driver.id}
-              onClick={() => setSelectedDriverId(driver.id)}
+      <Toolbar
+        className="rounded-panel border border-border bg-surface p-3"
+        search={
+          <ToolbarSearch label="Nom, téléphone ou matricule" value={searchInput} onValueChange={setSearchInput} onSubmit={(value) => setState({ search: value.trim() })} />
+        }
+        filters={
+          <>
+            <ToolbarFilter
+              label="Statut"
+              hideLabelInline
+              value={state.activity}
+              onValueChange={(value) => setState({ activity: value as CourierActivity | "" })}
+              options={ACTIVITY_OPTIONS}
             />
-          ))}
-          <AddDriverCard />
-        </div>
+            {quartierOptions.length > 1 && (
+              <ToolbarFilter label="Zone" hideLabelInline value={state.quartier} onValueChange={(value) => setState({ quartier: value })} options={quartierOptions} />
+            )}
+          </>
+        }
+        activeFilterCount={(state.activity ? 1 : 0) + (state.quartier ? 1 : 0)}
+        onResetFilters={clearFilters}
+        actions={
+          <Button icon={Download} loading={exporting} disabled={!agencyId} onClick={runExport}>
+            Exporter
+          </Button>
+        }
+        countAction={
+          narrowed ? (
+            <Button variant="quiet" size="compact" icon={X} onClick={clearFilters}>
+              Tout afficher
+            </Button>
+          ) : undefined
+        }
+        count={
+          narrowed ? (
+            <p className="text-meta text-foreground-muted" aria-live="polite">
+              La liste est filtrée.
+            </p>
+          ) : undefined
+        }
+      />
 
-        {/* ── Footer status bar ── */}
-        <div className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-2.5 backdrop-blur-sm dark:bg-gray-900/40">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="font-semibold text-green-600">
-                {statusCounts.online} ligne livreurs ({statusCounts.online}/{statusCounts.all})
+      {/* The alerts sit beside the list once the page itself is 1104px wide (a 1440px screen, or 1280px with the menu folded); under that, below it. */}
+      <div className="@container/couriers">
+        <div className="grid items-start gap-4 @[69rem]/couriers:grid-cols-[minmax(0,1fr)_16.5rem]">
+        <DataTable
+          caption="Livreurs"
+          header={{
+            title: (
+              <span className="inline-flex items-center gap-2">
+                Liste des livreurs
+                {page && <Badge tone="neutral">{formatCount(page.total)}</Badge>}
               </span>
-            </span>
-            <span className="text-gray-300">|</span>
-            <span className="text-gray-400">
-              Dernière actualisé: {lastUpdated}
-            </span>
-          </div>
-          <button
-            id="btn-refresh-drivers"
-            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.agency.drivers() })}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Actualiser
-          </button>
+            ),
+          }}
+          columns={COLUMNS}
+          rows={page?.rows ?? []}
+          getRowId={(courier) => courier.id}
+          state={loadState}
+          refreshing={couriers.isFetching && loadState === "ready"}
+          error={{
+            title: "Les livreurs n'ont pas pu être chargés",
+            description: describeAgencyFailure(couriers.error).message,
+            onRetry: () => couriers.refetch(),
+            retrying: couriers.isFetching,
+          }}
+          empty={
+            narrowed
+              ? {
+                  title: "Aucun livreur ne correspond",
+                  description: "Modifiez la recherche ou les filtres pour élargir les résultats.",
+                  action: (
+                    <Button icon={X} onClick={clearFilters}>
+                      Tout afficher
+                    </Button>
+                  ),
+                }
+              : {
+                  icon: Bike,
+                  title: "Aucun livreur pour le moment",
+                  description: "Ajoutez vos livreurs, ou partagez votre code de recrutement pour qu'ils s'inscrivent eux-mêmes.",
+                  action: (
+                    <Button asChild variant="primary" icon={UserPlus}>
+                      <Link href="/agency/drivers/new">Nouveau livreur</Link>
+                    </Button>
+                  ),
+                }
+          }
+          sort={sort}
+          onSortChange={(next) => setState({ sort: "name", direction: next.direction })}
+          density="compact"
+          rowActionsLabel="Actions"
+          rowActions={(courier) => {
+            const can = courierAbilities(courier);
+            return (
+              <>
+                {/* The name of the row opens his page: an icon that did the same took the room his name needs to be read in full. */}
+                {can.assign ? (
+                  <IconButton icon={Send} label={`Confier une course à ${courier.name}`} onClick={() => setIntent({ kind: "assign", courier })} />
+                ) : (
+                  // Keeps the menus of the rows under one another, in the table as in the cards.
+                  <span className="w-control shrink-0 touch:w-touch" aria-hidden="true" />
+                )}
+                <DropdownMenu trigger={<IconButton icon={MoreHorizontal} label={`Autres actions pour ${courier.name}`} />}>
+                  <DropdownMenuItem icon={Eye} onSelect={() => router.push(`/agency/drivers/${courier.id}`)}>
+                    Ouvrir la fiche
+                  </DropdownMenuItem>
+                  {courier.phone && (
+                    <DropdownMenuItem asChild>
+                      <a href={telHref(courier.phone)}>
+                        <Phone className="size-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">Appeler</span>
+                      </a>
+                    </DropdownMenuItem>
+                  )}
+                  {courier.phone && (
+                    <DropdownMenuItem asChild>
+                      <a href={whatsappHref(courier.phone)} target="_blank" rel="noreferrer">
+                        <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">WhatsApp</span>
+                      </a>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem icon={Pencil} onSelect={() => router.push(`/agency/drivers/${courier.id}/edit`)}>
+                    Modifier la fiche
+                  </DropdownMenuItem>
+                  {can.verify && (
+                    <DropdownMenuItem icon={ShieldCheck} onSelect={() => router.push(`/agency/drivers/${courier.id}#pieces`)}>
+                      Vérifier les pièces
+                    </DropdownMenuItem>
+                  )}
+                  {(can.pause || can.resume || can.suspend || can.activate) && <DropdownMenuSeparator />}
+                  {can.pause && (
+                    <DropdownMenuItem icon={CirclePause} onSelect={() => setIntent({ kind: "pause", courier })}>
+                      Mettre en pause
+                    </DropdownMenuItem>
+                  )}
+                  {can.resume && (
+                    <DropdownMenuItem icon={CirclePlay} onSelect={() => setIntent({ kind: "resume", courier })}>
+                      Reprendre l&apos;activité
+                    </DropdownMenuItem>
+                  )}
+                  {can.activate && (
+                    <DropdownMenuItem icon={UserCheck} onSelect={() => setIntent({ kind: "activate", courier })}>
+                      Réactiver le compte
+                    </DropdownMenuItem>
+                  )}
+                  {can.suspend && (
+                    <DropdownMenuItem icon={Ban} tone="danger" onSelect={() => setIntent({ kind: "suspend", courier })}>
+                      Suspendre le compte
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenu>
+              </>
+            );
+          }}
+          pagination={{
+            page: state.page,
+            pageSize: COURIER_PAGE_SIZE,
+            total: page?.total ?? 0,
+            onPageChange: (next) => setState({ page: next }),
+            itemLabel: "livreurs",
+            variant: "numbered",
+          }}
+        />
+
+        <aside aria-label="Alertes et recrutement" className="grid min-w-0 items-start gap-4 md:grid-cols-2 @[69rem]/couriers:grid-cols-1">
+          <CourierAlertsPanel alerts={page?.alerts ?? null} loading={loadState === "loading"} failed={loadState === "error"} />
+          <InvitationCode />
+        </aside>
         </div>
       </div>
 
-      {/* ════ Detail Panel (desktop) ════ */}
-      {selectedDriverId && (
-        <div className="ml-4 hidden lg:flex">
-          <DriverDetailPanel
-            detail={detailData ?? null}
-            isLoading={detailLoading}
-            onClose={() => setSelectedDriverId(null)}
-          />
-        </div>
-      )}
-
-      {/* Mobile detail overlay */}
-      {selectedDriverId && (
-        <div className="lg:hidden">
-          <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
-            onClick={() => setSelectedDriverId(null)}
-            aria-hidden="true"
-          />
-          <DriverDetailPanel
-            detail={detailData ?? null}
-            isLoading={detailLoading}
-            onClose={() => setSelectedDriverId(null)}
-          />
-        </div>
-      )}
-    </div>
+      <CourierActionDialogs intent={intent} onClose={() => setIntent(null)} />
+    </AgencyPage>
   );
 }

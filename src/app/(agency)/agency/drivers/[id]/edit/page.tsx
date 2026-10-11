@@ -1,14 +1,11 @@
-import { EditDriverForm } from "./_components/edit-driver-form";
+import type { Metadata } from "next";
+import { EditDriverForm } from "./edit-driver-form";
 
-export const metadata = {
-  title: "Modifier le livreur — Agence SUGU",
+export const metadata: Metadata = {
+  title: "Modifier le livreur | SUGUPro Agence",
 };
 
-interface EditDriverPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function EditDriverPage({ params }: EditDriverPageProps) {
+export default async function EditDriverPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <EditDriverForm courierId={id} />;
+  return <EditDriverForm id={id} />;
 }

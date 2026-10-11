@@ -1,30 +1,18 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { DriversContent } from "./drivers-content";
-
-// ============================================================
-// SEO Metadata
-// ============================================================
+import DriversLoading from "./loading";
 
 export const metadata: Metadata = {
   title: "Livreurs | SUGUPro Agence",
-  description:
-    "Gérez votre flotte de livreurs — statuts en temps réel, performances, notes et assignations.",
+  description: "Votre flotte de livreurs : disponibilité, performance, alertes et recrutement.",
 };
 
-// ============================================================
-// Page — Server Component
-// ============================================================
-
-/**
- * Agency drivers page.
- *
- * Data is fetched client-side via useAgencyDrivers() hook
- * which injects agencyId from the session automatically.
- */
 export default function AgencyDriversPage() {
   return (
-    <div className="flex h-full flex-col">
+    // The list reads its state from the URL (useSearchParams).
+    <Suspense fallback={<DriversLoading />}>
       <DriversContent />
-    </div>
+    </Suspense>
   );
 }

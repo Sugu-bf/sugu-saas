@@ -1,183 +1,318 @@
 "use client";
 
-import { apiFetch } from "@/lib/http/client";
-import { useState, useCallback } from "react";
-import Link from "next/link";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
+import { Bike, FileText, KeyRound, Plus, Trash2, User, UserPlus } from "lucide-react";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  FormErrorSummary,
+  FormField,
+  IconButton,
+  Input,
+  PageHeader,
+  Select,
+  StepActions,
+  Stepper,
+} from "@/design-system";
+import { CourierIdentityFields, CourierVehicleFields } from "@/features/agency/components/courier-fields";
+import { AgencyPage } from "@/features/agency/components/page";
+import { Panel } from "@/features/agency/components/panel";
+import { addCourierDocument } from "@/features/agency/couriers/api";
+import { DOCUMENT_TYPE_LABEL, documentLabel } from "@/features/agency/couriers/contract";
+import {
+  COURIER_FIELDS,
+  COURIER_SERVER_FIELD,
+  COURIER_STEPS,
+  EMPTY_COURIER_FORM,
+  registerRequestOf,
+  validateCourierForm,
+  type CourierField,
+  type CourierForm,
+} from "@/features/agency/couriers/courier-form";
+import { useRegisterCourier } from "@/features/agency/couriers/hooks";
+import { describeAgencyFailure } from "@/features/agency/errors";
+import { useAgencyId } from "@/features/agency/session";
 
-import { useRegisterCourier } from "@/features/agency/hooks";
-import { useSession } from "@/features/auth/hooks";
-import { DEFAULT_CREATE_COURIER } from "@/features/agency/schema";
-import type { CreateCourierFormData } from "@/features/agency/schema";
+const LIST = "/agency/drivers";
+const STEPS = COURIER_STEPS.map((step) => ({ id: step.id, label: step.label }));
+const DOCUMENT_TYPES = Object.entries(DOCUMENT_TYPE_LABEL).map(([value, label]) => ({ value, label }));
+/** The backend takes pictures and PDF up to 5 MB each (AddCourierKycDocumentRequest). */
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_DOCUMENTS = 4;
 
-import { SectionPersonal } from "./_components/section-personal";
-import { SectionVehicle } from "./_components/section-vehicle";
-import { SectionDocuments } from "./_components/section-documents";
-import { CardPreview } from "./_components/card-preview";
-import { CardAccess } from "./_components/card-access";
-import { CardChecklist } from "./_components/card-checklist";
+type Errors = Partial<Record<CourierField, string>>;
+
+interface PendingDocument {
+  key: number;
+  type: string;
+  number: string;
+  expiresOn: string;
+  file: File | null;
+  error: string | null;
+}
+
+/** What is wrong with the file of a document row, or null. A row without a file is not sent. */
+function fileProblem(file: File | null): string | null {
+  if (!file) return null;
+  if (file.size > MAX_FILE_BYTES) return "Ce fichier dépasse 5 Mo.";
+  return /\.(jpe?g|png|pdf)$/i.test(file.name) ? null : "Formats acceptés : JPG, PNG ou PDF.";
+}
 
 export function CreateDriverForm() {
-  const [formData, setFormData] = useState<CreateCourierFormData>(DEFAULT_CREATE_COURIER);
   const router = useRouter();
-  const registerMutation = useRegisterCourier();
-  const { data: sessionUser } = useSession();
-  const agencyId = sessionUser?.delivery_partner_id ?? "";
+  const agencyId = useAgencyId();
+  const register = useRegisterCourier();
+  const [form, setForm] = useState<CourierForm>(EMPTY_COURIER_FORM);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [errors, setErrors] = useState<Errors>({});
+  const [documents, setDocuments] = useState<PendingDocument[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const sequence = useRef(0);
+  const top = useRef<HTMLDivElement>(null);
 
-  const updateField = useCallback(
-    <K extends keyof CreateCourierFormData>(field: K, value: CreateCourierFormData[K]) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    },
-    [],
-  );
+  const step = COURIER_STEPS[stepIndex];
+  const errorSteps = [...new Set(Object.keys(errors).map((name) => COURIER_FIELDS[name as CourierField].step))];
+  const busy = register.isPending || uploading;
 
-  const validate = (): string | null => {
-    if (!formData.firstName.trim()) return "Le prénom est requis";
-    if (!formData.lastName.trim()) return "Le nom est requis";
-    if (!formData.phone.trim()) return "Le téléphone est requis";
-    if (!formData.quartier.trim()) return "Le quartier est requis";
-    if (!formData.vehicleMake.trim()) return "Le modèle du véhicule est requis";
-    if (!formData.vehiclePlate.trim()) return "Le numéro de plaque est requis";
-    return null;
+  const set = <Field extends CourierField>(name: Field, value: CourierForm[Field]) => {
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => {
+      if (!(name in current)) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
   };
 
-  /** Upload KYC documents after courier creation (non-blocking) */
-  const uploadDocuments = async (courierId: string): Promise<void> => {
-    const docsWithFiles = formData.documents.filter((doc) => doc.file);
-    if (docsWithFiles.length === 0) return;
+  function showErrors(found: Errors) {
+    setErrors(found);
+    const first = COURIER_STEPS.findIndex((candidate) => Object.keys(found).some((name) => COURIER_FIELDS[name as CourierField].step === candidate.id));
+    if (first >= 0) setStepIndex(first);
+    top.current?.scrollIntoView({ block: "start" });
+  }
 
-    // Map frontend document types to backend expected types
-    const typeMap: Record<string, string> = {
-      cni: "id_card",
-      permis: "driver_license",
-      carte_grise: "vehicle_registration",
-      photo: "other",
-    };
+  function goTo(index: number) {
+    setStepIndex(index);
+    top.current?.scrollIntoView({ block: "start" });
+  }
 
-    for (const doc of docsWithFiles) {
-      try {
-        const fd = new FormData();
-        fd.append("files[]", doc.file as File);
-        fd.append("document_type", typeMap[doc.type] ?? "other");
-        fd.append("document_name", doc.name || doc.type);
-
-        await apiFetch(`agencies/${agencyId}/couriers/${courierId}/kyc-documents`, {
-          method: "POST",
-          body: fd,
-        });
-      } catch {
-        // Non-blocking: courier is already created, doc upload failure is not fatal
-      }
+  function next() {
+    const found = validateCourierForm(form, "register", step.id);
+    if (Object.keys(found).length > 0) showErrors(found);
+    else {
+      setErrors({});
+      goTo(stepIndex + 1);
     }
-  };
+  }
 
-  const handleSubmit = useCallback(() => {
-    const error = validate();
-    if (error) {
-      toast.error(error);
+  const patchDocument = (key: number, patch: Partial<PendingDocument>) =>
+    setDocuments((current) => current.map((document) => (document.key === key ? { ...document, ...patch } : document)));
+
+  async function submit() {
+    const found = validateCourierForm(form, "register");
+    if (Object.keys(found).length > 0) {
+      showErrors(found);
+      return;
+    }
+    // A file that the server would refuse is said before the account is created.
+    const checked = documents.map((document) => ({ ...document, error: fileProblem(document.file) }));
+    if (checked.some((document) => document.error)) {
+      setDocuments(checked);
       return;
     }
 
-    registerMutation.mutate(
-      {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email || undefined,
-        phone: `${formData.phonePrefix}${formData.phone.replace(/\s/g, "")}`,
-        date_of_birth: formData.dateOfBirth || undefined,
-        gender: formData.gender,
-        quartier: formData.quartier,
-        address: formData.address || undefined,
-        vehicle_type: formData.vehicleType,
-        vehicle_make: formData.vehicleMake,
-        vehicle_plate: formData.vehiclePlate,
-        vehicle_color: formData.vehicleColor || undefined,
-        vehicle_year: formData.vehicleYear || undefined,
-        auto_password: formData.autoPassword,
-        send_sms: formData.sendSms,
-        send_email: formData.sendEmail,
-      },
-      {
-        onSuccess: async (result) => {
-          // Upload KYC documents after successful courier creation (Option A)
-          await uploadDocuments(result.courierId);
+    let courierId: string;
+    try {
+      ({ courierId } = await register.mutateAsync(registerRequestOf(form)));
+    } catch (error) {
+      const failure = describeAgencyFailure(error);
+      const fromServer: Errors = {};
+      for (const [name, message] of Object.entries(failure.fields)) {
+        const local = COURIER_SERVER_FIELD[name];
+        if (local) fromServer[local] = message;
+      }
+      if (Object.keys(fromServer).length > 0) showErrors(fromServer);
+      toast.error(failure.message);
+      return;
+    }
 
-          toast.success("Livreur enregistré avec succès !", {
-            description: result.password
-              ? `Mot de passe temporaire : ${result.password}`
-              : "Les identifiants ont été envoyés par SMS.",
+    // The account exists. Its documents follow, one by one: one that fails does not undo the others.
+    const toSend = checked.filter((document) => document.file);
+    let failed = 0;
+    if (toSend.length > 0 && agencyId) {
+      setUploading(true);
+      for (const document of toSend) {
+        try {
+          await addCourierDocument(agencyId, courierId, {
+            type: document.type,
+            name: documentLabel(document.type),
+            number: document.number.trim() || undefined,
+            expiresOn: document.expiresOn || undefined,
+            file: document.file!,
           });
-          router.push("/agency/drivers");
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Erreur lors de la création");
-        },
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, registerMutation, router, agencyId]);
+        } catch {
+          failed += 1;
+        }
+      }
+      setUploading(false);
+    }
+
+    const name = `${form.firstName.trim()} ${form.lastName.trim()}`;
+    if (failed > 0) {
+      toast.warning(`${name} est enregistré, mais ${failed} pièce${failed > 1 ? "s n'ont" : " n'a"} pas pu être envoyée${failed > 1 ? "s" : ""}. Ajoutez-${failed > 1 ? "les" : "la"} depuis sa fiche.`);
+    } else {
+      toast.success(`${name} est enregistré. Son compte est à vérifier.`);
+    }
+    router.push(`${LIST}/${courierId}${toSend.length > 0 || failed > 0 ? "#pieces" : ""}`);
+  }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm">
-        <Link href="/agency/drivers" className="text-gray-500 hover:text-sugu-500">
-          Livreurs
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-        <span className="font-medium text-gray-900">Nouveau livreur</span>
-      </div>
+    <AgencyPage className="max-w-3xl">
+      <div ref={top} className="scroll-mt-4" />
+      <PageHeader
+        title="Nouveau livreur"
+        description="Créez son compte et rattachez-le à votre agence. Il pourra recevoir des courses une fois ses pièces validées."
+        back={{ label: "Retour aux livreurs", href: LIST }}
+      />
 
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 lg:text-2xl">
-            Ajouter un livreur
-          </h1>
-          <p className="mt-0.5 text-xs text-gray-500 lg:text-sm">
-            Inscrivez un nouveau coursier dans votre équipe
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/agency/drivers"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/60 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-white hover:shadow-sm"
-          >
-            Annuler
-          </Link>
-          <button
-            onClick={handleSubmit}
-            disabled={registerMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sugu-500 to-sugu-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-sugu-500/25 transition-all hover:shadow-xl active:scale-[0.97] disabled:opacity-60"
-          >
-            {registerMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            Enregistrer le livreur
-          </button>
-        </div>
-      </div>
+      <Stepper steps={STEPS} currentStep={stepIndex} errorSteps={errorSteps} label="Étapes du nouveau livreur" />
 
-      {/* 2-Column Layout */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* Left Column — Form Sections */}
-        <div className="space-y-4 lg:col-span-7">
-          <SectionPersonal data={formData} onChange={updateField} />
-          <SectionVehicle data={formData} onChange={updateField} />
-          <SectionDocuments data={formData} onChange={updateField} />
-        </div>
+      <FormErrorSummary errors={errors as Record<string, string>} fields={COURIER_FIELDS} />
 
-        {/* Right Column — Preview + Settings + Checklist (sticky) */}
-        <div className="space-y-4 lg:col-span-5 lg:sticky lg:top-6 lg:self-start">
-          <CardPreview data={formData} />
-          <CardAccess data={formData} onChange={updateField} />
-          <CardChecklist data={formData} />
-        </div>
-      </div>
-    </div>
+      <form
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (stepIndex === COURIER_STEPS.length - 1) void submit();
+          else next();
+        }}
+      >
+        {step.id === "identity" && (
+          <Panel title="Identité" icon={User} tone="info" description="Qui il est, et comment le joindre.">
+            <CourierIdentityFields form={form} set={set} errors={errors} mode="register" />
+          </Panel>
+        )}
+
+        {step.id === "vehicle" && (
+          <Panel title="Véhicule" icon={Bike} description="Ce avec quoi il livre.">
+            <CourierVehicleFields form={form} set={set} errors={errors} mode="register" />
+          </Panel>
+        )}
+
+        {step.id === "access" && (
+          <>
+            <Panel
+              title="Pièces justificatives"
+              icon={FileText}
+              tone="warning"
+              description="Facultatif ici : vous pourrez les ajouter depuis sa fiche. Photo ou PDF, 5 Mo au plus."
+            >
+              <div className="flex flex-col gap-3">
+                {documents.length === 0 && <p className="text-body text-foreground-muted">Aucune pièce jointe pour le moment.</p>}
+                {documents.map((document, index) => (
+                  <fieldset key={document.key} className="flex flex-col gap-3 rounded-control border border-border p-3" disabled={busy}>
+                    <legend className="sr-only">Pièce {index + 1}</legend>
+                    <div className="flex items-start gap-2">
+                      <div className="grid min-w-0 flex-1 gap-3 md:grid-cols-3">
+                        <FormField label="Type de pièce">
+                          <Select value={document.type} onChange={(event) => patchDocument(document.key, { type: event.target.value })} options={DOCUMENT_TYPES} />
+                        </FormField>
+                        <FormField label="Numéro">
+                          <Input value={document.number} onChange={(event) => patchDocument(document.key, { number: event.target.value })} maxLength={100} autoComplete="off" />
+                        </FormField>
+                        <FormField label="Expire le">
+                          <Input type="date" value={document.expiresOn} onChange={(event) => patchDocument(document.key, { expiresOn: event.target.value })} />
+                        </FormField>
+                      </div>
+                      <IconButton icon={Trash2} label={`Retirer la pièce ${index + 1}`} className="mt-6" onClick={() => setDocuments((current) => current.filter((entry) => entry.key !== document.key))} />
+                    </div>
+                    {/* A native file field: wired to its label and error by hand. */}
+                    <FormField
+                      id={`courier-document-file-${document.key}`}
+                      label="Fichier"
+                      error={document.error}
+                      hint={document.file ? undefined : "Sans fichier, cette pièce n'est pas envoyée."}
+                    >
+                      <input
+                        id={`courier-document-file-${document.key}`}
+                        type="file"
+                        aria-invalid={document.error ? true : undefined}
+                        aria-describedby={document.error ? `courier-document-file-${document.key}-error` : undefined}
+                        accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          patchDocument(document.key, { file, error: fileProblem(file) });
+                        }}
+                        className="block w-full text-body text-foreground file:mr-3 file:h-control file:cursor-pointer file:rounded-button file:border file:border-solid file:border-border-strong file:bg-surface file:px-3 file:text-label file:font-medium file:text-foreground hover:file:bg-surface-subtle"
+                      />
+                    </FormField>
+                  </fieldset>
+                ))}
+                {documents.length < MAX_DOCUMENTS && (
+                  <Button
+                    icon={Plus}
+                    className="self-start"
+                    disabled={busy}
+                    onClick={() =>
+                      setDocuments((current) => [
+                        ...current,
+                        { key: (sequence.current += 1), type: current.some((entry) => entry.type === "id_card") ? "driver_license" : "id_card", number: "", expiresOn: "", file: null, error: null },
+                      ])
+                    }
+                  >
+                    Joindre une pièce
+                  </Button>
+                )}
+              </div>
+            </Panel>
+
+            <Panel title="Accès" icon={KeyRound} tone="neutral">
+              <div className="flex flex-col gap-4">
+                <p className="text-body text-foreground">
+                  Le livreur se connecte à l&apos;application avec son numéro de téléphone et un code à usage unique : il n&apos;a pas de mot de passe à retenir.
+                </p>
+                <div id={COURIER_FIELDS.sendInvitation.id}>
+                  <Checkbox
+                    checked={form.sendInvitation}
+                    onChange={(event) => set("sendInvitation", event.target.checked)}
+                    disabled={form.email.trim() === "" || busy}
+                    label="Lui envoyer aussi une invitation par e-mail"
+                    description={
+                      form.email.trim() === ""
+                        ? "Indiquez son adresse e-mail à l'étape Identité pour pouvoir l'inviter."
+                        : `Un lien pour définir un mot de passe est envoyé à ${form.email.trim()}.`
+                    }
+                  />
+                  {errors.sendInvitation && (
+                    <p role="alert" className="mt-1 text-meta text-danger-fg">
+                      {errors.sendInvitation}
+                    </p>
+                  )}
+                </div>
+                <Alert tone="info" title="Son compte sera « À vérifier »">
+                  Il ne reçoit aucune course tant que vous n&apos;avez pas validé ses pièces depuis sa fiche.
+                </Alert>
+              </div>
+            </Panel>
+          </>
+        )}
+
+        <StepActions
+          isFirstStep={stepIndex === 0}
+          isLastStep={stepIndex === COURIER_STEPS.length - 1}
+          onPrevious={() => goTo(stepIndex - 1)}
+          onNext={next}
+          onSubmit={submit}
+          submitLabel="Enregistrer le livreur"
+          submitIcon={UserPlus}
+          submitting={busy}
+          sticky
+        />
+      </form>
+    </AgencyPage>
   );
 }
