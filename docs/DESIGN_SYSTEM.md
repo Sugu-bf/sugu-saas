@@ -154,9 +154,14 @@ Remplace `confirm()` et `prompt()`. Le focus arrive sur « Annuler ». `onConfir
 />
 ```
 
-Sur téléphone, l'action principale reste visible et les actions secondaires passent dans un menu « Plus d'actions ». Dans `Toolbar`, les filtres passent dans un panneau bas « Filtres », ouvert par un bouton qui partage la ligne de la recherche.
+Sur téléphone, l'action principale reste visible et les actions secondaires passent dans un menu « Plus d'actions ». `hideDescriptionOnPhone` réserve la phrase d'introduction aux écrans de 768 px et plus, quand elle repousserait la liste qu'elle présente.
 
-La ligne du compteur porte aussi `countAction` (le retour à la liste entière, « Tout afficher », tant qu'un filtre la restreint) et `view` (un sélecteur de vue, grille ou liste). La première ligne reste celle de la recherche et des filtres.
+`Toolbar` tient sur une ligne : recherche, filtres, puis `view` (un sélecteur de vue, grille ou liste) en bout de ligne, à toutes les largeurs. Les contrôles ont la même hauteur.
+
+- Faute de place, les filtres passent dans un panneau bas « Filtres », ouvert par un bouton de la même ligne. `collapseFilters="phone"` (défaut) : sous 768 px. `collapseFilters="narrow"` : dès que la barre elle-même fait moins de 912 px, pour une liste à trois filtres ou plus, qui ne tiennent pas non plus sur tablette. La décision suit la largeur de la barre, pas celle de la fenêtre.
+- Sur téléphone, à côté d'un sélecteur de vue, le bouton « Filtres » se réduit à son icône ; il garde son nom et affiche le nombre de filtres actifs.
+- `ToolbarFilter hideLabelInline` retire le libellé de la ligne quand la première option dit déjà de quoi il s'agit (« Toutes les catégories », « Tout le stock »). Le libellé reste le nom du contrôle pour les lecteurs d'écran, et s'affiche au-dessus du champ dans le panneau « Filtres ».
+- Sous la ligne, le compteur et `countAction` (le retour à la liste entière, « Tout afficher ») n'apparaissent que si la page les fournit : une liste que rien ne restreint n'a pas de ligne vide.
 
 `TabsList variant="pills"` : pastilles entièrement arrondies pour les filtres d'une liste (statuts, niveaux), chacune avec son compteur et, via `TabsTrigger tone`, un point de la couleur du statut. Le style souligné reste celui des sections d'une page.
 

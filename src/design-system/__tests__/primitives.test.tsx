@@ -270,6 +270,13 @@ describe("Breadcrumbs and PageHeader", () => {
     render(<PageHeader title="Paramètres" />);
     expect(screen.queryByRole("button")).toBeNull();
   });
+
+  it("can keep its description for screens with room for it", () => {
+    const { rerender } = render(<PageHeader title="Produits" description="Gérez votre catalogue." />);
+    expect(screen.getByText("Gérez votre catalogue.")).not.toHaveClass("hidden");
+    rerender(<PageHeader title="Produits" description="Gérez votre catalogue." hideDescriptionOnPhone />);
+    expect(screen.getByText("Gérez votre catalogue.")).toHaveClass("hidden", "md:block");
+  });
 });
 
 describe("Toolbar parts", () => {
@@ -302,6 +309,30 @@ describe("Toolbar parts", () => {
     expect(onValueChange).toHaveBeenCalledWith("shipped");
   });
 
+  it("filter keeps its name when its label is left out of the row", () => {
+    const options = [
+      { value: "", label: "Toutes les catégories" },
+      { value: "c1", label: "Bijoux (12)" },
+    ];
+    render(<Toolbar filters={<ToolbarFilter label="Catégorie" hideLabelInline value="" onValueChange={vi.fn()} options={options} />} />);
+
+    // On the row: named for assistive technology, whatever is shown of the label.
+    const select = screen.getByRole("combobox", { name: "Catégorie" });
+    expect(select.closest("[data-inline]")).not.toBeNull();
+    expect(screen.getByText("Catégorie")).toHaveClass("group-data-[inline]/filters:sr-only");
+    // The filters also open in a sheet, where the row has no room for them.
+    expect(screen.getByRole("button", { name: "Filtres" })).toBeInTheDocument();
+  });
+
+  it("filters leave the row for the sheet on a phone, or wherever the toolbar is too narrow for them", () => {
+    const filter = <ToolbarFilter label="Stock" value="" onValueChange={vi.fn()} options={[{ value: "", label: "Tout le stock" }]} />;
+    const { rerender } = render(<Toolbar filters={filter} />);
+    expect(screen.getByRole("combobox", { name: "Stock" }).closest("[data-inline]")).toHaveClass("hidden", "md:flex");
+
+    rerender(<Toolbar filters={filter} collapseFilters="narrow" />);
+    expect(screen.getByRole("combobox", { name: "Stock" }).closest("[data-inline]")).toHaveClass("hidden", "@[57rem]:flex");
+  });
+
   it("count agrees in number and reports the selection", () => {
     const noun = { one: "commande", other: "commandes" };
     const { rerender } = render(<ToolbarCount total={1} noun={noun} />);
@@ -314,22 +345,34 @@ describe("Toolbar parts", () => {
 describe("Toolbar — the row of the count", () => {
   const count = <ToolbarCount total={3} noun={{ one: "produit", other: "produits" }} />;
 
-  it("keeps the way back to the whole list and the view switch next to the count", () => {
+  const view = (
+    <ButtonGroup label="Affichage">
+      <Button aria-pressed>Grille</Button>
+      <Button aria-pressed={false}>Liste</Button>
+    </ButtonGroup>
+  );
+
+  it("keeps the way back to the whole list next to the count, and the view switch on the row of the search", () => {
     render(
       <Toolbar
+        search={<ToolbarSearch label="Nom ou référence" value="" onValueChange={vi.fn()} />}
         count={count}
         countAction={<Button>Tout afficher</Button>}
-        view={
-          <ButtonGroup label="Affichage">
-            <Button aria-pressed>Grille</Button>
-            <Button aria-pressed={false}>Liste</Button>
-          </ButtonGroup>
-        }
+        view={view}
       />,
     );
     const row = screen.getByText("3 produits").parentElement as HTMLElement;
     expect(within(row).getByRole("button", { name: "Tout afficher" })).toBeInTheDocument();
-    expect(within(row).getByRole("group", { name: "Affichage" })).toBeInTheDocument();
+    // One switch, with what is searched and filtered: it is not repeated per screen size.
+    expect(screen.getAllByRole("group", { name: "Affichage" })).toHaveLength(1);
+    expect(within(row).queryByRole("group", { name: "Affichage" })).toBeNull();
+    const first = screen.getByRole("searchbox", { name: "Nom ou référence" }).closest("form")?.parentElement?.parentElement as HTMLElement;
+    expect(within(first).getByRole("group", { name: "Affichage" })).toBeInTheDocument();
+  });
+
+  it("adds no empty row under the controls when there is nothing to count", () => {
+    const { container } = render(<Toolbar search={<ToolbarSearch label="Nom ou référence" value="" onValueChange={vi.fn()} />} view={view} />);
+    expect(container.firstElementChild?.children).toHaveLength(1);
   });
 
   it("leaves the count on its own when there is nothing to put with it", () => {

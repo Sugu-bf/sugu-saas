@@ -21,6 +21,11 @@ export interface PageAction {
 export interface PageHeaderProps {
   title: string;
   description?: ReactNode;
+  /**
+   * Shows the description from 768px only: on a phone, a sentence that says
+   * what the page is for pushes the list it introduces down the screen.
+   */
+  hideDescriptionOnPhone?: boolean;
   breadcrumbs?: BreadcrumbItem[];
   /** The one main action of the page. Always visible, on every screen size. */
   primaryAction?: PageAction;
@@ -56,6 +61,7 @@ function ActionButton({ action, variant }: { action: PageAction; variant: "prima
 export function PageHeader({
   title,
   description,
+  hideDescriptionOnPhone = false,
   breadcrumbs,
   primaryAction,
   secondaryActions = [],
@@ -72,7 +78,7 @@ export function PageHeader({
             <h1 className="text-page-title break-words text-foreground">{title}</h1>
             {titleAddon}
           </div>
-          {description && <p className="mt-1 max-w-2xl text-body text-foreground-muted">{description}</p>}
+          {description && <p className={cn("mt-1 max-w-2xl text-body text-foreground-muted", hideDescriptionOnPhone && "hidden md:block")}>{description}</p>}
         </div>
         {hasActions && (
           <div className="flex shrink-0 items-center gap-2">

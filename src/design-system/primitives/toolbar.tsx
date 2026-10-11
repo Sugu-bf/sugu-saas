@@ -11,11 +11,18 @@ export interface ToolbarProps {
   /** A `ToolbarSearch`. */
   search?: ReactNode;
   /**
-   * `ToolbarFilter`s (status, period, sort…). Inline from 768px; on phones
+   * `ToolbarFilter`s (status, period, sort…). Inline when there is room; else
    * they move into a "Filtres" bottom sheet, opened by a button that sits
-   * on the same row as the search.
+   * on the same row as the search. On a phone that button is an icon when
+   * the row also holds a view switch.
    */
   filters?: ReactNode;
+  /**
+   * When the filters leave the row for the sheet. `phone` (default): under
+   * 768px. `narrow`: whenever the toolbar itself is under 912px wide, for a
+   * list with three filters or more, which do not fit a tablet either.
+   */
+  collapseFilters?: "phone" | "narrow";
   /** Number of active filters, shown on the phone "Filtres" button. */
   activeFilterCount?: number;
   /** Called by "Réinitialiser" in the phone sheet. Omit to hide that button. */
@@ -28,8 +35,8 @@ export interface ToolbarProps {
    */
   countAction?: ReactNode;
   /**
-   * A view switch (grid, list…). At the end of the count row at every width:
-   * the first row stays for what is searched and filtered.
+   * A view switch (grid, list…), at the end of the first row at every width:
+   * search, filters and view read as one line, on a phone too.
    */
   view?: ReactNode;
   /** Buttons on the right (export…). */
@@ -37,10 +44,17 @@ export interface ToolbarProps {
   className?: string;
 }
 
+// Where the filters sit inline, and where the search stops growing to leave them the row.
+const COLLAPSE = {
+  phone: { inline: "hidden md:flex", sheet: "md:hidden", search: "md:max-w-xs md:basis-56" },
+  narrow: { inline: "hidden @[57rem]:flex", sheet: "@[57rem]:hidden", search: "@[57rem]:max-w-xs @[57rem]:basis-56" },
+} as const;
+
 /** Control bar above a list. Every control is controlled by the page. */
 export function Toolbar({
   search,
   filters,
+  collapseFilters = "phone",
   activeFilterCount = 0,
   onResetFilters,
   count,
@@ -49,20 +63,30 @@ export function Toolbar({
   actions,
   className,
 }: ToolbarProps) {
+  const collapse = COLLAPSE[collapseFilters];
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("@container flex flex-col gap-2", className)}>
       <div className="flex flex-wrap items-center gap-2">
-        {search && <div className="min-w-0 flex-1 basis-40 md:max-w-xs md:basis-56">{search}</div>}
+        {search && <div className={cn("min-w-0 flex-1 basis-40", collapse.search)}>{search}</div>}
         {filters && (
           <>
-            <div className="hidden flex-wrap items-center gap-2 md:flex">{filters}</div>
-            <div className="shrink-0 md:hidden">
+            {/* `data-inline` tells a `ToolbarFilter` it sits on the row, not in the sheet. */}
+            <div data-inline="" className={cn("group/filters flex-wrap items-center gap-2", collapse.inline)}>
+              {filters}
+            </div>
+            <div className={cn("shrink-0", collapse.sheet)}>
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button icon={SlidersHorizontal}>
-                    Filtres
+                  {/* Next to a view switch, a phone has no room for the word: the icon keeps the name. */}
+                  <Button icon={SlidersHorizontal} className={cn(view && "max-md:relative max-md:w-control max-md:px-0 touch:max-md:w-touch touch:max-md:px-0")}>
+                    <span className={cn(view && "max-md:sr-only")}>Filtres</span>
                     {activeFilterCount > 0 && (
-                      <span className="rounded-pill bg-brand-subtle px-1.5 text-meta text-foreground tabular-nums">
+                      <span
+                        className={cn(
+                          "rounded-pill bg-brand-subtle px-1.5 text-meta text-foreground tabular-nums",
+                          view && "max-md:absolute max-md:-top-1 max-md:-right-1 max-md:bg-primary max-md:text-primary-foreground",
+                        )}
+                      >
                         {activeFilterCount}
                         <span className="sr-only"> actifs</span>
                       </span>
@@ -91,13 +115,17 @@ export function Toolbar({
             </div>
           </>
         )}
-        {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
+        {(actions || view) && (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {actions}
+            {view}
+          </div>
+        )}
       </div>
-      {countAction || view ? (
+      {countAction ? (
         <div className="flex min-h-control-sm items-center gap-x-2">
           {count}
           {countAction}
-          {view && <div className="ml-auto flex shrink-0 items-center">{view}</div>}
         </div>
       ) : (
         count
@@ -138,7 +166,8 @@ export function ToolbarSearch({ value, onValueChange, onSubmit, label, className
         aria-label={label}
         placeholder={label}
         className={cn(
-          "h-control w-full min-w-0 rounded-control border border-border-control bg-surface pr-9 pl-9 text-body text-ellipsis text-foreground",
+          "h-control w-full min-w-0 rounded-control border border-border-control bg-surface pl-9 text-body text-ellipsis text-foreground",
+          value === "" ? "pr-3" : "pr-9",
           "placeholder:text-foreground-subtle hover:border-foreground-muted touch:h-touch touch:text-base",
           "[&::-webkit-search-cancel-button]:appearance-none",
         )}
@@ -166,24 +195,42 @@ export interface ToolbarFilterProps {
   value: string;
   onValueChange: (value: string) => void;
   options: SelectOption[];
+  /**
+   * Leaves the label out of the row, where room is short, when every option
+   * already says what the filter is about ("Toutes les catégories"). It stays
+   * the name of the control, and shows above it in the "Filtres" sheet.
+   */
+  hideLabelInline?: boolean;
   className?: string;
 }
 
-/** Labelled compact select. Covers status filters, period pickers and server sort. */
-export function ToolbarFilter({ label, value, onValueChange, options, className }: ToolbarFilterProps) {
+/**
+ * Labelled compact select. Covers status filters, period pickers and server
+ * sort. On the row of a `Toolbar` the label sits beside the select, which is
+ * as wide as its options; in the "Filtres" sheet it sits above a full-width one.
+ */
+export function ToolbarFilter({ label, value, onValueChange, options, hideLabelInline = false, className }: ToolbarFilterProps) {
   const id = useId();
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-2", className)}>
-      <label htmlFor={id} className="text-label whitespace-nowrap text-foreground-muted">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1",
+        "group-data-[inline]/filters:flex-row group-data-[inline]/filters:items-center group-data-[inline]/filters:gap-2",
+        className,
+      )}
+    >
+      <label
+        htmlFor={id}
+        className={cn("text-label whitespace-nowrap text-foreground-muted", hideLabelInline && "group-data-[inline]/filters:sr-only")}
+      >
         {label}
       </label>
       <Select
         id={id}
-        compact
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         options={options}
-        className="md:w-auto md:min-w-32"
+        className="text-label group-data-[inline]/filters:w-auto group-data-[inline]/filters:max-w-52 group-data-[inline]/filters:min-w-32"
       />
     </div>
   );
