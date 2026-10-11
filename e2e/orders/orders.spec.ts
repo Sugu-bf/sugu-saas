@@ -145,17 +145,20 @@ test.describe("orders list", () => {
 
   test("sorts on the server by amount", async ({ page, baseURL }) => {
     await open(page, baseURL, "/vendor/orders");
+    // The header can be clicked while the list still loads: wait for the rows it will sort.
+    await expect(rows(page)).toHaveCount(25);
     const request = page.waitForRequest((candidate) => candidate.url().includes("sort=amount") && candidate.url().includes("direction=asc"));
     await table(page).getByRole("button", { name: "Montant" }).click();
     await request;
     await expect(page).toHaveURL(/sort=amount&dir=asc/);
     await expect(table(page).getByRole("columnheader", { name: "Montant" })).toHaveAttribute("aria-sort", "ascending");
 
-    const amounts = (await rows(page).locator("td:nth-last-child(2)").allTextContents()).map((text) =>
-      Number(text.replace(/[^\d]/g, "")),
-    );
-    expect(amounts.length).toBe(25);
-    expect(amounts).toEqual([...amounts].sort((a, b) => a - b));
+    // Until the answer is drawn the table keeps the previous rows, or its loading rows: read it again until it is.
+    await expect(async () => {
+      const amounts = (await rows(page).locator("td:nth-last-child(2)").allTextContents()).map((text) => Number(text.replace(/[^\d]/g, "")));
+      expect(amounts.length).toBe(25);
+      expect(amounts).toEqual([...amounts].sort((a, b) => a - b));
+    }).toPass({ timeout: 10_000 });
   });
 
   test("exports the filtered orders, then a selection, as CSV built by the server", async ({ page, baseURL }) => {
