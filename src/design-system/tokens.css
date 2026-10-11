@@ -213,10 +213,7 @@
   --border: #e4e4e7;
   --ring: #f15412;
 
-  color: var(--foreground);
   color-scheme: light;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
 }
 
 /* globals.css sets `* { border-color }` and `:focus-visible { outline }`
@@ -235,6 +232,15 @@
 }
 
 @layer base {
+  /* Text of the scope. In the base layer, like the rule below: a utility set
+     on the scope element itself must win. Outside the layers, this colour
+     beat the white text of a tooltip, which showed as an empty black bubble. */
+  .sugu-ui {
+    color: var(--foreground);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
   /* A scope is the containing block of what it positions. Without it, a
      visually hidden label (absolutely positioned) far down a long page escapes
      the scroller it lives in: the document itself becomes taller than the
