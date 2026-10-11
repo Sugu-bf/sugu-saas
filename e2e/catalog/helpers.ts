@@ -16,21 +16,25 @@ const PASSWORD = "Passw0rd!";
 export type ProductsView = "grid" | "list";
 
 /**
- * Signs the seller in through the portal's own endpoint. The request goes
- * from this process to `next start` over a kept-alive connection the server
- * may have just closed: unlike a browser, the client does not try again by
- * itself, so a reset connection is tried again here. Nothing else is.
+ * A request made by this process, not by the browser, to `next start`. It
+ * travels over a kept-alive connection the server may have just closed:
+ * unlike a browser, the client does not try again by itself, so a reset
+ * connection is tried again here. Nothing else is.
  */
-export async function signIn(page: Page, baseURL: string | undefined) {
+async function overResetConnection<T>(send: () => Promise<T>): Promise<T> {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      const response = await page.request.post("/api/auth/login", { data: { email: VENDOR, password: PASSWORD }, headers: { Origin: baseURL ?? "" } });
-      expect(response.ok(), `login: ${response.status()}`).toBe(true);
-      return;
+      return await send();
     } catch (error) {
       if (attempt >= 3 || !/ECONNRESET|socket hang up/.test(String(error))) throw error;
     }
   }
+}
+
+/** Signs the seller in through the portal's own endpoint. */
+export async function signIn(page: Page, baseURL: string | undefined) {
+  const response = await overResetConnection(() => page.request.post("/api/auth/login", { data: { email: VENDOR, password: PASSWORD }, headers: { Origin: baseURL ?? "" } }));
+  expect(response.ok(), `login: ${response.status()}`).toBe(true);
 }
 
 export async function open(page: Page, baseURL: string | undefined, path: string, options: { width?: number; height?: number; view?: ProductsView } = {}) {
@@ -73,7 +77,7 @@ export const viewSwitch = (page: Page) => page.getByRole("group", { name: "Affic
 
 /** What the product form sent to the API, request after request. */
 export async function received(page: Page): Promise<{ path: string; fields: Record<string, string[]>; files: string[] }[]> {
-  const response = await page.request.get("/api/proxy/__catalog/received");
+  const response = await overResetConnection(() => page.request.get("/api/proxy/__catalog/received"));
   expect(response.ok(), `received: ${response.status()}`).toBe(true);
   return (await response.json()).received;
 }
@@ -89,6 +93,16 @@ export async function goToStep(page: Page, label: string) {
 }
 
 export const currentStep = (page: Page) => stepper(page).locator('[aria-current="step"]');
+/** The search of the category field, and the list it opens. */
+export const categorySearch = (page: Page) => page.getByRole("combobox", { name: /Catégorie/ });
+export const categoryList = (page: Page) => page.getByRole("listbox", { name: "Catégories" });
+
+/** Files the product under a category the way a seller does: a few letters, then the name. */
+export async function chooseCategory(page: Page, name: string) {
+  await categorySearch(page).fill(name.slice(0, 4));
+  await categoryList(page).getByRole("option", { name, exact: true }).click();
+  await expect(page.getByRole("list", { name: "Catégories choisies" })).toContainText(name);
+}
 export const description = (page: Page) => page.getByRole("textbox", { name: "Description" });
 export const photoInput = (page: Page) => page.locator("#product-photos input[type='file']");
 export const descriptionPictureInput = (page: Page) => page.getByLabel("Images à ajouter à la description");

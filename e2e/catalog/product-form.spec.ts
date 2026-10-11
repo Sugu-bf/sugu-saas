@@ -6,6 +6,9 @@ import {
   actionBar,
   blockingViolations,
   box,
+  categoryList,
+  categorySearch,
+  chooseCategory,
   currentStep,
   description,
   descriptionPictureInput,
@@ -34,7 +37,7 @@ const tool = (page: Page, name: string) => page.getByRole("toolbar", { name: "Mi
 /** Fills what a draft needs to be accepted by moderation, step after step, and stops on the summary. */
 async function fillReadyProduct(page: Page, name: string) {
   await page.getByLabel("Nom du produit").fill(name);
-  await category(page).selectOption({ label: "Textile" });
+  await chooseCategory(page, "Textile");
   await description(page).click();
   await page.keyboard.type("Brodé à la main à Bobo-Dioulasso.");
   await next(page).click();
@@ -153,6 +156,90 @@ test.describe("creation", () => {
     await expect(page.getByText("Ajoutez au moins une photo : la validation le demande.").first()).toBeVisible();
     // Nothing was sent.
     expect(await received(page)).toHaveLength(0);
+  });
+
+  test("categories are searched by name: typed, tapped, or chosen with the keyboard", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products/new");
+    await page.getByLabel("Nom du produit").fill("Piment séché");
+    const field = categorySearch(page);
+    const list = categoryList(page);
+    const chosen = page.getByRole("list", { name: "Catégories choisies" });
+    await expect(field).toHaveAttribute("aria-expanded", "false");
+
+    // 57 categories: too many to scroll through. The first fifty, and a word about the others.
+    await field.click();
+    await expect(list.getByRole("option")).toHaveCount(50);
+    await expect(page.getByText("7 autres : précisez la recherche.")).toBeVisible();
+
+    // Accents and case do not matter; a name that starts with the search comes first.
+    await field.fill("EPIC");
+    await expect(list.getByRole("option")).toHaveText(["Épicerie", "Condiments et épices"]);
+    await list.getByRole("option", { name: "Épicerie" }).click();
+    await expect(chosen.getByRole("listitem")).toHaveText([/Épicerie/]);
+    // The list closes on a choice and the search is emptied: the rest of the form is back.
+    await expect(list).toHaveCount(0);
+    await expect(field).toHaveValue("");
+
+    // With the keyboard: a search, an arrow, Enter. The form does not move to its next step.
+    await field.fill("chaussures");
+    await expect(list.getByRole("option")).toHaveText(["Chaussures enfant", "Chaussures femme", "Chaussures homme"]);
+    await field.press("ArrowDown");
+    await field.press("Enter");
+    await expect(chosen.getByRole("listitem")).toHaveText([/Épicerie.*principale/, /Chaussures femme/]);
+    await expect(currentStep(page)).toContainText("Informations");
+    await expect(field).toBeFocused();
+
+    // What is chosen is ticked in the list, and taken back from it as from its chip.
+    await field.fill("chaussures");
+    await expect(list.getByRole("option", { name: "Chaussures femme" })).toHaveAttribute("aria-selected", "true");
+    await expect(list.getByRole("option", { name: "Chaussures homme" })).toHaveAttribute("aria-selected", "false");
+    await list.getByRole("option", { name: "Chaussures femme" }).click();
+    await expect(chosen.getByRole("listitem")).toHaveCount(1);
+    await chooseCategory(page, "Condiments et épices");
+    await page.getByRole("button", { name: "Retirer la catégorie Épicerie" }).click();
+    await expect(chosen.getByRole("listitem")).toHaveText([/Condiments et épices/]);
+
+    // Nothing matches: it is said, and Escape closes the list.
+    await field.fill("zzz");
+    await expect(page.getByText("Aucun résultat pour « zzz ».")).toBeVisible();
+    await field.press("Escape");
+    await expect(list).toHaveCount(0);
+    await field.press("Escape");
+    await expect(field).toHaveValue("");
+
+    await chooseCategory(page, "Boissons");
+    await saveDraft(page).click();
+    await expect(page).toHaveURL(/\/vendor\/products\/product-new-1$/);
+    // Sent as before: every category, the first chosen as the main one.
+    const { fields } = (await received(page))[0];
+    expect(fields["category[]"]).toHaveLength(2);
+    expect(fields.primary_category_id).toEqual([fields["category[]"][0]]);
+    await expect(page.locator("main")).toContainText("Condiments et épices");
+  });
+
+  test("on a phone, the search goes to the top of the screen, so the list is not under the keyboard", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products/product-variants/edit", { width: 390, height: 844 });
+    const field = categorySearch(page);
+    await expect(page.getByRole("list", { name: "Catégories choisies" }).getByRole("listitem")).toHaveCount(2);
+    expect((await box(field)).y).toBeGreaterThan(300);
+
+    await field.click();
+    await expect(categoryList(page)).toBeVisible();
+    await expect.poll(async () => (await box(field)).y).toBeLessThan(140);
+    // The whole list is on the upper half of the screen, where a keyboard does not reach... nor the tab bar.
+    const list = await box(categoryList(page));
+    expect(list.y + list.height).toBeLessThanOrEqual(844 - 64);
+    for (const option of await categoryList(page).getByRole("option").all()) expect((await box(option)).height).toBeGreaterThanOrEqual(TOUCH_TARGET);
+
+    await field.fill("mais");
+    await categoryList(page).getByRole("option", { name: "Maison", exact: true }).click();
+    await expect(page.getByRole("list", { name: "Catégories choisies" }).getByRole("listitem")).toHaveCount(3);
+    // A tap leaves the field: the phone puts its keyboard away.
+    await expect(field).not.toBeFocused();
+    // The application itself did not move.
+    expect(await page.evaluate(() => document.documentElement.scrollTop)).toBe(0);
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+    expect(await blockingViolations(page)).toEqual([]);
   });
 
   test("builds variants from options: every combination keeps its own price, stock and reference", async ({ page, baseURL }) => {

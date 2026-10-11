@@ -10,12 +10,25 @@ const STORE_ID = "store-11";
 const LOW = 10;
 const DAY = 86_400_000;
 
+// The five categories the products of the fixture are filed under, then the
+// rest of a marketplace: 57 in all, too many for a list to scroll.
+const OTHER_CATEGORIES = [
+  "Accessoires de mode", "Alimentation générale", "Animaux", "Art et artisanat", "Auto et moto", "Bagagerie", "Bébé et puériculture",
+  "Boissons", "Bricolage", "Céréales et farines", "Chaussures enfant", "Chaussures femme", "Chaussures homme", "Coiffure",
+  "Condiments et épices", "Cosmétiques", "Cuisine et arts de la table", "Décoration", "Électroménager", "Électronique",
+  "Fournitures scolaires", "Fruits et légumes", "Huiles et karité", "Informatique", "Instruments de musique", "Jardin", "Jeux et jouets",
+  "Librairie", "Linge de maison", "Literie", "Luminaires", "Maroquinerie", "Matériel agricole", "Mercerie", "Meubles", "Montres",
+  "Papeterie", "Parfums", "Pagnes et tissus", "Poterie", "Produits d'entretien", "Quincaillerie", "Santé et bien-être", "Sculptures",
+  "Sport et loisirs", "Téléphones et accessoires", "Tenues traditionnelles", "Vannerie", "Vêtements enfant", "Vêtements femme",
+  "Vêtements homme", "Volaille et élevage",
+];
 const CATEGORIES = [
   { id: "cat-textile", name: "Textile" },
   { id: "cat-beaute", name: "Beauté" },
   { id: "cat-maison", name: "Maison" },
   { id: "cat-epicerie", name: "Épicerie" },
   { id: "cat-bijoux", name: "Bijoux" },
+  ...OTHER_CATEGORIES.map((name, index) => ({ id: `cat-${index + 6}`, name })),
 ];
 const NAMES = ["Pagne tissé", "Savon au karité", "Panier tressé", "Miel de Fada", "Bogolan", "Beurre de karité", "Calebasse gravée"];
 
@@ -565,7 +578,9 @@ export default async function catalogExtension({ req, res, url, path, method, to
   }
   if (method === "GET" && path === "/sellers/products/stats") return send(res, 200, { success: true, data: stats(state.products) }), true;
   if (method === "GET" && path === "/sellers/products/categories") {
-    return send(res, 200, { success: true, data: CATEGORIES.map((category) => ({ ...category, slug: category.id })) }), true;
+    // Ordered by name, as `sellers/products/categories` answers them.
+    const byName = [...CATEGORIES].sort((a, b) => a.name.localeCompare(b.name, "fr"));
+    return send(res, 200, { success: true, data: byName.map((category) => ({ ...category, slug: category.id })) }), true;
   }
   if (method === "GET" && ["/sellers/products/brands", "/sellers/products/variant-options"].includes(path)) return send(res, 200, { success: true, data: [] }), true;
 

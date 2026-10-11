@@ -121,6 +121,19 @@ test.describe("product list", () => {
     await expect(table(page, "Produits")).toHaveCount(0);
   });
 
+  test("an icon-only control says what it does on hover, in text that can be read", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products");
+    await viewSwitch(page).getByRole("button", { name: "Vue en liste" }).hover();
+    const bubble = page.locator(".z-tooltip").filter({ hasText: "Vue en liste" });
+    await expect(bubble).toBeVisible();
+    // White on near-black: the bubble once showed its text in the colour of its own background.
+    const look = await bubble.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { text: style.color, background: style.backgroundColor };
+    });
+    expect(look).toEqual({ text: "rgb(255, 255, 255)", background: "rgb(24, 24, 27)" });
+  });
+
   test("searches on the server: finds a product that is on the last page", async ({ page, baseURL }) => {
     await open(page, baseURL, "/vendor/products");
     await expect(grid(page)).toHaveCount(24);
@@ -181,10 +194,12 @@ test.describe("product list", () => {
     await open(page, baseURL, "/vendor/products");
     await expect(sortSelect(page)).toHaveValue("created-desc");
 
-    const byPrice = page.waitForRequest((candidate) => candidate.url().includes("sort=price") && candidate.url().includes("direction=asc"));
+    const byPrice = page.waitForResponse((candidate) => candidate.url().includes("sort=price") && candidate.url().includes("direction=asc"));
     await sortSelect(page).selectOption({ label: "Prix croissant" });
     await byPrice;
     await expect(page).toHaveURL(/sort=price&dir=asc/);
+    // The address changes at once: wait for the sorted cards, not the previous ones fading out.
+    await expect(page.locator("main [aria-busy='true']")).toHaveCount(0);
     await expect(grid(page)).toHaveCount(24);
     const prices = (await grid(page).allTextContents()).map((text) => Number((text.match(/([\d\s  ]+)\sFCFA/)?.[1] ?? "").replace(/\D/g, "")));
     expect(prices).toHaveLength(24);
@@ -200,6 +215,42 @@ test.describe("product list", () => {
     await expect(sortSelect(page)).toHaveValue("stock-asc");
     await expect(rows(page, "Produits").first()).toContainText("Sac en cuir de Kaya");
     await expect(rows(page, "Produits").first()).toContainText("Rupture");
+  });
+
+  test("filters changed in quick succession never reload the page, nor ask the server for it again", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products");
+    await expect(grid(page)).toHaveCount(24);
+    await page.evaluate(() => Object.assign(window, { sameDocument: true }));
+    const pageRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/\/vendor\/products\?.*(stock|sort)=/.test(request.url())) pageRequests.push(request.url());
+    });
+
+    // As fast as a script can: two changes used to leave the router out of step and end in a full reload.
+    for (const [stock, order] of [
+      ["low_stock", "Prix croissant"],
+      ["", "Stock croissant"],
+      ["out_of_stock", "Plus récents"],
+      ["in_stock", "Nom, de A à Z"],
+    ]) {
+      await page.getByLabel("Stock").selectOption(stock);
+      await sortSelect(page).selectOption({ label: order });
+    }
+
+    await expect(page).toHaveURL(/stock=in_stock&sort=name&dir=asc/);
+    await expect(page.getByText("43 produits", { exact: true })).toBeVisible();
+    await expect(grid(page)).toHaveCount(24);
+    expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
+    // The list comes from the API: the address changes without fetching the page.
+    expect(pageRequests).toEqual([]);
+
+    // The address still drives the list: back and forward restore what they show.
+    await grid(page).first().getByRole("link").click();
+    await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("Produits");
+    await page.goBack();
+    await expect(page).toHaveURL(/stock=in_stock&sort=name&dir=asc/);
+    await expect(page.getByLabel("Stock")).toHaveValue("in_stock");
+    await expect(sortSelect(page)).toHaveValue("name-asc");
   });
 
   test("deletes a product only after an explicit confirmation, and recounts", async ({ page, baseURL }) => {
@@ -264,7 +315,11 @@ test.describe("product list", () => {
     const sheet = page.getByRole("dialog", { name: "Filtres" });
     await sheet.getByLabel("Stock").selectOption("low_stock");
     await sheet.getByLabel("Trier par").selectOption({ label: "Stock croissant" });
+    // The sheet stays open while filters change: it closes when the seller says so.
+    await expect(page).toHaveURL(/stock=low_stock&sort=stock&dir=asc/);
+    await expect(sheet).toBeVisible();
     await sheet.getByRole("button", { name: "Voir les résultats" }).click();
+    await expect(sheet).toBeHidden();
 
     await expect(page.getByText("2 produits", { exact: true })).toBeVisible();
     await expect(page).toHaveURL(/stock=low_stock/);
