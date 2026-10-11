@@ -29,7 +29,7 @@ import {
 } from "@/design-system";
 import { ApiError } from "@/lib/http/api-error";
 import type { ProductCategoryOption } from "../api";
-import { ProductImage, formatUnits } from "../components/product-bits";
+import { ProductImage, StockLine, formatUnits } from "../components/product-bits";
 import type { ProductDetail } from "../contract";
 import { describeFailure } from "../errors";
 import { useProductCategoryOptions, useSaveProduct, useSubmitProduct } from "../hooks";
@@ -59,6 +59,11 @@ import { TiersEditor, VariantsField } from "./variants-field";
 // from any of them, and the steps of an existing product are all a tap away.
 // Publication is not decided here: "Soumettre à validation" queues the
 // product for moderation.
+//
+// Where the page is wide enough (1040px: the editor keeps its toolbar on one
+// row beside it), the steps share it with a panel
+// that stays in view: the card the catalogue will show, and what moderation
+// still needs. Narrower, the last step says both.
 // ============================================================
 
 const STEPS: StepDefinition[] = [
@@ -148,27 +153,47 @@ function serverErrors(error: unknown): FormErrors {
 /** What moderation needs, and the step where each is filled. */
 function readiness(form: FormState) {
   return [
-    { label: "Un nom d'au moins 3 caractères", done: form.name.trim().length >= 3, step: 0 },
-    { label: "Une catégorie", done: form.categoryIds.length > 0, step: 0 },
-    { label: "Une description", done: plainText(form.descriptionHtml).length > 0, step: 0 },
-    { label: "Au moins une photo", done: keptPhotos(form).length > 0, step: 1 },
-    { label: "Un prix de vente", done: Number(form.price.replace(",", ".")) > 0, step: 2 },
+    { label: "Un nom d'au moins 3 caractères", done: form.name.trim().length >= 3, step: 0, field: "name" },
+    { label: "Une catégorie", done: form.categoryIds.length > 0, step: 0, field: "categoryIds" },
+    { label: "Une description", done: plainText(form.descriptionHtml).length > 0, step: 0, field: "descriptionHtml" },
+    { label: "Au moins une photo", done: keptPhotos(form).length > 0, step: 1, field: "photos" },
+    { label: "Un prix de vente", done: Number(form.price.replace(",", ".")) > 0, step: 2, field: "price" },
   ];
+}
+
+type ReadinessCheck = ReturnType<typeof readiness>[number];
+
+const FOCUSABLE = "input:not([type='hidden']), select, textarea, button, [contenteditable='true']";
+
+/** Brings a field of the step on screen into view, with the caret in it. */
+function reach(id: string) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.scrollIntoView({ block: "center" });
+  (target.matches(FOCUSABLE) ? target : target.querySelector<HTMLElement>(FOCUSABLE))?.focus({ preventScroll: true });
 }
 
 type SetForm = Dispatch<SetStateAction<FormState>>;
 type SetField = <K extends keyof FormState>(field: K, value: FormState[K]) => void;
 
-export function ProductForm({ product }: { product?: ProductDetail }) {
+export interface ProductFormProps {
+  product?: ProductDetail;
+  /** Id of the step to open on (`photos`…), for a link that sends to one of them. Unknown: the first. */
+  initialStep?: string;
+}
+
+export function ProductForm({ product, initialStep }: ProductFormProps) {
   const router = useRouter();
   const editing = Boolean(product);
   const [form, setForm] = useState<FormState>(() => (product ? formFromProduct(product) : EMPTY_FORM));
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => Math.max(0, STEPS.findIndex((item) => item.id === initialStep)));
   const [errors, setErrors] = useState<FormErrors>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [running, setRunning] = useState<SaveIntent | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const steps = useRef<HTMLDivElement>(null);
+  // The field asked for by "Compléter", reached once its step is on screen.
+  const wanted = useRef<string | null>(null);
   // Counts the moves between steps and the refusals: each one brings the
   // reader back to the top of the step.
   const [moves, setMoves] = useState(0);
@@ -182,13 +207,15 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const set: SetField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const summary = useMemo(() => summarised(errors), [errors]);
+  const checks = useMemo(() => readiness(form), [form]);
   // A step is ticked once nothing moderation asks for is missing from it.
-  const completedSteps = useMemo(() => {
-    const checks = readiness(form);
-    return STEPS.slice(0, REVIEW)
-      .filter((_, index) => checks.filter((check) => check.step === index).every((check) => check.done))
-      .map((item) => item.id);
-  }, [form]);
+  const completedSteps = useMemo(
+    () =>
+      STEPS.slice(0, REVIEW)
+        .filter((_, index) => checks.filter((check) => check.step === index).every((check) => check.done))
+        .map((item) => item.id),
+    [checks],
+  );
   const errorSteps = useMemo(() => [...new Set(Object.keys(errors).map(stepOfError))].map((index) => STEPS[index].id), [errors]);
   const busy = running !== null;
   const last = step === REVIEW;
@@ -206,6 +233,8 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
     if (moves === 0) return;
     steps.current?.scrollIntoView({ block: "start" });
     heading.current?.focus({ preventScroll: true });
+    if (wanted.current) reach(wanted.current);
+    wanted.current = null;
   }, [moves]);
 
   /** Shows errors and goes to the first step that holds one. */
@@ -222,6 +251,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
    * malformed value is fixed where it is, not discovered at the end.
    */
   function goTo(target: number) {
+    wanted.current = null;
     if (busy || target === step) return;
     if (target > step) {
       const found = Object.fromEntries(Object.entries(validateForm(form, "draft")).filter(([key]) => stepOfError(key) < target));
@@ -234,6 +264,18 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
     setFailure(null);
     setStep(target);
     setMoves((count) => count + 1);
+  }
+
+  /** "Compléter": to the field a check asks for, through its step when it is another one. */
+  function complete(check: ReadinessCheck) {
+    const id = FIELDS[check.field].id;
+    if (busy) return;
+    if (check.step === step) {
+      reach(id);
+      return;
+    }
+    goTo(check.step);
+    wanted.current = id;
   }
 
   async function run(intent: SaveIntent) {
@@ -277,8 +319,10 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const errorCount = Object.keys(summary).length;
 
   return (
+    // The container the form measures itself against: one column of fields, or the fields and their panel.
+    <div className="@container/form w-full">
     <form
-      className="sugu-ui mx-auto flex w-full max-w-3xl flex-col gap-4"
+      className="sugu-ui mx-auto flex w-full max-w-3xl flex-col gap-4 @[65rem]/form:max-w-6xl"
       noValidate
       onSubmit={(event) => {
         // Enter in a field moves on; it never saves by surprise.
@@ -296,6 +340,9 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         titleAddon={product ? <StatusBadge domain="product" code={product.status} /> : undefined}
       />
 
+      <div className="flex flex-col gap-4 @[65rem]/form:grid @[65rem]/form:grid-cols-[minmax(0,1fr)_18rem] @[65rem]/form:items-start @[65rem]/form:gap-x-5 @[69rem]/form:grid-cols-[minmax(0,1fr)_20rem] @[69rem]/form:gap-x-6">
+      {/* The steps and their bar stay one block: the bar floats over the step it belongs to. */}
+      <div className="flex min-w-0 flex-col gap-4">
       {/* Why the product was sent back: read before correcting it. */}
       {product && correction && (
         <Alert tone={correction.tone} title={correction.title}>
@@ -369,7 +416,9 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
       )}
       {step === 1 && <StepPhotos form={form} setForm={setForm} productId={product?.id} error={errors.photos} />}
       {step === 2 && <StepPricing form={form} set={set} setForm={setForm} errors={errors} />}
-      {step === REVIEW && <StepReview form={form} categories={categories.data ?? []} canSubmit={canSubmit} editing={editing} saveLabel={saveLabel} isDraft={isDraft} goTo={goTo} />}
+      {step === REVIEW && (
+        <StepReview form={form} categories={categories.data ?? []} canSubmit={canSubmit} editing={editing} saveLabel={saveLabel} isDraft={isDraft} goTo={goTo} onComplete={complete} />
+      )}
 
       {/* On a phone the bar holds the decisions; leaving the form is a link above it. */}
       <Link
@@ -419,7 +468,97 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
           </Button>
         )}
       </FormActions>
+      </div>
+
+      <FormAside form={form} product={product} categories={categories.data ?? []} checks={canSubmit && !last ? checks : null} onComplete={complete} />
+      </div>
     </form>
+    </div>
+  );
+}
+
+// ── Beside the steps, on a wide page ────────────────────────
+
+/** The product as its card will show it in the catalogue, and what moderation still needs. */
+function FormAside({
+  form,
+  product,
+  categories,
+  checks,
+  onComplete,
+}: {
+  form: FormState;
+  product?: ProductDetail;
+  categories: ProductCategoryOption[];
+  /** Null on the last step, which lists them itself, and for a product that cannot be submitted. */
+  checks: ReadinessCheck[] | null;
+  onComplete: (check: ReadinessCheck) => void;
+}) {
+  const photos = keptPhotos(form);
+  const cover = photos.find((photo) => photo.isMain) ?? photos[0] ?? null;
+  const price = amountOf(form.price);
+  const category = categories.find((item) => item.id === form.categoryIds[0])?.name;
+  const reference = [product?.sku, category].filter(Boolean).join(" · ");
+  const withVariants = form.hasVariants && form.variants.length > 0;
+  // A stock not typed yet is not a stock of zero.
+  const stock = withVariants ? form.variants.reduce((sum, variant) => sum + (Number(variant.stock) || 0), 0) : form.stock.trim() === "" ? null : Number(form.stock) || 0;
+
+  return (
+    <aside aria-label="Aperçu du produit" className="hidden flex-col gap-4 @[65rem]/form:sticky @[65rem]/form:top-0 @[65rem]/form:flex">
+      <Card>
+        <Section title="Aperçu" description="La carte du produit dans votre catalogue." headingLevel={3}>
+          <div className="overflow-hidden rounded-control border border-border">
+            <div className="relative aspect-[4/3] border-b border-border bg-surface-subtle">
+              <ProductImage src={cover?.url ?? null} alt="" sizes="320px" fit="contain" caption />
+            </div>
+            <div className="flex flex-col items-start p-3">
+              {/* A new product is stored as a draft. */}
+              <StatusBadge domain="product" code={product?.status ?? "draft"} />
+              <p className="mt-1.5 line-clamp-2 font-semibold break-words text-foreground">{form.name.trim() || missing("Nom du produit")}</p>
+              <p className="mt-0.5 max-w-full truncate text-label font-normal text-foreground-muted">{reference || "Sans catégorie"}</p>
+              <p className="mt-2 text-body">{price > 0 ? <Money francs={asFrancs(price)} className="text-section-title text-foreground" /> : missing("Prix à renseigner")}</p>
+              <StockLine stock={stock} level={null} />
+            </div>
+          </div>
+        </Section>
+      </Card>
+
+      {checks && (
+        <Card>
+          <Section title="Prêt pour la validation ?" description={`${checks.filter((check) => check.done).length} sur ${checks.length}`} headingLevel={3}>
+            <ReadinessList checks={checks} onComplete={onComplete} />
+          </Section>
+        </Card>
+      )}
+    </aside>
+  );
+}
+
+/** What moderation needs, ticked or not, with the way to the step that fills it. */
+function ReadinessList({ checks, onComplete }: { checks: ReadinessCheck[]; onComplete: (check: ReadinessCheck) => void }) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {checks.map((check) => (
+        <li key={check.label} className="flex items-center justify-between gap-3 text-body">
+          <span className="flex min-w-0 items-start gap-2">
+            {check.done ? (
+              <Check className="mt-0.5 size-4 shrink-0 text-success-icon" aria-hidden="true" />
+            ) : (
+              <Circle className="mt-0.5 size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
+            )}
+            <span className={check.done ? "text-foreground" : "text-foreground-muted"}>
+              {check.label}
+              <span className="sr-only">{check.done ? " : fait" : " : à faire"}</span>
+            </span>
+          </span>
+          {!check.done && (
+            <Button size="compact" variant="quiet" onClick={() => onComplete(check)} aria-label={`Compléter : ${check.label}`}>
+              Compléter
+            </Button>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -723,6 +862,7 @@ function StepReview({
   saveLabel,
   isDraft,
   goTo,
+  onComplete,
 }: {
   form: FormState;
   categories: ProductCategoryOption[];
@@ -731,6 +871,7 @@ function StepReview({
   saveLabel: string;
   isDraft: boolean;
   goTo: (step: number) => void;
+  onComplete: (check: ReadinessCheck) => void;
 }) {
   const photos = keptPhotos(form);
   const removed = form.photos.length - photos.length;
@@ -835,28 +976,7 @@ function StepReview({
       {canSubmit ? (
         <Card>
           <Section title="Prêt pour la validation ?" description={`${done} sur ${checks.length}`} headingLevel={3}>
-            <ul className="flex flex-col gap-1">
-              {checks.map((check) => (
-                <li key={check.label} className="flex items-center justify-between gap-3 text-body">
-                  <span className="flex min-w-0 items-start gap-2">
-                    {check.done ? (
-                      <Check className="mt-0.5 size-4 shrink-0 text-success-icon" aria-hidden="true" />
-                    ) : (
-                      <Circle className="mt-0.5 size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
-                    )}
-                    <span className={check.done ? "text-foreground" : "text-foreground-muted"}>
-                      {check.label}
-                      <span className="sr-only">{check.done ? " : fait" : " : à faire"}</span>
-                    </span>
-                  </span>
-                  {!check.done && (
-                    <Button size="compact" variant="quiet" onClick={() => goTo(check.step)} aria-label={`Compléter : ${check.label}`}>
-                      Compléter
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <ReadinessList checks={checks} onComplete={onComplete} />
             <p className="text-meta text-foreground-muted">
               <span className="font-medium text-foreground">{saveLabel}</span>{" "}
               {isDraft ? "garde le produit pour vous seul." : "garde vos corrections sans les envoyer."}{" "}

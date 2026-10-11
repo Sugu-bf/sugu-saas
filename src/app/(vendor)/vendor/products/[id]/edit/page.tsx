@@ -9,13 +9,15 @@ import { ProductForm } from "@/features/vendor/catalog/form/product-form";
 import { useProduct } from "@/features/vendor/catalog/hooks";
 import ProductFormLoading from "../../new/loading";
 
-export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ step?: string | string[] }> }) {
   const { id } = use(params);
+  // `?step=photos`: the product page sends straight to what is missing.
+  const { step } = use(searchParams);
   const product = useProduct(id);
 
   // Keyed by product: the form is built once from the stored product and is
   // not reset by a background refetch while the seller is typing.
-  if (product.data) return <ProductForm key={product.data.id} product={product.data} />;
+  if (product.data) return <ProductForm key={product.data.id} product={product.data} initialStep={typeof step === "string" ? step : undefined} />;
   if (!product.isError) return <ProductFormLoading />;
 
   const failure = describeFailure(product.error);
