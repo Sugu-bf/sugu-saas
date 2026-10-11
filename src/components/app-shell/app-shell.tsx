@@ -72,6 +72,8 @@ export function AppShell({ role, children }: AppShellProps) {
       data-role={role}
       className={cn(
         "flex h-dvh overflow-hidden bg-surface md:[--shell-bottom-inset:0px]",
+        // Bottom padding of <main>, published for what sticks to its bottom.
+        "[--shell-scroll-pad-bottom:6rem] md:[--shell-scroll-pad-bottom:1rem] lg:[--shell-scroll-pad-bottom:2rem]",
         !immersive && "[--shell-bottom-inset:calc(4rem+env(safe-area-inset-bottom,0px))]",
       )}
     >
@@ -111,7 +113,7 @@ export function AppShell({ role, children }: AppShellProps) {
         <main
           id={MAIN_CONTENT_ID}
           tabIndex={-1}
-          className="dashboard-bg min-h-0 flex-1 overflow-y-auto p-4 pb-24 md:pb-4 lg:p-8 lg:pb-8"
+          className="dashboard-bg min-h-0 flex-1 overflow-y-auto p-4 pb-(--shell-scroll-pad-bottom) lg:p-8 lg:pb-(--shell-scroll-pad-bottom)"
         >
           {children}
         </main>

@@ -160,6 +160,12 @@
      tab bar and its safe area). 0 outside the shell and from 768px up.
      Anything pinned to the bottom of the screen offsets itself by it. */
   --shell-bottom-inset: 0px;
+
+  /* Bottom padding of the scroller the pages live in (the shell's <main>).
+     0 outside the shell. A sticky offset is measured from the content edge of
+     its scroller, padding excluded: a bar pinned to the bottom takes this
+     padding back, or the page would scroll in a gap under it. */
+  --shell-scroll-pad-bottom: 0px;
 }
 
 @media (min-width: 48rem) {
@@ -185,6 +191,14 @@
 
 /* Pin to the bottom of the screen without sliding under the phone tab bar. */
 @utility bottom-shell { bottom: var(--shell-bottom-inset); }
+
+/* The same for a `sticky` bar inside the shell's scroller: it rests on the
+   tab bar (or on the bottom of the screen) while the page scrolls, and still
+   does at the end of the page, which the negative margin lets it reach. */
+@utility sticky-bottom-shell {
+  bottom: calc(var(--shell-bottom-inset) - var(--shell-scroll-pad-bottom));
+  margin-bottom: calc(var(--shell-bottom-inset) - var(--shell-scroll-pad-bottom));
+}
 
 /* `touch:` — phones (below 768px) and any coarse pointer (tablets).
    Used to grow controls to a 44px target. */
@@ -221,6 +235,15 @@
 }
 
 @layer base {
+  /* A scope is the containing block of what it positions. Without it, a
+     visually hidden label (absolutely positioned) far down a long page escapes
+     the scroller it lives in: the document itself becomes taller than the
+     screen, and scrolling to a field then shifts the whole application.
+     In the base layer on purpose: `fixed`, `absolute` and `sticky` still win. */
+  .sugu-ui {
+    position: relative;
+  }
+
   .sugu-ui,
   .sugu-ui *,
   .sugu-ui ::before,

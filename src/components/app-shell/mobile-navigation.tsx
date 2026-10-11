@@ -14,7 +14,8 @@ export interface MobileNavigationProps {
   onOpenMenu: (opener: HTMLElement) => void;
 }
 
-const SLOT = "relative flex h-16 w-full flex-col items-center justify-center gap-1 text-meta";
+// 11px: five destinations share a 360 to 390px bar, and "Commandes" must fit whole.
+const SLOT = "relative flex h-16 w-full flex-col items-center justify-center gap-1 text-[0.6875rem] leading-4";
 
 function TabContent({ icon: Icon, label, active }: { icon: LucideIcon; label: string; active: boolean }) {
   return (
