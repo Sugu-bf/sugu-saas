@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Boxes, Eye, MoreHorizontal, PackagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Boxes, Eye, LayoutGrid, List, MoreHorizontal, PackagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   Button,
+  ButtonGroup,
   ConfirmDialog,
   DataTable,
   DropdownMenu,
@@ -30,11 +31,13 @@ import {
 } from "@/design-system";
 import { loadStateOf } from "@/lib/query/load-state";
 import { PRODUCTS_PAGE_SIZE, type ProductListFilters, type ProductSortKey } from "@/features/vendor/catalog/api";
-import { ProductThumb, StockCell } from "@/features/vendor/catalog/components/product-bits";
+import { ProductThumb, StockCell, formatUnits } from "@/features/vendor/catalog/components/product-bits";
+import { ProductGrid } from "@/features/vendor/catalog/components/product-grid";
 import { PRODUCT_STATUS_CODES, type ProductListItem, type StockLevel } from "@/features/vendor/catalog/contract";
 import { describeFailure } from "@/features/vendor/catalog/errors";
 import { useDeleteProduct, useProductCounts, useProducts } from "@/features/vendor/catalog/hooks";
-import { readListState, writeListState, type ListState } from "./list-state";
+import { useProductsView } from "@/features/vendor/catalog/view-preference";
+import { DEFAULT_LIST_STATE, readListState, writeListState, type ListState } from "./list-state";
 
 /** Tabs always shown; the other statuses get a tab only when they hold products. */
 const MAIN_TABS = ["active", "draft", "submitted"] as const;
@@ -44,6 +47,21 @@ const STOCK_OPTIONS: { value: StockLevel | ""; label: string }[] = [
   { value: "in_stock", label: "En stock" },
   { value: "low_stock", label: "Stock faible" },
   { value: "out_of_stock", label: "Rupture" },
+];
+
+/**
+ * The orders a seller asks for, by name. The table headers set the same two
+ * values; this list is the way to sort the grid, and either view on a phone.
+ */
+const SORT_OPTIONS: { value: string; label: string; sort: ProductSortKey; direction: "asc" | "desc" }[] = [
+  { value: "created-desc", label: "Plus récents", sort: "created", direction: "desc" },
+  { value: "created-asc", label: "Plus anciens", sort: "created", direction: "asc" },
+  { value: "name-asc", label: "Nom, de A à Z", sort: "name", direction: "asc" },
+  { value: "name-desc", label: "Nom, de Z à A", sort: "name", direction: "desc" },
+  { value: "price-asc", label: "Prix croissant", sort: "price", direction: "asc" },
+  { value: "price-desc", label: "Prix décroissant", sort: "price", direction: "desc" },
+  { value: "stock-asc", label: "Stock croissant", sort: "stock", direction: "asc" },
+  { value: "stock-desc", label: "Stock décroissant", sort: "stock", direction: "desc" },
 ];
 
 /** Table column ↔ sort key of the API. */
@@ -63,7 +81,6 @@ const COLUMNS: DataTableColumn<ProductListItem>[] = [
     header: "Produit",
     mobile: "title",
     sortable: true,
-    className: "@2xl:min-w-64",
     cell: (product) => (
       <span className="flex min-w-0 items-center gap-3">
         <ProductThumb src={product.image} />
@@ -74,15 +91,27 @@ const COLUMNS: DataTableColumn<ProductListItem>[] = [
           >
             {product.name}
           </Link>
-          {product.sku && <span className="block text-meta text-foreground-muted">{product.sku}</span>}
+          <span className="block truncate text-meta text-foreground-muted">
+            {product.sku}
+            {/* Narrow tables have no category column: it is said here. */}
+            {product.category && (
+              <span className="hidden @2xl:inline @4xl:hidden">
+                {product.sku && " · "}
+                {product.category}
+              </span>
+            )}
+          </span>
         </span>
       </span>
     ),
   },
+  // Tablet composition (container 672 to 896px): product, status, stock,
+  // price and actions. Category and creation date join as room allows.
   {
     id: "category",
     header: "Catégorie",
-    mobile: "subtitle",
+    mobile: "detail",
+    className: "hidden @4xl:table-cell",
     cell: (product) => product.category ?? <span className="text-foreground-muted">Sans catégorie</span>,
   },
   {
@@ -114,11 +143,21 @@ const COLUMNS: DataTableColumn<ProductListItem>[] = [
     id: "created",
     header: "Créé le",
     sortable: true,
-    mobile: "hidden",
-    className: "whitespace-nowrap",
+    mobile: "detail",
+    className: "hidden whitespace-nowrap @5xl:table-cell",
     cell: (product) => <span className="tabular-nums">{formatDay(product.createdAt)}</span>,
   },
 ];
+
+/** How many products the catalogue holds, next to the page title. */
+function CatalogueSize({ total }: { total: number | undefined }) {
+  if (total === undefined) return null;
+  return (
+    <span className="text-section-title font-normal text-foreground-muted tabular-nums">
+      ({formatUnits(total)} produit{total > 1 ? "s" : ""})
+    </span>
+  );
+}
 
 export function ProductsContent() {
   const router = useRouter();
@@ -176,6 +215,7 @@ export function ProductsContent() {
   const counts = useProductCounts();
   const remove = useDeleteProduct();
   const [toDelete, setToDelete] = useState<ProductListItem | null>(null);
+  const [view, setView] = useProductsView();
 
   const page = products.data;
   const loadState = loadStateOf(products);
@@ -203,119 +243,159 @@ export function ProductsContent() {
 
   const sort: SortState = { columnId: SORT_COLUMN[state.sort], direction: state.direction };
 
+  // One menu for both views; on a picture it needs a surface of its own.
+  const productMenu = (product: ProductListItem, onPicture = false) => (
+    <DropdownMenu trigger={<IconButton icon={MoreHorizontal} label={`Actions pour ${product.name}`} variant={onPicture ? "secondary" : "quiet"} />}>
+      <DropdownMenuItem icon={Eye} onSelect={() => router.push(`/vendor/products/${product.id}`)}>
+        Ouvrir la fiche
+      </DropdownMenuItem>
+      <DropdownMenuItem icon={Pencil} onSelect={() => router.push(`/vendor/products/${product.id}/edit`)}>
+        Modifier
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem icon={Trash2} tone="danger" onSelect={() => setToDelete(product)}>
+        Supprimer
+      </DropdownMenuItem>
+    </DropdownMenu>
+  );
+
+  const loadError = {
+    title: "Les produits n'ont pas pu être chargés",
+    description: describeFailure(products.error).message,
+    onRetry: () => products.refetch(),
+    retrying: products.isFetching,
+  };
+
+  const emptyList = narrowed
+    ? {
+        title: "Aucun produit ne correspond",
+        description: "Modifiez la recherche ou les filtres pour élargir les résultats.",
+        action: (
+          <Button icon={X} onClick={showAll}>
+            Tout afficher
+          </Button>
+        ),
+      }
+    : {
+        icon: PackagePlus,
+        title: "Votre catalogue est vide",
+        description: "Ajoutez votre premier produit pour le proposer aux acheteurs.",
+        action: (
+          <Button asChild variant="primary" icon={Plus}>
+            <Link href="/vendor/products/new">Nouveau produit</Link>
+          </Button>
+        ),
+      };
+
+  const pagination = {
+    page: state.page,
+    pageSize: page?.pageSize ?? PRODUCTS_PAGE_SIZE,
+    total: page?.total ?? 0,
+    onPageChange: (next: number) => setState({ page: next }),
+    itemLabel: "produits",
+  };
+
   return (
     <div className="sugu-ui mx-auto flex w-full max-w-7xl flex-col gap-4">
       <PageHeader
         title="Produits"
-        description="Le catalogue de votre boutique : statut de publication, prix et stock."
+        titleAddon={<CatalogueSize total={counts.data?.total} />}
         primaryAction={{ label: "Nouveau produit", icon: Plus, href: "/vendor/products/new" }}
         secondaryActions={[{ label: "Inventaire", icon: Boxes, href: "/vendor/inventory" }]}
       />
 
       <Tabs value={state.status || "all"} onValueChange={(value) => setState({ status: value === "all" ? "" : value })}>
-        <TabsList label="Filtrer les produits par statut">
+        <TabsList label="Filtrer les produits par statut" variant="pills">
           <TabsTrigger value="all" count={counts.data?.total}>
             Tous
           </TabsTrigger>
-          {tabs.map((code) => (
-            <TabsTrigger key={code} value={code} count={counts.data?.byStatus[code]}>
-              {productStatus.resolve(code).label}
-            </TabsTrigger>
-          ))}
+          {tabs.map((code) => {
+            const status = productStatus.resolve(code);
+            return (
+              <TabsTrigger key={code} value={code} count={counts.data?.byStatus[code]} tone={status.tone}>
+                {status.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         <TabsContent value={state.status || "all"} className="flex flex-col gap-3">
           <Toolbar
             search={
               <ToolbarSearch
-                label="Nom ou référence (SKU)"
+                label="Nom ou référence"
                 value={searchInput}
                 onValueChange={setSearchInput}
                 onSubmit={(value) => setState({ search: value.trim() })}
               />
             }
             filters={
-              <ToolbarFilter
-                label="Stock"
-                value={state.stock}
-                onValueChange={(value) => setState({ stock: value as StockLevel | "" })}
-                options={STOCK_OPTIONS.map((option) => {
-                  const count = option.value ? counts.data?.byStock[option.value] : undefined;
-                  return count === undefined ? option : { ...option, label: `${option.label} (${count})` };
-                })}
-              />
+              <>
+                <ToolbarFilter
+                  label="Stock"
+                  value={state.stock}
+                  onValueChange={(value) => setState({ stock: value as StockLevel | "" })}
+                  options={STOCK_OPTIONS.map((option) => {
+                    const count = option.value ? counts.data?.byStock[option.value] : undefined;
+                    return count === undefined ? option : { ...option, label: `${option.label} (${count})` };
+                  })}
+                />
+                <ToolbarFilter
+                  label="Trier par"
+                  value={`${state.sort}-${state.direction}`}
+                  onValueChange={(value) => {
+                    const option = SORT_OPTIONS.find((candidate) => candidate.value === value);
+                    if (option) setState({ sort: option.sort, direction: option.direction });
+                  }}
+                  options={SORT_OPTIONS}
+                />
+              </>
             }
             activeFilterCount={state.stock ? 1 : 0}
-            onResetFilters={() => setState({ stock: "" })}
-            count={<ToolbarCount total={page?.total} noun={{ one: "produit", other: "produits" }} />}
-            actions={
+            onResetFilters={() => setState({ stock: "", sort: DEFAULT_LIST_STATE.sort, direction: DEFAULT_LIST_STATE.direction })}
+            // The size of the catalogue is next to the title: this row counts what a filter leaves.
+            count={<ToolbarCount total={narrowed ? page?.total : undefined} noun={{ one: "produit", other: "produits" }} />}
+            countAction={
               narrowed ? (
-                <Button variant="quiet" icon={X} onClick={showAll}>
+                <Button variant="quiet" size="compact" icon={X} onClick={showAll}>
                   Tout afficher
                 </Button>
               ) : undefined
             }
+            view={
+              <ButtonGroup label="Affichage des produits">
+                <IconButton icon={LayoutGrid} label="Vue en grille" variant="secondary" aria-pressed={view === "grid"} onClick={() => setView("grid")} />
+                <IconButton icon={List} label="Vue en liste" variant="secondary" aria-pressed={view === "list"} onClick={() => setView("list")} />
+              </ButtonGroup>
+            }
           />
 
-          <DataTable
-            caption="Produits"
-            columns={COLUMNS}
-            rows={page?.rows ?? []}
-            getRowId={(product) => product.id}
-            state={loadState}
-            refreshing={products.isFetching && loadState === "ready"}
-            error={{
-              title: "Les produits n'ont pas pu être chargés",
-              description: describeFailure(products.error).message,
-              onRetry: () => products.refetch(),
-              retrying: products.isFetching,
-            }}
-            empty={
-              narrowed
-                ? {
-                    title: "Aucun produit ne correspond",
-                    description: "Modifiez la recherche ou les filtres pour élargir les résultats.",
-                    action: (
-                      <Button icon={X} onClick={showAll}>
-                        Tout afficher
-                      </Button>
-                    ),
-                  }
-                : {
-                    icon: PackagePlus,
-                    title: "Votre catalogue est vide",
-                    description: "Ajoutez votre premier produit pour le proposer aux acheteurs.",
-                    action: (
-                      <Button asChild variant="primary" icon={Plus}>
-                        <Link href="/vendor/products/new">Nouveau produit</Link>
-                      </Button>
-                    ),
-                  }
-            }
-            sort={sort}
-            onSortChange={(next) => setState({ sort: SORT_KEY[next.columnId] ?? "created", direction: next.direction })}
-            rowActions={(product) => (
-              <DropdownMenu trigger={<IconButton icon={MoreHorizontal} label={`Actions pour ${product.name}`} />}>
-                <DropdownMenuItem icon={Eye} onSelect={() => router.push(`/vendor/products/${product.id}`)}>
-                  Ouvrir la fiche
-                </DropdownMenuItem>
-                <DropdownMenuItem icon={Pencil} onSelect={() => router.push(`/vendor/products/${product.id}/edit`)}>
-                  Modifier
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem icon={Trash2} tone="danger" onSelect={() => setToDelete(product)}>
-                  Supprimer
-                </DropdownMenuItem>
-              </DropdownMenu>
-            )}
-            pagination={{
-              page: state.page,
-              pageSize: page?.pageSize ?? PRODUCTS_PAGE_SIZE,
-              total: page?.total ?? 0,
-              onPageChange: (next) => setState({ page: next }),
-              itemLabel: "produits",
-            }}
-          />
+          {view === "grid" ? (
+            <ProductGrid
+              products={page?.rows ?? []}
+              state={loadState}
+              refreshing={products.isFetching && loadState === "ready"}
+              error={loadError}
+              empty={emptyList}
+              actions={(product) => productMenu(product, true)}
+              pagination={pagination}
+            />
+          ) : (
+            <DataTable
+              caption="Produits"
+              columns={COLUMNS}
+              rows={page?.rows ?? []}
+              getRowId={(product) => product.id}
+              state={loadState}
+              refreshing={products.isFetching && loadState === "ready"}
+              error={loadError}
+              empty={emptyList}
+              sort={sort}
+              onSortChange={(next) => setState({ sort: SORT_KEY[next.columnId] ?? "created", direction: next.direction })}
+              rowActions={(product) => productMenu(product)}
+              pagination={pagination}
+            />
+          )}
         </TabsContent>
       </Tabs>
 
