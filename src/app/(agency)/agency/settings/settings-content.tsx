@@ -12,7 +12,6 @@ import {
   Bell,
   ShieldCheck,
   Crown,
-  Trash2,
   Save,
   CheckCircle2,
   Eye,
@@ -38,7 +37,6 @@ import { PaymentsTab } from "./tabs/payments-tab";
 import { NotificationsTab } from "./tabs/notifications-tab";
 import { SecurityTab } from "./tabs/security-tab";
 import { SubscriptionTab } from "./tabs/subscription-tab";
-import { DeleteTab } from "./tabs/delete-tab";
 import { Toggle } from "./components/toggle";
 
 // ────────────────────────────────────────────────────────────
@@ -68,8 +66,7 @@ type SettingsTab =
   | "payments"
   | "notifications"
   | "security"
-  | "subscription"
-  | "delete";
+  | "subscription";
 
 const SETTINGS_TABS: {
   key: SettingsTab;
@@ -88,12 +85,6 @@ const SETTINGS_TABS: {
     key: "subscription",
     label: "Mon abonnement",
     icon: <Crown className="h-4 w-4" />,
-  },
-  {
-    key: "delete",
-    label: "Supprimer l'agence",
-    icon: <Trash2 className="h-4 w-4" />,
-    danger: true,
   },
 ];
 
@@ -729,7 +720,7 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
     setHasChanges(false);
   }, [data]);
 
-  const showFooter = hasChanges && activeTab !== "subscription" && activeTab !== "delete";
+  const showFooter = hasChanges && activeTab !== "subscription";
   const isSaving = updateMutation.isPending;
 
   return (
@@ -817,7 +808,6 @@ export function SettingsContent({ data }: { data: AgencySettingsResponse }) {
           {activeTab === "notifications" && <NotificationsTab data={data} onSave={(payload: UpdateAgencySettingsPayload) => updateMutation.mutate(payload)} isSaving={isSaving} />}
           {activeTab === "security" && <SecurityTab />}
           {activeTab === "subscription" && <SubscriptionTab />}
-          {activeTab === "delete" && <DeleteTab />}
         </div>
       </div>
 

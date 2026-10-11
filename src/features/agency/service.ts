@@ -1,12 +1,10 @@
-export * from "./services/dashboard.service";
-export * from "./services/deliveries.service";
-export * from "./services/drivers.service";
+// What the agency screens not yet rebuilt still read (statistics, settings,
+// earnings, zones) and the invitation code. Deliveries, couriers and the
+// dashboard have their own modules: ./deliveries, ./couriers, ./dashboard.
 export * from "./services/stats.service";
 export * from "./services/settings.service";
 export * from "./services/finance.service";
 export * from "./services/zones.service";
+export * from "./services/invitation.service";
 
-// Re-export specific types if they were requested by index.ts
-export type { CreateDeliveryPayload, DeliveryFilters } from "./services/deliveries.service";
-export type { AddCourierPayload, RegisterCourierPayload, UpdateCourierPayload, DriverFilters } from "./services/drivers.service";
 export type { UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./services/settings.service";

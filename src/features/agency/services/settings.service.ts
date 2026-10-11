@@ -257,20 +257,5 @@ export async function deleteAgencyLogo(agencyId: string): Promise<void> {
   await api.delete(`agencies/${agencyId}/settings/logo`);
 }
 
-/**
- * Delete an agency permanently.
- *
- * DELETE /agencies/{agencyId}
- * Requires body `{ confirm: "SUPPRIMER" }` for safety.
- */
-export async function deleteAgency(
-  agencyId: string,
-  confirm: string,
-): Promise<void> {
-  await api.delete(`agencies/${agencyId}`, {
-    headers: { "X-Confirm-Delete": confirm },
-  });
-}
-
 // ============================================================
 
