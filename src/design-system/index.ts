@@ -64,6 +64,8 @@ export type { InputProps, SelectOption, SelectProps, TextareaProps } from "./for
 export { PasswordInput } from "./forms/password-input";
 export type { PasswordInputProps } from "./forms/password-input";
 export { Checkbox, Radio, RadioGroup, Switch } from "./forms/choice";
+export { Combobox } from "./forms/combobox";
+export type { ComboboxOption, ComboboxProps } from "./forms/combobox";
 export { FormActions, StepActions, Stepper } from "./forms/stepper";
 export type { StepDefinition } from "./forms/stepper";
 export { FormErrorSummary, fieldErrorsFromZod } from "./forms/errors";

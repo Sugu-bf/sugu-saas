@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { Checkbox, Radio, RadioGroup, Switch } from "../forms/choice";
+import { Combobox, searchOptions } from "../forms/combobox";
 import { FormErrorSummary, fieldErrorsFromZod } from "../forms/errors";
 import { FormField } from "../forms/field";
 import { Input, Select, Textarea } from "../forms/input";
@@ -335,5 +336,153 @@ describe("Stepper with selectable steps, FormActions", () => {
     const bar = screen.getByRole("button", { name: "Enregistrer" }).parentElement as HTMLElement;
     expect(bar).toHaveClass("flex", "items-center", "sticky", "sticky-bottom-shell");
     expect(bar.className).not.toContain("flex-col");
+  });
+});
+
+describe("Combobox", () => {
+  const options = [
+    { value: "c1", label: "Bijoux" },
+    { value: "c2", label: "Épicerie" },
+    { value: "c3", label: "Maison et décoration" },
+    { value: "c4", label: "Textile" },
+    { value: "c5", label: "Décoration de fête" },
+  ];
+
+  /** The field as a page uses it: it owns what is chosen, and shows it. */
+  function Field({ limit, disabled }: { limit?: number; disabled?: boolean }) {
+    const [chosen, setChosen] = useState<string[]>([]);
+    return (
+      <>
+        <FormField label="Catégorie" required hint="Recherchez par nom.">
+          <Combobox
+            options={options}
+            selected={chosen}
+            onToggle={(value) => setChosen((current) => (current.includes(value) ? current.filter((other) => other !== value) : [...current, value]))}
+            listLabel="Catégories"
+            placeholder="Rechercher une catégorie"
+            limit={limit}
+            disabled={disabled}
+            required={false}
+          />
+        </FormField>
+        <p data-testid="chosen">{chosen.join(",")}</p>
+      </>
+    );
+  }
+
+  const field = () => screen.getByRole("combobox", { name: /Catégorie/ });
+  const listed = () => within(screen.getByRole("listbox", { name: "Catégories" })).getAllByRole("option");
+  const labels = () => listed().map((option) => option.textContent);
+  const activeOption = () => document.getElementById(field().getAttribute("aria-activedescendant") ?? "");
+
+  it("ranks what a search finds: a label that starts with it, then a word that does, then anywhere", () => {
+    const found = (query: string) => searchOptions(options, query).map((option) => option.label);
+    // Accents and case are ignored, on both sides.
+    expect(found("DEC")).toEqual(["Décoration de fête", "Maison et décoration"]);
+    expect(found("epic")).toEqual(["Épicerie"]);
+    // Inside a word: the order given by the caller is kept.
+    expect(found("ti")).toEqual(["Maison et décoration", "Textile", "Décoration de fête"]);
+    expect(found("  ")).toEqual(options.map((option) => option.label));
+    // What is typed is text, never a pattern.
+    expect(found("(")).toEqual([]);
+    expect(found(".*")).toEqual([]);
+  });
+
+  it("is a named field that lists on focus, narrows as one types and says what it found", async () => {
+    render(<Field />);
+    expect(field()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    await userEvent.click(field());
+    expect(field()).toHaveAttribute("aria-expanded", "true");
+    expect(field()).toHaveAttribute("aria-controls", screen.getByRole("listbox", { name: "Catégories" }).id);
+    expect(listed()).toHaveLength(5);
+
+    await userEvent.type(field(), "deco");
+    expect(labels()).toEqual(["Décoration de fête", "Maison et décoration"]);
+    expect(screen.getByRole("status")).toHaveTextContent("2 résultats");
+
+    await userEvent.clear(field());
+    await userEvent.type(field(), "zzz");
+    expect(screen.getByText("Aucun résultat pour « zzz ».")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Aucun résultat");
+  });
+
+  it("chooses with the keyboard, and never submits the form it sits in", async () => {
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Field />
+      </form>,
+    );
+    await userEvent.click(field());
+    await userEvent.type(field(), "tex");
+    expect(activeOption()).toHaveTextContent("Textile");
+
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByTestId("chosen")).toHaveTextContent("c4");
+    expect(onSubmit).not.toHaveBeenCalled();
+    // Closed and emptied for the next search; the keyboard user stays in the field.
+    expect(field()).toHaveAttribute("aria-expanded", "false");
+    expect(field()).toHaveValue("");
+    expect(field()).toHaveFocus();
+
+    // Open again: what is chosen is ticked, the arrows move, Enter takes a choice back.
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: "Textile" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("option", { name: "Bijoux" })).toHaveAttribute("aria-selected", "false");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    expect(activeOption()).toHaveTextContent("Textile");
+    await userEvent.keyboard("{ArrowUp}");
+    expect(activeOption()).toHaveTextContent("Maison et décoration");
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByTestId("chosen")).toHaveTextContent("c4,c3");
+
+    await userEvent.type(field(), "text");
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByTestId("chosen")).toHaveTextContent(/^c3$/);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("Escape closes the list first, then empties the search", async () => {
+    render(<Field />);
+    await userEvent.click(field());
+    await userEvent.type(field(), "bij");
+    await userEvent.keyboard("{Escape}");
+    expect(field()).toHaveAttribute("aria-expanded", "false");
+    expect(field()).toHaveValue("bij");
+    await userEvent.keyboard("{Escape}");
+    expect(field()).toHaveValue("");
+  });
+
+  it("chooses with a click, which leaves the field so a phone puts its keyboard away", async () => {
+    render(<Field />);
+    await userEvent.click(field());
+    await userEvent.click(screen.getByRole("option", { name: "Bijoux" }));
+    expect(screen.getByTestId("chosen")).toHaveTextContent("c1");
+    expect(field()).not.toHaveFocus();
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("lists a limited number of options and says how many are left to search for", async () => {
+    render(<Field limit={2} />);
+    await userEvent.click(field());
+    expect(labels()).toEqual(["Bijoux", "Épicerie"]);
+    expect(screen.getByText("3 autres : précisez la recherche.")).toBeInTheDocument();
+    await userEvent.type(field(), "tex");
+    expect(screen.queryByText(/précisez la recherche/)).toBeNull();
+  });
+
+  it("closes when the focus leaves it, and stays closed while disabled", async () => {
+    const { rerender } = render(<Field />);
+    await userEvent.click(field());
+    expect(field()).toHaveAttribute("aria-expanded", "true");
+    await userEvent.tab();
+    expect(field()).toHaveAttribute("aria-expanded", "false");
+
+    rerender(<Field disabled />);
+    expect(field()).toBeDisabled();
+    await userEvent.click(field());
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 });

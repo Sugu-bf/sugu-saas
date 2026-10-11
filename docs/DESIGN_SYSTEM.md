@@ -77,6 +77,7 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 
 - Couches : `z-sticky` 10, `z-header` 30, `z-nav` 50 (barre d'onglets téléphone), `z-dropdown` 60, `z-overlay` 70, `z-modal` 71, `z-popover` 80, `z-tooltip` 90.
 - Bas d'écran : `--shell-bottom-inset` vaut la hauteur de la barre d'onglets téléphone (zone sûre comprise) et 0 partout ailleurs. Un élément `fixed` collé en bas l'utilise via `bottom-shell`. Un élément `sticky` utilise `sticky-bottom-shell` : un décalage `sticky` se mesure depuis le bord du contenu du conteneur défilant, marge intérieure exclue, et `<main>` garde une marge basse (publiée dans `--shell-scroll-pad-bottom`). Sans la reprendre, la barre flotte au-dessus de la barre d'onglets et la page défile dans l'intervalle. `FormActions sticky` le fait déjà. Ne jamais écrire `bottom-0` ou `bottom-20` pour éviter la barre.
+- Portée et texte : la couleur et la taille de texte de `.sugu-ui` sont dans la couche de base. Une utilitaire posée sur l'élément qui porte la portée (le texte blanc d'une infobulle) doit gagner ; hors couche, la règle de la portée l'écrasait et l'infobulle s'affichait comme une bulle noire vide.
 - Portée et positionnement : `.sugu-ui` est le bloc conteneur de ce qu'elle positionne (`position: relative`, dans la couche de base : `fixed`, `absolute` et `sticky` gardent la priorité). Sans cela, un libellé masqué visuellement (`sr-only`, positionné en absolu) placé loin dans une longue page sort du conteneur défilant, rend le document plus haut que l'écran, et un défilement programmé décale alors toute l'application.
 - Gouttière de page : `px-page`, `py-page`, `gap-page` (16 px téléphone, 24 px dès 768 px, 32 px dès 1280 px).
 - Variante `touch:` : téléphone (< 768 px) **ou** pointeur grossier (tablette). Les contrôles y passent à 44 px et les champs à 16 px de texte.
@@ -98,7 +99,7 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 |---|---|
 | Actions | `Button`, `IconButton`, `ButtonGroup`, `DropdownMenu` (+ `Item`, `Label`, `Separator`), `Tooltip` |
 | Information | `Badge`, `StatusBadge`, `Card`, `Section`, `Stat`, `Avatar`, `EmptyState`, `ErrorState`, `Skeleton`, `Alert`, `DescriptionList`, `Money` |
-| Formulaires | `FormField`, `Input`, `PasswordInput`, `Textarea`, `Select`, `Checkbox`, `RadioGroup` + `Radio`, `Switch`, `FormActions`, `FormErrorSummary`, `Stepper`, `StepActions` |
+| Formulaires | `FormField`, `Input`, `PasswordInput`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `RadioGroup` + `Radio`, `Switch`, `FormActions`, `FormErrorSummary`, `Stepper`, `StepActions` |
 | Navigation locale | `Tabs` (+ `List`, `Trigger`, `Content`), `Pagination`, `Breadcrumbs` |
 | Overlays | `Dialog` (+ `Trigger`, `Content`, `Close`), `ConfirmDialog`, `Sheet` (+ `Trigger`, `Content`, `Close` ; côtés `right`, `bottom`, `left`) |
 | Structure | `PageHeader`, `Toolbar`, `ToolbarSearch`, `ToolbarFilter`, `ToolbarCount`, `DataTable` |
@@ -129,6 +130,8 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 `FormField` relie libellé, aide, erreur et succès au champ (`id`, `aria-describedby`, `aria-invalid`, `required`, `disabled`). Le message d'erreur est annoncé (`role="alert"`). Validation : Zod, puis `fieldErrorsFromZod(error)` donne un message par champ ; `FormErrorSummary` les récapitule en tête de formulaire.
 
 `Select`, `Checkbox` et `Radio` sont des contrôles natifs stylés : sur téléphone, le sélecteur du système reste le plus fiable.
+
+`Combobox` sert quand la liste est trop longue pour un `Select` (catégories, clients) : on tape pour la réduire, sans tenir compte des accents ni de la casse, et l'on choisit au clavier ou au doigt. Plusieurs choix sont possibles ; la liste se referme à chaque choix pour ne jamais recouvrir la suite du formulaire. Le champ montre la recherche, pas le choix : la page affiche ce qui est choisi (étiquettes) et en reste propriétaire (`selected`, `onToggle`). Entrée n'y soumet jamais le formulaire. Sur téléphone, le champ remonte en haut de l'écran à l'ouverture, pour que la liste ne soit pas sous le clavier.
 
 Assistants en étapes : `Stepper` affiche la progression, `StepActions` les boutons Précédent / Suivant / action finale, `DescriptionList` le résumé. La page garde l'état et la validation.
 
