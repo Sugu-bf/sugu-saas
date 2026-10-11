@@ -76,7 +76,8 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 ### Structure
 
 - Couches : `z-sticky` 10, `z-header` 30, `z-nav` 50 (barre d'onglets téléphone), `z-dropdown` 60, `z-overlay` 70, `z-modal` 71, `z-popover` 80, `z-tooltip` 90.
-- Bas d'écran : `--shell-bottom-inset` vaut la hauteur de la barre d'onglets téléphone (zone sûre comprise) et 0 partout ailleurs. Tout élément collé en bas l'utilise via `bottom-shell` ; `FormActions sticky` le fait déjà. Ne jamais écrire `bottom-0` ou `bottom-20` pour éviter la barre.
+- Bas d'écran : `--shell-bottom-inset` vaut la hauteur de la barre d'onglets téléphone (zone sûre comprise) et 0 partout ailleurs. Un élément `fixed` collé en bas l'utilise via `bottom-shell`. Un élément `sticky` utilise `sticky-bottom-shell` : un décalage `sticky` se mesure depuis le bord du contenu du conteneur défilant, marge intérieure exclue, et `<main>` garde une marge basse (publiée dans `--shell-scroll-pad-bottom`). Sans la reprendre, la barre flotte au-dessus de la barre d'onglets et la page défile dans l'intervalle. `FormActions sticky` le fait déjà. Ne jamais écrire `bottom-0` ou `bottom-20` pour éviter la barre.
+- Portée et positionnement : `.sugu-ui` est le bloc conteneur de ce qu'elle positionne (`position: relative`, dans la couche de base : `fixed`, `absolute` et `sticky` gardent la priorité). Sans cela, un libellé masqué visuellement (`sr-only`, positionné en absolu) placé loin dans une longue page sort du conteneur défilant, rend le document plus haut que l'écran, et un défilement programmé décale alors toute l'application.
 - Gouttière de page : `px-page`, `py-page`, `gap-page` (16 px téléphone, 24 px dès 768 px, 32 px dès 1280 px).
 - Variante `touch:` : téléphone (< 768 px) **ou** pointeur grossier (tablette). Les contrôles y passent à 44 px et les champs à 16 px de texte.
 - Mouvement : `animate-ds-fade`, `animate-ds-pop`, `animate-ds-sheet-*`, 120 à 180 ms. `prefers-reduced-motion` est respecté par la règle globale existante.
@@ -131,6 +132,10 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 
 Assistants en étapes : `Stepper` affiche la progression, `StepActions` les boutons Précédent / Suivant / action finale, `DescriptionList` le résumé. La page garde l'état et la validation.
 
+- `Stepper onStepSelect` rend chaque étape cliquable, à toutes les largeurs (sur téléphone, les étapes remplacent la barre « Étape 2 sur 4 »). La page décide si le déplacement est permis.
+- `Stepper completedSteps` : par défaut, toute étape passée est cochée. Un formulaire dont les étapes peuvent rester incomplètes (un brouillon) donne la liste des étapes réellement complètes : une coche ne recouvre jamais une étape où il manque quelque chose. L'étape en cours reste repérable même en erreur.
+- `FormActions` : les actions tiennent sur une ligne, y compris sur téléphone, où la dernière (l'action principale) prend la place restante. Avec `sticky`, la barre repose sur la barre d'onglets du téléphone ; à partir de 768 px c'est un panneau de la largeur du formulaire.
+
 ### ConfirmDialog
 
 Remplace `confirm()` et `prompt()`. Le focus arrive sur « Annuler ». `onConfirm` peut renvoyer une promesse : le dialog affiche l'attente, puis se ferme en cas de succès et reste ouvert en cas d'échec.
@@ -146,7 +151,11 @@ Remplace `confirm()` et `prompt()`. Le focus arrive sur « Annuler ». `onConfir
 />
 ```
 
-Sur téléphone, l'action principale reste visible et les actions secondaires passent dans un menu « Plus d'actions ». Dans `Toolbar`, les filtres passent dans un panneau bas « Filtres ».
+Sur téléphone, l'action principale reste visible et les actions secondaires passent dans un menu « Plus d'actions ». Dans `Toolbar`, les filtres passent dans un panneau bas « Filtres », ouvert par un bouton qui partage la ligne de la recherche.
+
+La ligne du compteur porte aussi `countAction` (le retour à la liste entière, « Tout afficher », tant qu'un filtre la restreint) et `view` (un sélecteur de vue, grille ou liste). La première ligne reste celle de la recherche et des filtres.
+
+`TabsList variant="pills"` : pastilles entièrement arrondies pour les filtres d'une liste (statuts, niveaux), chacune avec son compteur et, via `TabsTrigger tone`, un point de la couleur du statut. Le style souligné reste celui des sections d'une page.
 
 Recherche, filtres et tri de la `Toolbar` sont contrôlés : la page les transforme en paramètres de requête. `ToolbarCount` affiche le total renvoyé par le serveur.
 
@@ -171,7 +180,8 @@ Recherche, filtres et tri de la `Toolbar` sont contrôlés : la page les transfo
 - **Tri** : uniquement contrôlé. Sans `onSortChange`, aucun en-tête n'est cliquable. La table ne réordonne jamais `rows` : trier la page chargée d'une liste paginée ferait croire à un tri complet.
 - **Sélection** : contrôlée (`selection`). La case d'en-tête agit sur la page courante et conserve les identifiants sélectionnés sur les autres pages. `bulkActions` n'apparaît que si une sélection existe.
 - **États** : `loading` (squelettes), `error` (jamais affiché comme une liste vide), vide (seulement à l'état `ready`), `refreshing` (lignes conservées, pagination bloquée).
-- **Téléphone** : chaque colonne déclare son rôle, `mobile: "title" | "subtitle" | "badge" | "field" | "hidden"`. Par défaut `field` : rien ne disparaît sans décision explicite. Les actions de ligne et la sélection sont conservées. `mobileLayout="scroll"` garde la table et la fait défiler.
+- **Téléphone** : chaque colonne déclare son rôle, `mobile: "title" | "subtitle" | "badge" | "field" | "detail" | "hidden"`. Par défaut `field` : rien ne disparaît sans décision explicite. `detail` range une donnée secondaire derrière « Voir plus » : à un geste, pas supprimée. `mobileCell` donne à la carte un contenu différent de la cellule ; s'il renvoie `null`, la ligne n'est pas affichée (un libellé sans valeur est du bruit). Les actions de ligne et la sélection sont conservées ; `mobileRowActions="footer"` place les actions sur une ligne à elles, pour un bouton libellé. `mobileLayout="scroll"` garde la table et la fait défiler.
+- **Tablette** : une table ne doit jamais se lire en la faisant glisser. Les colonnes secondaires se masquent par requête de conteneur (`className: "hidden @4xl:table-cell"`) et leur donnée se replie sous une colonne voisine tant qu'elles sont masquées.
 
 ## 4. Statuts
 

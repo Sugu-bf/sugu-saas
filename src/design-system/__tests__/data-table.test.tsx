@@ -238,3 +238,47 @@ describe("DataTable — states", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 });
+
+describe("DataTable — phone card", () => {
+  const cards = () => within(screen.getByRole("list", { name: "Commandes" })).getAllByRole("listitem");
+
+  it("keeps a detail column behind « Voir plus », one tap away", async () => {
+    const columns = COLUMNS.map((column) => (column.id === "total" ? { ...column, mobile: "detail" as const } : column));
+    render(<DataTable {...BASE} columns={columns} />);
+
+    expect(cards()[0]).not.toHaveTextContent("300");
+    const more = within(cards()[0]).getByRole("button", { name: "Voir plus" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(more);
+    expect(cards()[0]).toHaveTextContent("300");
+    expect(within(cards()[0]).getByRole("button", { name: "Voir moins" })).toHaveAttribute("aria-expanded", "true");
+    // Each card opens on its own.
+    expect(cards()[1]).not.toHaveTextContent("100");
+    // The table is not concerned: the column is there for whoever has the room.
+    expect(within(table()).getByRole("cell", { name: "300" })).toBeInTheDocument();
+  });
+
+  it("gives the card its own content, and no line to a field with nothing to say", () => {
+    const columns: DataTableColumn<Row>[] = [...COLUMNS.slice(0, 2), { ...COLUMNS[2], mobileCell: (row) => (row.total > 250 ? `${row.total} F` : null) }];
+    render(<DataTable {...BASE} columns={columns} />);
+
+    expect(cards()[0]).toHaveTextContent("300 F");
+    expect(within(cards()[0]).getByText("Total")).toBeInTheDocument();
+    // No value under the threshold, so no label either; the table still has its cell.
+    expect(within(cards()[1]).queryByText("Total")).toBeNull();
+    expect(within(table()).getByRole("cell", { name: "100" })).toBeInTheDocument();
+  });
+
+  it("puts the row actions next to the title, or in a row of their own when asked", () => {
+    const actions = (row: Row) => <Button>Ajuster {row.reference}</Button>;
+    const header = () => within(cards()[0]).getByText("SU-2").closest(".items-start") as HTMLElement;
+
+    const { rerender } = render(<DataTable {...BASE} rowActions={actions} />);
+    expect(within(header()).getByRole("button", { name: "Ajuster SU-2" })).toBeInTheDocument();
+
+    rerender(<DataTable {...BASE} rowActions={actions} mobileRowActions="footer" />);
+    expect(within(header()).queryByRole("button", { name: "Ajuster SU-2" })).toBeNull();
+    expect(within(cards()[0]).getByRole("button", { name: "Ajuster SU-2" })).toBeInTheDocument();
+  });
+});

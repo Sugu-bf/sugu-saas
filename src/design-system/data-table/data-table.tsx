@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, X, type LucideIcon } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronsUpDown, X, type LucideIcon } from "lucide-react";
 import { cn } from "../cn";
 import { Checkbox } from "../forms/choice";
 import { Button } from "../primitives/button";
@@ -22,15 +22,23 @@ export interface SortState {
  * - `subtitle` second line, muted
  * - `badge`    top-right corner (status)
  * - `field`    "label: value" line — the default, nothing is dropped silently
+ * - `detail`   a "label: value" line shown once the card is opened with
+ *              "Voir plus": secondary data, one tap away instead of dropped
  * - `hidden`   left out on phones; an explicit choice, for redundant data only
  */
-export type MobileRole = "title" | "subtitle" | "badge" | "field" | "hidden";
+export type MobileRole = "title" | "subtitle" | "badge" | "field" | "detail" | "hidden";
 
 export interface DataTableColumn<Row> {
   id: string;
   /** Column heading; also the field label in the phone card. */
   header: string;
   cell: (row: Row) => ReactNode;
+  /**
+   * Content of the phone card when it differs from the table cell. A `field`
+   * or `detail` that returns `null` gets no line in the card: a label with
+   * nothing next to it is noise.
+   */
+  mobileCell?: (row: Row) => ReactNode;
   /** Right-aligned with tabular figures: amounts, counts, quantities. */
   numeric?: boolean;
   /**
@@ -81,6 +89,12 @@ export interface DataTableProps<Row> {
   pagination?: Omit<PaginationProps, "className">;
   /** Narrow containers (under 672px): declarative cards (default) or the table itself, scrolling sideways. */
   mobileLayout?: "cards" | "scroll";
+  /**
+   * Where `rowActions` go in a phone card. `header` (default): next to the
+   * status, for a menu or an icon button. `footer`: a row of its own, each
+   * action as wide as the card allows, for a labelled button.
+   */
+  mobileRowActions?: "header" | "footer";
   /** Skeleton rows shown during the first load. */
   loadingRowCount?: number;
   className?: string;
@@ -107,9 +121,20 @@ export function DataTable<Row>({
   rowActions,
   pagination,
   mobileLayout = "cards",
+  mobileRowActions = "header",
   loadingRowCount = 8,
   className,
 }: DataTableProps<Row>) {
+  // Phone cards opened with "Voir plus".
+  const [openCards, setOpenCards] = useState<ReadonlySet<string>>(new Set());
+  const toggleCard = (id: string) =>
+    setOpenCards((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   const shell = cn("@container overflow-hidden rounded-panel border border-border bg-surface", className);
 
   if (state === "error") {
@@ -165,6 +190,7 @@ export function DataTable<Row>({
   const fieldColumns = columns.filter(
     (column) => column !== titleColumn && (column.mobile ?? "field") === "field",
   );
+  const detailColumns = columns.filter((column) => column !== titleColumn && column.mobile === "detail");
 
   return (
     <div className={shell} aria-busy={loading || refreshing || undefined}>
@@ -330,6 +356,11 @@ export function DataTable<Row>({
             : rows.map((row) => {
                 const id = getRowId(row);
                 const selected = selectedSet.has(id);
+                const open = openCards.has(id);
+                const inCard = (column: DataTableColumn<Row>) => (column.mobileCell ?? column.cell)(row);
+                const shownFields = (open ? [...fieldColumns, ...detailColumns] : fieldColumns)
+                  .map((column) => ({ column, content: inCard(column) }))
+                  .filter((field) => field.content !== null && field.content !== undefined && field.content !== false);
                 return (
                   <li
                     key={id}
@@ -345,42 +376,65 @@ export function DataTable<Row>({
                         onChange={(event) => toggleRow(id, event.target.checked)}
                       />
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 text-body font-medium text-foreground">
-                          {titleColumn?.cell(row)}
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      {/* Header: what the row is, its status, its actions. */}
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-body font-medium text-foreground">{titleColumn && inCard(titleColumn)}</div>
+                          {subtitleColumns.map((column) => (
+                            <div key={column.id} className="mt-0.5 text-body text-foreground-muted">
+                              {inCard(column)}
+                            </div>
+                          ))}
                         </div>
                         {badgeColumns.length > 0 && (
-                          <div className="flex shrink-0 flex-col items-end gap-1">
+                          <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
                             {badgeColumns.map((column) => (
-                              <div key={column.id}>{column.cell(row)}</div>
+                              <div key={column.id}>{inCard(column)}</div>
                             ))}
                           </div>
                         )}
+                        {rowActions && mobileRowActions === "header" && (
+                          <div className="-my-1.5 -mr-1.5 flex shrink-0 gap-1">{rowActions(row)}</div>
+                        )}
                       </div>
-                      {subtitleColumns.map((column) => (
-                        <div key={column.id} className="mt-0.5 text-body text-foreground-muted">
-                          {column.cell(row)}
-                        </div>
-                      ))}
-                      {fieldColumns.length > 0 && (
-                        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                          {fieldColumns.map((column) => (
-                            <div key={column.id} className="col-span-2 grid grid-cols-subgrid items-baseline">
-                              <dt className="text-meta text-foreground-muted">{column.header}</dt>
-                              <dd
-                                className={cn(
-                                  "min-w-0 text-right text-body text-foreground",
-                                  column.numeric && "tabular-nums",
-                                )}
+
+                      {(shownFields.length > 0 || detailColumns.length > 0) && (
+                        <div className="overflow-hidden rounded-control border border-border">
+                          <dl className="divide-y divide-border">
+                            {shownFields.map(({ column, content }) => (
+                              <div
+                                key={column.id}
+                                className="grid grid-cols-[minmax(5.5rem,36%)_minmax(0,1fr)] items-center gap-x-3 px-2.5 py-1.5"
                               >
-                                {column.cell(row)}
-                              </dd>
-                            </div>
-                          ))}
-                        </dl>
+                                <dt className="text-meta text-foreground-muted">{column.header}</dt>
+                                <dd className={cn("min-w-0 text-body text-foreground", column.numeric && "tabular-nums")}>
+                                  {content}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                          {detailColumns.length > 0 && (
+                            <button
+                              type="button"
+                              aria-expanded={open}
+                              onClick={() => toggleCard(id)}
+                              className={cn(
+                                "flex h-9 w-full items-center justify-center gap-1 text-meta font-medium text-foreground-muted",
+                                "hover:bg-surface-subtle hover:text-foreground focus-visible:-outline-offset-2 touch:h-11",
+                                shownFields.length > 0 && "border-t border-border",
+                              )}
+                            >
+                              {open ? "Voir moins" : "Voir plus"}
+                              <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
                       )}
-                      {rowActions && <div className="mt-2 flex justify-end gap-1">{rowActions(row)}</div>}
+
+                      {rowActions && mobileRowActions === "footer" && (
+                        <div className="flex gap-2 [&>*]:flex-1">{rowActions(row)}</div>
+                      )}
                     </div>
                   </li>
                 );

@@ -12,7 +12,8 @@ export interface ToolbarProps {
   search?: ReactNode;
   /**
    * `ToolbarFilter`s (status, period, sort…). Inline from 768px; on phones
-   * they move into a "Filtres" bottom sheet so nothing gets squeezed.
+   * they move into a "Filtres" bottom sheet, opened by a button that sits
+   * on the same row as the search.
    */
   filters?: ReactNode;
   /** Number of active filters, shown on the phone "Filtres" button. */
@@ -21,7 +22,17 @@ export interface ToolbarProps {
   onResetFilters?: () => void;
   /** A `ToolbarCount`. */
   count?: ReactNode;
-  /** Buttons on the right (export, view switch…). */
+  /**
+   * Sits next to the count: the way back to the whole list while a tab, a
+   * search or a filter narrows it (a quiet, compact "Tout afficher").
+   */
+  countAction?: ReactNode;
+  /**
+   * A view switch (grid, list…). At the end of the count row at every width:
+   * the first row stays for what is searched and filtered.
+   */
+  view?: ReactNode;
+  /** Buttons on the right (export…). */
   actions?: ReactNode;
   className?: string;
 }
@@ -33,17 +44,19 @@ export function Toolbar({
   activeFilterCount = 0,
   onResetFilters,
   count,
+  countAction,
+  view,
   actions,
   className,
 }: ToolbarProps) {
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex flex-wrap items-center gap-2">
-        {search && <div className="min-w-0 flex-1 basis-full md:max-w-xs md:basis-56">{search}</div>}
+        {search && <div className="min-w-0 flex-1 basis-40 md:max-w-xs md:basis-56">{search}</div>}
         {filters && (
           <>
             <div className="hidden flex-wrap items-center gap-2 md:flex">{filters}</div>
-            <div className="md:hidden">
+            <div className="shrink-0 md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
                   <Button icon={SlidersHorizontal}>
@@ -80,7 +93,15 @@ export function Toolbar({
         )}
         {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
-      {count}
+      {countAction || view ? (
+        <div className="flex min-h-control-sm items-center gap-x-2">
+          {count}
+          {countAction}
+          {view && <div className="ml-auto flex shrink-0 items-center">{view}</div>}
+        </div>
+      ) : (
+        count
+      )}
     </div>
   );
 }
@@ -117,7 +138,7 @@ export function ToolbarSearch({ value, onValueChange, onSubmit, label, className
         aria-label={label}
         placeholder={label}
         className={cn(
-          "h-control w-full min-w-0 rounded-control border border-border-control bg-surface pr-9 pl-9 text-body text-foreground",
+          "h-control w-full min-w-0 rounded-control border border-border-control bg-surface pr-9 pl-9 text-body text-ellipsis text-foreground",
           "placeholder:text-foreground-subtle hover:border-foreground-muted touch:h-touch touch:text-base",
           "[&::-webkit-search-cancel-button]:appearance-none",
         )}

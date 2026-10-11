@@ -7,7 +7,8 @@ import { Checkbox, Radio, RadioGroup, Switch } from "../forms/choice";
 import { FormErrorSummary, fieldErrorsFromZod } from "../forms/errors";
 import { FormField } from "../forms/field";
 import { Input, Select, Textarea } from "../forms/input";
-import { StepActions, Stepper } from "../forms/stepper";
+import { FormActions, StepActions, Stepper } from "../forms/stepper";
+import { Button } from "../primitives/button";
 
 describe("FormField", () => {
   it("links the label to the control", async () => {
@@ -283,5 +284,56 @@ describe("Stepper and StepActions", () => {
     rerender(<StepActions isFirstStep={false} isLastStep submitLabel="Publier" submitting {...handlers} />);
     expect(screen.getByRole("button", { name: "Publier" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
+  });
+});
+
+describe("Stepper with selectable steps, FormActions", () => {
+  const steps = [
+    { id: "product", label: "Produit" },
+    { id: "price", label: "Prix" },
+    { id: "summary", label: "Résumé" },
+  ];
+  const nav = () => screen.getByRole("navigation", { name: "Création d'un produit" });
+  const step = (name: RegExp) => within(nav()).getByRole("button", { name });
+
+  it("makes every step a button, at every width, and lets the page decide the move", async () => {
+    const onStepSelect = vi.fn();
+    render(<Stepper label="Création d'un produit" steps={steps} currentStep={1} onStepSelect={onStepSelect} />);
+
+    expect(within(nav()).getAllByRole("button")).toHaveLength(3);
+    // The compact phone bar is replaced by the steps themselves.
+    expect(within(nav()).queryByRole("progressbar")).toBeNull();
+    expect(step(/Prix/)).toHaveAttribute("aria-current", "step");
+    expect(step(/Produit/)).toHaveTextContent("(terminée)");
+
+    await userEvent.click(step(/Résumé/));
+    expect(onStepSelect).toHaveBeenCalledWith(2);
+  });
+
+  it("ticks only the steps reported complete, wherever they stand", () => {
+    render(<Stepper label="Création d'un produit" steps={steps} currentStep={1} completedSteps={["summary"]} onStepSelect={() => {}} />);
+    // Passed, but with something missing: no tick.
+    expect(step(/Produit/)).not.toHaveTextContent("(terminée)");
+    expect(step(/Résumé/)).toHaveTextContent("(terminée)");
+  });
+
+  it("keeps the current step identifiable among the steps in error", () => {
+    render(<Stepper label="Création d'un produit" steps={steps} currentStep={0} errorSteps={["product", "price"]} onStepSelect={() => {}} />);
+    expect(step(/Produit/)).toHaveAttribute("aria-current", "step");
+    expect(step(/Produit/)).toHaveTextContent("(à corriger)");
+    expect(step(/Prix/)).toHaveTextContent("(à corriger)");
+    expect(step(/Prix/)).not.toHaveAttribute("aria-current");
+  });
+
+  it("FormActions lays its actions in one row, and rests on the shell when sticky", () => {
+    render(
+      <FormActions sticky>
+        <Button>Annuler</Button>
+        <Button variant="primary">Enregistrer</Button>
+      </FormActions>,
+    );
+    const bar = screen.getByRole("button", { name: "Enregistrer" }).parentElement as HTMLElement;
+    expect(bar).toHaveClass("flex", "items-center", "sticky", "sticky-bottom-shell");
+    expect(bar.className).not.toContain("flex-col");
   });
 });

@@ -12,10 +12,16 @@ export interface DropdownMenuProps {
   align?: "start" | "end";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Called when the menu closes, before the focus goes back to the trigger.
+   * `event.preventDefault()` leaves the focus where the chosen action put it:
+   * the toolbar of an editor gives it back to the text.
+   */
+  onCloseAutoFocus?: (event: Event) => void;
   className?: string;
 }
 
-export function DropdownMenu({ trigger, children, align = "end", open, onOpenChange, className }: DropdownMenuProps) {
+export function DropdownMenu({ trigger, children, align = "end", open, onOpenChange, onCloseAutoFocus, className }: DropdownMenuProps) {
   return (
     <Menu.Root open={open} onOpenChange={onOpenChange}>
       <Menu.Trigger asChild>{trigger}</Menu.Trigger>
@@ -24,6 +30,7 @@ export function DropdownMenu({ trigger, children, align = "end", open, onOpenCha
           align={align}
           sideOffset={4}
           collisionPadding={8}
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cn(
             "sugu-ui z-dropdown max-h-(--radix-dropdown-menu-content-available-height) min-w-44 overflow-y-auto rounded-panel border border-border bg-surface-elevated p-1 shadow-overlay animate-ds-fade",
             className,

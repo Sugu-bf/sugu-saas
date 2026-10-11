@@ -12,7 +12,7 @@ import { PageHeader } from "../primitives/page-header";
 import { Pagination, pageCountOf } from "../primitives/pagination";
 import { Stat } from "../primitives/stat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../primitives/tabs";
-import { ToolbarCount, ToolbarFilter, ToolbarSearch } from "../primitives/toolbar";
+import { Toolbar, ToolbarCount, ToolbarFilter, ToolbarSearch } from "../primitives/toolbar";
 
 describe("Button", () => {
   it.each([
@@ -308,5 +308,75 @@ describe("Toolbar parts", () => {
     expect(screen.getByText("1 commande")).toBeInTheDocument();
     rerender(<ToolbarCount total={57} noun={noun} selected={2} />);
     expect(screen.getByText("57 commandes · 2 sélectionnés")).toBeInTheDocument();
+  });
+});
+
+describe("Toolbar — the row of the count", () => {
+  const count = <ToolbarCount total={3} noun={{ one: "produit", other: "produits" }} />;
+
+  it("keeps the way back to the whole list and the view switch next to the count", () => {
+    render(
+      <Toolbar
+        count={count}
+        countAction={<Button>Tout afficher</Button>}
+        view={
+          <ButtonGroup label="Affichage">
+            <Button aria-pressed>Grille</Button>
+            <Button aria-pressed={false}>Liste</Button>
+          </ButtonGroup>
+        }
+      />,
+    );
+    const row = screen.getByText("3 produits").parentElement as HTMLElement;
+    expect(within(row).getByRole("button", { name: "Tout afficher" })).toBeInTheDocument();
+    expect(within(row).getByRole("group", { name: "Affichage" })).toBeInTheDocument();
+  });
+
+  it("leaves the count on its own when there is nothing to put with it", () => {
+    const { container } = render(<Toolbar count={count} />);
+    expect(screen.getByText("3 produits").parentElement).toBe(container.firstElementChild);
+  });
+});
+
+describe("Tabs as pills", () => {
+  it("stays a tab set, without its rule, each status with the dot of its tone", () => {
+    render(
+      <Tabs value="all">
+        <TabsList label="Filtrer les produits par statut" variant="pills">
+          <TabsTrigger value="all" count={46}>
+            Tous
+          </TabsTrigger>
+          <TabsTrigger value="active" count={30} tone="success">
+            En ligne
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    );
+    const list = screen.getByRole("tablist", { name: "Filtrer les produits par statut" });
+    expect(list.parentElement).not.toHaveClass("border-b");
+
+    const all = screen.getByRole("tab", { name: /Tous/ });
+    expect(all).toHaveAttribute("aria-selected", "true");
+    expect(all).toHaveClass("rounded-pill");
+    expect(all).toHaveTextContent("46");
+    // No status behind « Tous »: no dot.
+    expect(all.querySelector("[aria-hidden='true']")).toBeNull();
+
+    const online = screen.getByRole("tab", { name: /En ligne/ });
+    expect(online.querySelector("[aria-hidden='true']")).toHaveClass("bg-success-icon");
+  });
+
+  it("draws no dot on underlined tabs, which keep their rule", () => {
+    render(
+      <Tabs value="active">
+        <TabsList label="Sections">
+          <TabsTrigger value="active" tone="success">
+            En ligne
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    );
+    expect(screen.getByRole("tablist", { name: "Sections" }).parentElement).toHaveClass("border-b");
+    expect(screen.getByRole("tab", { name: "En ligne" }).querySelector("[aria-hidden='true']")).toBeNull();
   });
 });
