@@ -55,6 +55,7 @@ Cinq tons : `success`, `warning`, `danger`, `info`, `neutral`. Chacun a quatre f
 | `rounded-panel` | 12 px | Cartes, tables, dialogs |
 | `rounded-pill` | pilule | Badges, avatars, interrupteur |
 | `rounded-button` | pilule | **Tous les boutons** (décision produit, un seul token) |
+| `rounded-badge` | pilule | Badges et pastilles de tendance |
 | `h-control-sm` | 32 px | Contrôle compact |
 | `h-control` | 36 px | Contrôle par défaut |
 | `h-touch` | 44 px | Cible tactile |
@@ -113,7 +114,7 @@ Plancher : 12 px. Ajouter `tabular-nums` aux montants, références, compteurs e
 <IconButton icon={Trash2} label="Supprimer le produit" />
 ```
 
-- `variant` : `primary`, `secondary` (défaut), `quiet`, `destructive`.
+- `variant` : `primary`, `secondary` (défaut), `quiet`, `destructive`, et `outline` (contour et texte de la couleur d'action, fond blanc) pour l'action d'une ligne de table : visible sans concurrencer le bouton `primary` de la page.
 - `size` : `default` (36 px, 44 px en tactile), `compact` (32 px, 36 px en tactile).
 - `loading` pose `aria-busy` et bloque l'activation ; le libellé reste affiché.
 - `type="button"` par défaut : écrire `type="submit"` dans un formulaire.
@@ -156,6 +157,15 @@ Remplace `confirm()` et `prompt()`. Le focus arrive sur « Annuler ». `onConfir
 
 Sur téléphone, l'action principale reste visible et les actions secondaires passent dans un menu « Plus d'actions ». `hideDescriptionOnPhone` réserve la phrase d'introduction aux écrans de 768 px et plus, quand elle repousserait la liste qu'elle présente.
 
+Pour une page de détail :
+
+- `back={{ label, href }}` : le retour à la liste, au-dessus du titre (à la place de `breadcrumbs`, pas en plus).
+- `leading` : ce dont la page parle, avant le titre (un `Avatar size="xl"`).
+- `meta` : une information à côté des actions, pas un contrôle (le jour dont un tableau de bord parle) ; affichée à partir de 768 px.
+- `moreActions` : les actions moins fréquentes, derrière un menu « Plus d'actions » à toutes les largeurs ; sur téléphone, les actions secondaires les y rejoignent. `tone: "danger"` marque celle qui ne se rattrape pas.
+- `stackActions` : pour une page qui a beaucoup d'actions ; à partir de 1280 px elles tiennent sur deux lignes, l'action principale en haut, et le titre garde sa ligne.
+- Une destination hors de l'application (`tel:`, une carte) est rendue comme un lien simple.
+
 `Toolbar` tient sur une ligne : recherche, filtres, puis `view` (un sélecteur de vue, grille ou liste) en bout de ligne, à toutes les largeurs. Les contrôles ont la même hauteur.
 
 - Faute de place, les filtres passent dans un panneau bas « Filtres », ouvert par un bouton de la même ligne. `collapseFilters="phone"` (défaut) : sous 768 px. `collapseFilters="narrow"` : dès que la barre elle-même fait moins de 912 px, pour une liste à trois filtres ou plus, qui ne tiennent pas non plus sur tablette. La décision suit la largeur de la barre, pas celle de la fenêtre.
@@ -190,6 +200,10 @@ Recherche, filtres et tri de la `Toolbar` sont contrôlés : la page les transfo
 - **États** : `loading` (squelettes), `error` (jamais affiché comme une liste vide), vide (seulement à l'état `ready`), `refreshing` (lignes conservées, pagination bloquée).
 - **Téléphone** : chaque colonne déclare son rôle, `mobile: "title" | "subtitle" | "badge" | "field" | "detail" | "hidden"`. Par défaut `field` : rien ne disparaît sans décision explicite. `detail` range une donnée secondaire derrière « Voir plus » : à un geste, pas supprimée. `mobileCell` donne à la carte un contenu différent de la cellule ; s'il renvoie `null`, la ligne n'est pas affichée (un libellé sans valeur est du bruit). Les actions de ligne et la sélection sont conservées ; `mobileRowActions="footer"` place les actions sur une ligne à elles, pour un bouton libellé. `mobileLayout="scroll"` garde la table et la fait défiler.
 - **Tablette** : une table ne doit jamais se lire en la faisant glisser. Les colonnes secondaires se masquent par requête de conteneur (`className: "hidden @4xl:table-cell"`) et leur donnée se replie sous une colonne voisine tant qu'elles sont masquées.
+- **En-tête de carte** : `header={{ title, description, actions }}` place au-dessus de la table ce que la liste contient (« 248 livraisons ») et les actions sur toute la liste (export). Il reste affiché quand la liste est vide ou en erreur.
+- **Colonne d'actions nommée** : `rowActionsLabel="Actions"` affiche l'en-tête de la colonne et aligne les actions dessous, pour une ligne dont l'action est un bouton libellé. Cette colonne reste alors en vue pendant que les autres défilent sous elle : ce qu'une ligne demande n'est jamais hors de l'écran.
+- **Densité** : `density="compact"` (cellules en 13 px, marges réduites) pour une liste de neuf colonnes qui doit tenir à côté du menu latéral. Les cartes du téléphone ne changent pas.
+- **Pagination numérotée** : `pagination={{ variant: "numbered", pageSizeOptions: [10, 25, 50], onPageSizeChange }}` affiche « Affichage de 1 à 10 sur 248 », les pages (1 2 3 … 25) et le choix du nombre de lignes. Sur téléphone elle revient à « Page 2 sur 25 ».
 
 ## 4. Statuts
 
@@ -273,3 +287,43 @@ La galerie n'envoie aucune requête métier ; le test Playwright le vérifie.
 - Écrans d'authentification : `AuthFrame` (layout) et `AuthCard`, dans `src/features/auth/components/`.
 - Retour à l'ancien cadre : construire avec `NEXT_PUBLIC_PRO_SHELL=legacy`.
 - Tests : `npx vitest run src/components/app-shell src/features/auth`, puis `npx next build --webpack && npx playwright test -c playwright.shell.config.ts` (build de production, API simulée).
+
+## 10. Espace Agence (V3)
+
+Les écrans de l'agence suivent leurs maquettes (`docs/captures/references/v3-agence-*.png`). Ils restent sur Foundation : mêmes primitives, mêmes couleurs. Ce qui change est une affaire de jetons, posés sur la racine du document quand le cadre de l'agence est affiché :
+
+```css
+:root:has([data-shell="pro"][data-role="agency"]) {
+  --spacing-control: 2.5rem;   /* contrôles de 40 px */
+  --text-page-title: 1.875rem; /* titres et chiffres clés plus grands et plus gras */
+  --text-kpi: 1.75rem;         /* 1.375rem sur téléphone, où les cartes sont plus petites */
+}
+```
+
+- Sur la racine, et non sur le cadre : les dialogs, menus et panneaux sont rendus dans un portail, hors du cadre, et doivent suivre l'espace d'où ils s'ouvrent.
+- **Boutons et badges restent entièrement arrondis, comme partout dans le portail.** C'est une décision produit (« full rounded ») : les maquettes d'un espace ne la remplacent pas, même quand elles dessinent des rectangles arrondis. Ne jamais poser `--radius-button` ou `--radius-badge` dans la portée d'un espace, ni écrire un rayon à la main sur un bouton ou un badge : `rounded-button` et `rounded-badge`. Les numéros de la pagination numérotée sont des boutons : ils suivent `rounded-button`.
+- **Indicateurs sobres** : une carte d'indicateur n'a pas de couleur. Pas de tuile d'icône teintée, pas de pastille « +12 % » : l'icône seule en noir, le chiffre, le libellé. La couleur reste réservée aux statuts et aux alertes. C'est une demande du produit, que les maquettes (tuiles colorées, tendances) ne remplacent pas.
+- **Indicateurs sur téléphone** : une grille de petites cartes, deux par rangée, la cinquième sous les quatre autres (`KpiRow`, dans `src/features/agency/components/page.tsx`). Jamais de rangée à faire défiler de côté. Un chiffre clé n'est jamais coupé : dans une carte étroite, son unité passe sous le nombre.
+
+Primitives étendues pour ces écrans (toutes gardent leur rendu d'avant par défaut) :
+
+| Primitive | Ajout |
+|---|---|
+| `Stat` | `layout="figure"` : la carte d'une rangée d'indicateurs. L'icône seule, en noir, ni teintée ni dans une tuile ; le chiffre ; son libellé dessous ; aucune pastille de tendance (ce à quoi le chiffre se compare se dit en mots, dans `hint`). `onSelect` et `pressed` : la carte entière devient un bouton qui filtre la liste dont elle est le compteur |
+| `Section` | `icon`, `tone` : tuile d'icône avant le titre. `iconTileClass` donne la classe de la tuile pour un autre usage |
+| `DescriptionList` | `icon` par ligne, avant le libellé |
+| `Alert` | `actionsPlacement="end"` : l'action à droite du message à partir de 768 px. `onDismiss` : le lecteur peut ranger le message |
+| `Avatar` | `size="xl"` pour le haut d'une fiche |
+| `Button`, `PageHeader`, `DataTable`, `Pagination` | voir leurs sections |
+
+Statuts ajoutés (`status/domains.ts`) :
+
+| Domaine | Ce qu'il nomme |
+|---|---|
+| `agencyDelivery` | Les statuts d'un colis dans les mots de l'agence (« À assigner », « À ramasser », « En livraison »…), et `to_accept` pour une demande qu'elle n'a pas encore acceptée |
+| `deliveryPayment` | Le paiement d'une livraison, en mots courts (« Payé », « À encaisser », « Payé en partie ») |
+| `courierActivity` | Ce qu'un livreur fait, tel que le serveur le calcule : `on_delivery`, `available`, `paused`, `to_verify`, `suspended` |
+
+Impression : `@media print` retire le cadre (menu, barre du haut, barre d'onglets) et laisse sortir toute la page. Une page qui imprime un document cache son contenu d'écran (`print:hidden`) et montre le document (`hidden print:block`) : voir le bon de livraison de la fiche livraison.
+
+Code de l'espace : `src/features/agency/{deliveries,couriers,dashboard}` (contrats Zod, appels, états), `src/features/agency/components` (pièces partagées par les écrans), `src/app/(agency)/agency/*` (pages). Tests : `npx vitest run src/features/agency src/design-system`, puis `npx next build --webpack && npx playwright test -c playwright.agency.config.ts`.
