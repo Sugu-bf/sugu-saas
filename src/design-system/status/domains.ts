@@ -136,7 +136,7 @@ export const productStatus = defineStatusRegistry({
     active: { label: "En ligne", tone: "success", icon: Globe, description: "Approuvé et visible par les acheteurs." },
     rejected: { label: "Rejeté", tone: "danger", icon: XCircle },
     archived: { label: "Archivé", tone: "neutral", icon: Archive },
-    changes_requested: { label: "Corrections demandées", tone: "warning", icon: MessageSquareWarning },
+    changes_requested: { label: "À corriger", tone: "warning", icon: MessageSquareWarning, description: "Corrections demandées par la modération avant la mise en ligne." },
     suspended: { label: "Suspendu", tone: "danger", icon: Ban },
   },
   aliases: {
