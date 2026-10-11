@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { signIn } from "./helpers";
 
 // Order tracking (V1.2) on the production build.
 //
@@ -32,8 +33,6 @@ const SCENARIOS: Record<string, Tracking> = JSON.parse(
   readFileSync(join(__dirname, "laravel-order-tracking.json"), "utf8"),
 ).scenarios;
 
-const VENDOR = "vendeur@qa.test";
-const PASSWORD = "Passw0rd!";
 const WIDTHS = [375, 390, 768, 1280] as const;
 
 const SHOTS = join(__dirname, "..", "..", "docs", "captures", "v1.2-tracking");
@@ -42,11 +41,7 @@ const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `
 
 async function open(page: Page, baseURL: string | undefined, path: string, width = 1280) {
   await page.setViewportSize({ width, height: 900 });
-  const response = await page.request.post("/api/auth/login", {
-    data: { email: VENDOR, password: PASSWORD },
-    headers: { Origin: baseURL ?? "" },
-  });
-  expect(response.ok(), `login: ${response.status()}`).toBe(true);
+  await signIn(page, baseURL);
   await page.goto(path);
   await expect(page.locator('[data-shell="pro"][data-role="vendor"]')).toBeVisible();
 }

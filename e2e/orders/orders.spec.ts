@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { signIn } from "./helpers";
 
 // Seller orders (V1) on the production build. Data: e2e/orders/mock-orders.mjs,
 // one fresh data set per sign-in, so every test may mutate its orders.
@@ -10,20 +11,10 @@ import { join } from "node:path";
 // 1 confirmed, 1 processing; 3 of them are direct sales.
 
 const WIDTHS = [375, 390, 768, 1280, 1440] as const;
-const VENDOR = "vendeur@qa.test";
-const PASSWORD = "Passw0rd!";
 
 const SHOTS = join(__dirname, "..", "..", "docs", "captures", "v1-orders");
 mkdirSync(SHOTS, { recursive: true });
 const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: true });
-
-async function signIn(page: Page, baseURL: string | undefined) {
-  const response = await page.request.post("/api/auth/login", {
-    data: { email: VENDOR, password: PASSWORD },
-    headers: { Origin: baseURL ?? "" },
-  });
-  expect(response.ok(), `login: ${response.status()}`).toBe(true);
-}
 
 async function open(page: Page, baseURL: string | undefined, path: string, width = 1280) {
   await page.setViewportSize({ width, height: 900 });

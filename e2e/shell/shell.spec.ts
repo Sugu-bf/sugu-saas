@@ -66,12 +66,30 @@ const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `
 
 const mode = (width: number) => (width < 768 ? "phone" : width < 1024 ? "tablet" : "desktop");
 
+/**
+ * A request made by this process, not by the browser, to `next start`. It
+ * travels over a kept-alive connection the server may have just closed:
+ * unlike a browser, the client does not try again by itself, so a reset
+ * connection is tried again here. Nothing else is.
+ */
+async function overResetConnection<T>(send: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await send();
+    } catch (error) {
+      if (attempt >= 3 || !/ECONNRESET|socket hang up/.test(String(error))) throw error;
+    }
+  }
+}
+
 /** Sign in through the BFF (same cookie jar as the page). */
 async function signIn(page: Page, email: string, baseURL: string | undefined) {
-  const response = await page.request.post("/api/auth/login", {
-    data: { email, password: PASSWORD },
-    headers: { Origin: baseURL ?? "" },
-  });
+  const response = await overResetConnection(() =>
+    page.request.post("/api/auth/login", {
+      data: { email, password: PASSWORD },
+      headers: { Origin: baseURL ?? "" },
+    }),
+  );
   expect(response.ok(), `login ${email}: ${response.status()}`).toBe(true);
 }
 
@@ -157,6 +175,8 @@ for (const width of WIDTHS) {
         await expect(dialog.getByRole("link", { name: "Paramètres" })).toBeVisible();
         await expect(dialog.getByRole("button", { name: "Se déconnecter" })).toBeVisible();
 
+        // The overlay slides in: it is measured once it has come to rest, not on its way.
+        await dialog.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))));
         const box = await dialog.boundingBox();
         expect(box!.x).toBeGreaterThanOrEqual(0);
         expect(box!.x + box!.width).toBeLessThanOrEqual(width + 0.5);
