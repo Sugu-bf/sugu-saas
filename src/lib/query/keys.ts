@@ -92,6 +92,19 @@ export const queryKeys = {
       [...queryKeys.agency.all, "deliveries", filters] as const,
     deliveryDetail: (id: string) =>
       [...queryKeys.agency.all, "deliveries", "detail", id] as const,
+    // Pro portal screens (features/agency/{deliveries,couriers,dashboard}): the
+    // same endpoints, parsed into shapes of their own, under keys of their own.
+    portal: () => [...queryKeys.agency.all, "portal"] as const,
+    shipmentList: (agencyId: string, query?: Record<string, unknown>) =>
+      [...queryKeys.agency.all, "portal", "shipments", agencyId, query] as const,
+    shipment: (agencyId: string, id: string) =>
+      [...queryKeys.agency.all, "portal", "shipment", agencyId, id] as const,
+    courierList: (agencyId: string, query?: Record<string, unknown>) =>
+      [...queryKeys.agency.all, "portal", "couriers", agencyId, query] as const,
+    courier: (agencyId: string, id: string) =>
+      [...queryKeys.agency.all, "portal", "courier", agencyId, id] as const,
+    overview: (agencyId: string) =>
+      [...queryKeys.agency.all, "portal", "overview", agencyId] as const,
     couriers: (filters?: Record<string, unknown>) =>
       [...queryKeys.agency.all, "couriers", filters] as const,
     drivers: (filters?: Record<string, unknown>) =>

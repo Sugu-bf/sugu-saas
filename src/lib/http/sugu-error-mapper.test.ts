@@ -45,6 +45,13 @@ describe("mapSuguErrorMessage", () => {
     expect(mapSuguErrorMessage(err)).toBe(GENERIC);
   });
 
+  it("maps a message that is a bare code, as the agency endpoints answer, and never shows the code", () => {
+    expect(mapSuguErrorMessage(apiError("SUGU-AGENCY-NOT-ACCEPTED"))).toBe(SUGU_MESSAGES["SUGU-AGENCY-NOT-ACCEPTED"]);
+    expect(mapSuguErrorMessage(apiError("SUGU-ASSIGN-INVALID-STATUS"))).toBe(SUGU_MESSAGES["SUGU-ASSIGN-INVALID-STATUS"]);
+    // A bare code this portal does not know yet: a neutral sentence.
+    expect(mapSuguErrorMessage(apiError("SUGU-ADDED-LATER"))).toBe(GENERIC);
+  });
+
   it("returns a non-SUGU message as-is", () => {
     const err = apiError("Le paiement à la livraison est limité à 50 000 FCFA.");
     expect(mapSuguErrorMessage(err)).toBe(
