@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Boxes, Download, PackagePlus, Plus, SlidersHorizontal, X } from "lucide-react";
 import {
@@ -22,6 +22,7 @@ import {
   type SortState,
 } from "@/design-system";
 import { loadStateOf } from "@/lib/query/load-state";
+import { replaceUrlQuery } from "@/lib/utils/replace-url-query";
 import { formatOrderDateShort } from "@/features/vendor/orders/components/order-bits";
 import { INVENTORY_PAGE_SIZE, exportInventoryCsv, type InventoryFilters, type InventorySortKey } from "@/features/vendor/catalog/api";
 import { ProductThumb, StockCell, formatUnits } from "@/features/vendor/catalog/components/product-bits";
@@ -124,7 +125,6 @@ const COLUMNS: DataTableColumn<InventoryRow>[] = [
 ];
 
 export function InventoryContent() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -141,8 +141,8 @@ export function InventoryContent() {
   useEffect(() => {
     if (query === writtenQuery.current) return;
     writtenQuery.current = query;
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, query, router]);
+    replaceUrlQuery(pathname, query);
+  }, [pathname, query]);
 
   useEffect(() => {
     if (urlQuery === writtenQuery.current) return;

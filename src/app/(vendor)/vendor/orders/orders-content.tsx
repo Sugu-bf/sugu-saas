@@ -28,6 +28,7 @@ import {
   type SortState,
 } from "@/design-system";
 import { loadStateOf } from "@/lib/query/load-state";
+import { replaceUrlQuery } from "@/lib/utils/replace-url-query";
 import {
   downloadDeliverySlip,
   exportOrdersCsv,
@@ -145,8 +146,8 @@ export function OrdersContent() {
   useEffect(() => {
     if (query === writtenQuery.current) return;
     writtenQuery.current = query;
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, query, router]);
+    replaceUrlQuery(pathname, query);
+  }, [pathname, query]);
 
   useEffect(() => {
     // The URL changed from outside (back, forward, a link): follow it.

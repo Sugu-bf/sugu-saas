@@ -30,6 +30,7 @@ import {
   type SortState,
 } from "@/design-system";
 import { loadStateOf } from "@/lib/query/load-state";
+import { replaceUrlQuery } from "@/lib/utils/replace-url-query";
 import { PRODUCTS_PAGE_SIZE, type ProductListFilters, type ProductSortKey } from "@/features/vendor/catalog/api";
 import { ProductThumb, StockCell, formatUnits } from "@/features/vendor/catalog/components/product-bits";
 import { ProductGrid } from "@/features/vendor/catalog/components/product-grid";
@@ -180,8 +181,8 @@ export function ProductsContent() {
   useEffect(() => {
     if (query === writtenQuery.current) return;
     writtenQuery.current = query;
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, query, router]);
+    replaceUrlQuery(pathname, query);
+  }, [pathname, query]);
 
   useEffect(() => {
     // The URL changed from outside (back, forward, a link): follow it.
