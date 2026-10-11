@@ -1,18 +1,11 @@
-import { Metadata } from "next";
-import AgencyDashboardClient from "./AgencyDashboardClient";
+import type { Metadata } from "next";
+import { DashboardContent } from "./dashboard-content";
 
-// --- SEO ---
 export const metadata: Metadata = {
-  title: "Dashboard | SUGUPro Agence de Livraison",
-  description:
-    "Tableau de bord agence : livraisons en cours, taux de réussite, performance livreurs et réclamations.",
+  title: "Tableau de bord | SUGUPro Agence",
+  description: "La journée de votre agence : courses à assigner, en cours, livrées, en retard, et vos livreurs en activité.",
 };
 
-// ════════════════════════════════════════════════════════════
-// Server Component wrapper — delegates to Client component
-// that uses the useAgencyDashboard() hook for real API data.
-// ════════════════════════════════════════════════════════════
-
 export default function AgencyDashboardPage() {
-  return <AgencyDashboardClient />;
+  return <DashboardContent />;
 }
