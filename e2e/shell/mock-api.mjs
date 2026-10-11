@@ -18,6 +18,15 @@ const PROFILES = {
     user_type: "seller",
     store: { id: 11, name: "Boutique Awa" },
   },
+  // The seller of the QA seeder (QaProPortalSeeder): the staging run
+  // (e2e/staging) only signs in with such an address, and is rehearsed here.
+  "qa-vendeur-a@qa.sugu.test": {
+    id: 107,
+    name: "Awa Traoré",
+    email: "qa-vendeur-a@qa.sugu.test",
+    user_type: "seller",
+    store: { id: 11, name: "Boutique Awa" },
+  },
   "agence@qa.test": {
     id: 102,
     name: "Issa Ouédraogo",
