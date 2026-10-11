@@ -11,13 +11,13 @@ import { pngFile } from "./pictures";
 // viewport is grown to the content before the shot: nothing is hidden behind
 // the phone tab bar by the framing.
 //
-//   CAPTURE_DIR       where to write (default docs/captures/v2-catalog/apres)
+//   CAPTURE_DIR       where to write (default docs/captures/v2.1-catalog/apres)
 //   CAPTURE_BASELINE  "1" on a build older than the V2 polish: only the five
 //                     pages are captured, with no interaction.
 
 const WIDTHS = [375, 390, 768, 1024, 1280, 1440] as const;
 const BASELINE = process.env.CAPTURE_BASELINE === "1";
-const DIR = process.env.CAPTURE_DIR ?? join(__dirname, "..", "..", "docs", "captures", "v2-catalog", "apres");
+const DIR = process.env.CAPTURE_DIR ?? join(__dirname, "..", "..", "docs", "captures", "v2.1-catalog", "apres");
 mkdirSync(DIR, { recursive: true });
 
 test.skip(!process.env.CAPTURE, "Set CAPTURE=1 to produce the review captures.");
@@ -116,6 +116,40 @@ for (const width of WIDTHS) {
 }
 
 if (!BASELINE) {
+  // 1536px: the width of the mock-up the product list was drawn from, to set one beside the other.
+  test("product list at 1536px", async ({ page, baseURL }) => {
+    test.setTimeout(120_000);
+    await open(page, baseURL, "/vendor/products", 1536, "grid");
+    await shot(page, "produits-grille-1536");
+    await open(page, baseURL, "/vendor/products", 1536, "list");
+    await shot(page, "produits-liste-1536");
+  });
+
+  // What a phone really shows when a page opens, bars included: the framing a
+  // whole-page capture cannot give. `-bas` is the same page scrolled to its end.
+  for (const [width, height] of [
+    [375, 667],
+    [390, 844],
+  ] as const) {
+    test(`screens at ${width}px`, async ({ page, baseURL }) => {
+      test.setTimeout(240_000);
+      const SCREENS: [string, string, ("grid" | "list")?][] = [
+        ["produits-grille", "/vendor/products", "grid"],
+        ["produits-liste", "/vendor/products", "list"],
+        ["fiche-produit", "/vendor/products/product-variants"],
+        ["formulaire-creation", "/vendor/products/new"],
+        ["formulaire-edition", "/vendor/products/product-variants/edit"],
+      ];
+      for (const [name, path, view] of SCREENS) {
+        await open(page, baseURL, path, width, view);
+        await page.setViewportSize({ width, height });
+        await screen(page, `ecran-${name}-${width}`);
+        await page.locator("main").evaluate((main) => main.scrollTo(0, main.scrollHeight));
+        await screen(page, `ecran-${name}-${width}-bas`);
+      }
+    });
+  }
+
   for (const width of [390, 768, 1280] as const) {
     test(`states at ${width}px`, async ({ page, baseURL }) => {
       test.setTimeout(300_000);

@@ -30,6 +30,9 @@ const saveDraft = (page: Page) => page.getByRole("button", { name: "Enregistrer 
 const saveChanges = (page: Page) => page.getByRole("button", { name: "Enregistrer les modifications" });
 const submit = (page: Page) => page.getByRole("button", { name: "Soumettre à validation" });
 const category = (page: Page) => page.locator("#product-category");
+const price = (page: Page) => page.getByRole("textbox", { name: /^Prix de vente/ });
+/** The panel beside the steps, on a page wide enough for it. */
+const panel = (page: Page) => page.getByRole("complementary", { name: "Aperçu du produit" });
 const photos = (page: Page) => page.getByRole("list", { name: "Photos du produit" }).locator("> li:has(img)");
 const status = (page: Page) => page.locator("main header").first();
 const tool = (page: Page, name: string) => page.getByRole("toolbar", { name: "Mise en forme de la description" }).getByRole("button", { name, exact: true });
@@ -44,7 +47,7 @@ async function fillReadyProduct(page: Page, name: string) {
   await photoInput(page).setInputFiles([pngFile("face.png"), pngFile("dos.png")]);
   await expect(photos(page)).toHaveCount(2);
   await next(page).click();
-  await page.getByLabel("Prix de vente").fill("12500");
+  await price(page).fill("12500");
   await page.getByLabel("Stock", { exact: true }).fill("8");
   await next(page).click();
   await expect(currentStep(page)).toContainText("Récapitulatif");
@@ -132,11 +135,11 @@ test.describe("creation", () => {
     await expect(page.getByText(/champs? à corriger/)).toHaveCount(0);
 
     // A price that is not a number is fixed where it is typed.
-    await page.getByLabel("Prix de vente").fill("douze mille");
+    await price(page).fill("douze mille");
     await stepper(page).getByRole("button", { name: /Récapitulatif/ }).click();
     await expect(page.getByText("Le prix est un nombre, sans espace ni devise.").first()).toBeVisible();
     await expect(currentStep(page)).toContainText("Prix et stock");
-    await page.getByLabel("Prix de vente").fill("");
+    await price(page).fill("");
 
     // A draft can be incomplete; a submission cannot. The summary says what is missing, step by step.
     await goToStep(page, "Récapitulatif");
@@ -246,7 +249,7 @@ test.describe("creation", () => {
     await open(page, baseURL, "/vendor/products/new");
     await page.getByLabel("Nom du produit").fill("Sandales en cuir");
     await goToStep(page, "Prix et stock");
-    await page.getByLabel("Prix de vente").fill("9000");
+    await price(page).fill("9000");
 
     await page.getByRole("switch", { name: "Ce produit a des variantes" }).click();
     await page.getByLabel("Nom de l'option").fill("Pointure");
@@ -559,7 +562,7 @@ test.describe("edition", () => {
     await goToStep(page, "Photos");
     await expect(photos(page)).toHaveCount(3);
     await goToStep(page, "Prix et stock");
-    await expect(page.getByLabel("Prix de vente")).toHaveValue("7500");
+    await expect(price(page)).toHaveValue("7500");
     await expect(page.getByLabel("Prix barré")).toHaveValue("9000");
     await expect(page.getByRole("list", { name: "Variantes du produit" }).locator("> li")).toHaveCount(3);
     await expect(page.getByLabel("Référence de Bleu / L")).toHaveValue("CHM-B-L");
@@ -785,6 +788,110 @@ test.describe("layout", () => {
     });
   }
 
+  test("on a wide page the steps share the room with the card of the product and what moderation still needs", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products/new", { width: 1440 });
+    await expect(panel(page)).toBeVisible();
+
+    // Beside the steps, level with them, inside the page.
+    const steps = await box(stepper(page));
+    const side = await box(panel(page));
+    expect(side.x).toBeGreaterThanOrEqual(steps.x + steps.width);
+    expect(Math.abs(side.y - steps.y)).toBeLessThan(2);
+    expect(side.x + side.width).toBeLessThanOrEqual(1440 - 32 + 0.5);
+    // The fields keep a width one reads comfortably: neither a ribbon nor the whole screen.
+    expect(steps.width).toBeGreaterThanOrEqual(640);
+    expect(steps.width).toBeLessThanOrEqual(820);
+
+    // Nothing typed yet: the card says what it waits for, and invents nothing.
+    for (const text of ["Aucune photo", "Brouillon", "Nom du produit", "Sans catégorie", "Prix à renseigner", "Stock non renseigné"]) await expect(panel(page)).toContainText(text);
+    await expect(panel(page).getByText("0 sur 5")).toBeVisible();
+
+    // It follows what is typed.
+    await page.getByLabel("Nom du produit").fill("Boubou brodé");
+    await expect(panel(page)).toContainText("Boubou brodé");
+    await expect(panel(page).getByText("1 sur 5")).toBeVisible();
+    await chooseCategory(page, "Textile");
+    await expect(panel(page)).toContainText("Textile");
+
+    // "Compléter" leads to the field itself: here on the step already on screen…
+    await panel(page).getByRole("button", { name: "Compléter : Une description" }).click();
+    await expect(description(page)).toBeFocused();
+    await page.keyboard.type("Brodé à la main.");
+    await expect(panel(page).getByText("3 sur 5")).toBeVisible();
+
+    // …and through its step when the field is on another one.
+    await panel(page).getByRole("button", { name: "Compléter : Un prix de vente" }).click();
+    await expect(currentStep(page)).toContainText("Prix et stock");
+    await expect(price(page)).toBeFocused();
+    await price(page).fill("12500");
+    await page.getByLabel("Stock", { exact: true }).fill("8");
+    await expect(panel(page)).toContainText(/12\s500\sFCFA/);
+    await expect(panel(page)).toContainText("8 en stock");
+
+    await panel(page).getByRole("button", { name: "Compléter : Au moins une photo" }).click();
+    await expect(currentStep(page)).toContainText("Photos");
+    await photoInput(page).setInputFiles(pngFile("face.png"));
+    await expect(panel(page).locator("img")).toHaveCount(1);
+    await expect(panel(page).getByText("5 sur 5")).toBeVisible();
+    await expect(panel(page).getByRole("button", { name: /^Compléter/ })).toHaveCount(0);
+
+    // The panel stays in view while a long step scrolls.
+    await goToStep(page, "Prix et stock");
+    await page.getByRole("switch", { name: "Ce produit a des variantes" }).click();
+    await page.locator("main").evaluate((main) => main.scrollTo(0, main.scrollHeight));
+    const scrolled = await box(panel(page));
+    const scroller = await box(page.locator("main"));
+    expect(scrolled.y).toBeGreaterThanOrEqual(scroller.y - 0.5);
+    expect(scrolled.y).toBeLessThan(scroller.y + 80);
+
+    // The last step lists what is missing itself: the panel keeps the card only.
+    await page.getByRole("switch", { name: "Ce produit a des variantes" }).click();
+    await goToStep(page, "Récapitulatif");
+    await expect(page.getByText("5 sur 5")).toHaveCount(1);
+    await expect(panel(page).getByText("Prêt pour la validation ?")).toHaveCount(0);
+    await expect(panel(page)).toContainText("Boubou brodé");
+
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+    expect(await blockingViolations(page)).toEqual([]);
+  });
+
+  test("an online product has no list of what moderation needs: its panel is the card alone", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products/product-variants/edit", { width: 1440 });
+    await expect(panel(page)).toContainText("Chemise en Faso Dan Fani");
+    await expect(panel(page)).toContainText("CHM-0041 · Textile");
+    await expect(panel(page)).toContainText("En ligne");
+    await expect(panel(page)).toContainText(/7\s500\sFCFA/);
+    // 4 + 3 + 25: every variant the form holds, the deactivated one too.
+    await expect(panel(page)).toContainText("32 en stock");
+    await expect(panel(page).locator("img")).toHaveCount(1);
+    await expect(panel(page).getByText("Prêt pour la validation ?")).toHaveCount(0);
+  });
+
+  test("under 1040px of page the form is one column of a readable width", async ({ page, baseURL }) => {
+    for (const width of [1024, 1280]) {
+      await open(page, baseURL, "/vendor/products/new", { width });
+      await expect(currentStep(page)).toContainText("Informations");
+      await expect(panel(page)).toBeHidden();
+      const steps = await box(stepper(page));
+      expect(steps.width, `${width}px`).toBeLessThanOrEqual(768 + 0.5);
+      expect(steps.width, `${width}px`).toBeGreaterThanOrEqual(640);
+      // Centred in the page: the same margin on both sides.
+      const scroller = await box(page.locator("main"));
+      expect(Math.abs(steps.x - scroller.x - (scroller.x + scroller.width - (steps.x + steps.width))), `${width}px`).toBeLessThan(2);
+    }
+  });
+
+  test("a link can open the form on one of its steps; an unknown one opens the first", async ({ page, baseURL }) => {
+    await open(page, baseURL, "/vendor/products/product-variants/edit?step=pricing");
+    await expect(currentStep(page)).toContainText("Prix et stock");
+    await expect(price(page)).toHaveValue("7500");
+    // The page opens at its top: nothing was scrolled to.
+    expect(await page.locator("main").evaluate((main) => main.scrollTop)).toBe(0);
+
+    await page.goto("/vendor/products/product-variants/edit?step=nowhere");
+    await expect(currentStep(page)).toContainText("Informations");
+  });
+
   test("on a phone, the bar keeps two decisions on one row and never stacks them", async ({ page, baseURL }) => {
     await open(page, baseURL, "/vendor/products/new", { width: 375, height: 812 });
     await page.getByLabel("Nom du produit").fill("Panier tressé de Bobo");
@@ -799,8 +906,8 @@ test.describe("layout", () => {
     expect((await box(actionBar(page))).height).toBeLessThan(90);
   });
 
-  test("the editor toolbar stays on one row: it scrolls on a phone, and fits on a desk", async ({ page, baseURL }) => {
-    for (const width of [390, 768, 1024, 1280]) {
+  test("the editor toolbar stays on one row: it scrolls on a phone, and fits on a desk, beside the panel too", async ({ page, baseURL }) => {
+    for (const width of [390, 768, 1024, 1280, 1366, 1440]) {
       await open(page, baseURL, "/vendor/products/new", { width });
       const toolbar = page.getByRole("toolbar", { name: "Mise en forme de la description" });
       await expect(toolbar.getByRole("button", { name: "Gras" })).toBeEnabled();

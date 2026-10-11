@@ -285,6 +285,9 @@ function listed(products, params) {
   }
   const stock = params.get("stock");
   if (stock) rows = rows.filter((item) => levelOf(stockOf(item)) === stock);
+  // The primary category, as `ProductQueryBuilder::applyCategoryFilter` reads it.
+  const category = params.get("category");
+  if (category && category !== "all") rows = rows.filter((item) => item.categoryIds[0] === category);
 
   const direction = params.get("direction") === "asc" ? 1 : -1;
   const key = { name: (item) => fold(item.name), price: (item) => item.price, stock: stockOf }[params.get("sort")] ?? ((item) => item.createdAt);
@@ -307,7 +310,11 @@ function stats(products) {
   const count = (codes, of) => Object.fromEntries(codes.map((code) => [code, rows.filter((item) => of(item) === code).length]));
   const byStatus = count(["draft", "submitted", "active", "rejected", "archived", "changes_requested", "suspended"], (item) => item.status);
   const byStock = count(["in_stock", "low_stock", "out_of_stock"], (item) => levelOf(stockOf(item)));
-  return { total: rows.length, published: byStatus.active, drafts: byStatus.draft, alerts: byStock.out_of_stock, outOfStock: byStock.out_of_stock, byStatus, byStock };
+  // The categories that hold products, by name, counted on the primary one.
+  const byCategory = CATEGORIES.map((category) => ({ ...category, count: rows.filter((item) => item.categoryIds[0] === category.id).length }))
+    .filter((category) => category.count > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
+  return { total: rows.length, published: byStatus.active, drafts: byStatus.draft, alerts: byStock.out_of_stock, outOfStock: byStock.out_of_stock, byStatus, byStock, byCategory };
 }
 
 // ── Multipart (what the product form sends) ─────────────────
@@ -474,6 +481,35 @@ function blockers(item) {
   return missing;
 }
 
+/**
+ * What becomes of the status a seller's request carries, as
+ * `SellerProductStatusService` settles it: asking for publication queues the
+ * product for moderation when it can be queued, and never puts it online;
+ * draft and archived are applied. Null when the request asked nothing of it.
+ */
+function settle(item, requested) {
+  const asked = String(requested ?? "");
+  const writable = { draft: "draft", 0: "draft", archived: "archived", 4: "archived" }[asked];
+  if (writable) {
+    item.status = writable;
+    return null;
+  }
+  const target = { published: "active", 2: "active", 1: "submitted", 3: "rejected" }[asked];
+  if (!target) return null;
+  const outcome = (code, message, missing = []) => ({ requested: target === "active" ? "published" : target, applied: item.status, code, message, blockers: missing });
+
+  if (target === "rejected") return outcome("SUGU-PRODUCT-STATUS-RESERVED", "Ce statut est attribué par la modération : celui du produit n'a pas été modifié.");
+  if (item.status === target) return null;
+  if (!SUBMITTABLE.includes(item.status)) {
+    return outcome("SUGU-PRODUCT-NOT-SUBMITTABLE", item.status === "submitted" ? "Ce produit est déjà en cours de validation." : "Ce produit ne peut pas être soumis à validation.");
+  }
+  const missing = blockers(item);
+  if (missing.length > 0) return outcome("SUGU-PRODUCT-NOT-READY", `Complétez le produit avant de le soumettre : ${missing.join(", ")}.`, missing);
+  item.status = "submitted";
+  item.moderation = { rejectionReason: null, notePublic: null, reviewedAt: null, submittedAt: new Date().toISOString() };
+  return outcome("SUGU-PRODUCT-SUBMITTED", "La mise en ligne passe par la validation de l'équipe SUGU : le produit lui a été soumis.");
+}
+
 export default async function catalogExtension({ req, res, url, path, method, token, send, readJson }) {
   const state = stateOf(token);
   const own = (id) => state.products.find((item) => item.id === id && item.storeId === STORE_ID);
@@ -568,6 +604,17 @@ export default async function catalogExtension({ req, res, url, path, method, to
     return send(res, 200, { success: true, message: body.quantity > 0 ? "Stock ajouté avec succès" : "Stock réduit avec succès", data: { variantId: variant.id, stock: variant.stock } }), true;
   }
 
+  // ── The "publish" of the mobile application: queued for moderation, like a submission ──
+  const mobilePublish = path.match(/^\/products\/([^/]+)\/publish$/);
+  if (method === "POST" && mobilePublish) {
+    const item = own(mobilePublish[1]);
+    if (!item) return send(res, 403, { success: false, message: "Vous n'êtes pas autorisé à publier ce produit." }), true;
+    const outcome = settle(item, "published");
+    if (outcome && !["active", "submitted"].includes(item.status)) return send(res, 422, { success: false, message: outcome.message }), true;
+    const message = item.status === "active" ? "Produit publié avec succès." : "Produit soumis à validation. Il sera en ligne après approbation par l'équipe SUGU.";
+    return send(res, 200, { success: true, message, data: { product: { id: item.id, status: LEGACY_STATUS[item.status] ?? "draft", status_code: item.status } } }), true;
+  }
+
   // ── Products ──
   if (!path.startsWith("/sellers/products")) return false;
 
@@ -584,7 +631,8 @@ export default async function catalogExtension({ req, res, url, path, method, to
   }
   if (method === "GET" && ["/sellers/products/brands", "/sellers/products/variant-options"].includes(path)) return send(res, 200, { success: true, data: [] }), true;
 
-  // Creation: always a draft, whatever the request asks.
+  // Creation: always a draft, whatever status the request carries
+  // (SellerProductStatusService: a seller never puts a product online).
   if (method === "POST" && path === "/sellers/products") {
     const form = await readForm(req);
     state.received.push({ path, fields: Object.fromEntries(form.fields), files: form.files.map((file) => `${file.name}:${file.filename}`) });
@@ -593,12 +641,14 @@ export default async function catalogExtension({ req, res, url, path, method, to
     if (Object.keys(errors).length > 0) return send(res, 422, { success: false, message: Object.values(errors)[0][0], errors }), true;
 
     state.created += 1;
-    const item = product(200 + state.created, { id: `product-new-${state.created}`, status: one(form, "status") === "published" ? "active" : "draft", pictures: [], createdAt: new Date().toISOString() });
+    const item = product(200 + state.created, { id: `product-new-${state.created}`, status: "draft", pictures: [], createdAt: new Date().toISOString() });
     item.sku = `NEW-${String(state.created).padStart(4, "0")}`;
     item.variants = [];
     applyForm(item, form, state, true);
     state.products.push(item);
-    return send(res, 201, { success: true, message: "Produit créé avec succès", data: resource(item, true) }), true;
+    // Stored as a draft; what the request asked about publication is settled once it is.
+    const publication = settle(item, one(form, "status"));
+    return send(res, 201, { success: true, message: publication?.message ?? "Produit créé avec succès", data: resource(item, true), ...(publication ? { publication } : {}) }), true;
   }
 
   const submission = path.match(/^\/sellers\/products\/([^/]+)\/submit$/);
@@ -628,14 +678,18 @@ export default async function catalogExtension({ req, res, url, path, method, to
     state.products = state.products.filter((candidate) => candidate !== item);
     return send(res, 200, { success: true, message: "Produit supprimé avec succès" }), true;
   }
-  // Update: POST with `_method=PUT`. The status is not touched.
+  // Update: POST with `_method=PUT`. The form sends no status; one sent by hand is settled, never obeyed.
   if (method === "POST" || method === "PUT") {
     const form = await readForm(req);
     state.received.push({ path, fields: Object.fromEntries(form.fields), files: form.files.map((file) => `${file.name}:${file.filename}`) });
-    const errors = validation(form, state.products, item);
-    if (Object.keys(errors).length > 0) return send(res, 422, { success: false, message: Object.values(errors)[0][0], errors }), true;
-    applyForm(item, form, state, false);
-    return send(res, 200, { success: true, message: "Produit mis à jour", data: resource(item, true) }), true;
+    // Laravel validates what is sent (`sometimes`): a request without the form's fields changes none of them.
+    if (one(form, "name") !== undefined) {
+      const errors = validation(form, state.products, item);
+      if (Object.keys(errors).length > 0) return send(res, 422, { success: false, message: Object.values(errors)[0][0], errors }), true;
+      applyForm(item, form, state, false);
+    }
+    const publication = settle(item, one(form, "status"));
+    return send(res, 200, { success: true, message: publication?.message ?? "Produit mis à jour", data: resource(item, true), ...(publication ? { publication } : {}) }), true;
   }
   return false;
 }
