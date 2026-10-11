@@ -50,14 +50,29 @@ describe("ProductGrid", () => {
     expect(pagne).toHaveTextContent("FDF-0042 · Textile");
     expect(pagne).toHaveTextContent("En ligne");
     expect(pagne).toHaveTextContent(/7\s500\sFCFA/);
-    expect(pagne).toHaveTextContent("12");
-    expect(pagne).toHaveTextContent("En stock");
+    // All is well: the stock is a plain line, not one more badge.
+    expect(pagne).toHaveTextContent("12 en stock");
+    expect(pagne.querySelector('[data-status="in_stock"]')).toHaveTextContent("12 en stock");
 
     expect(bracelet).toHaveTextContent("Brouillon");
-    expect(bracelet).toHaveTextContent("Stock faible");
+    // An alert carries what is left with it.
+    expect(bracelet.querySelector('[data-status="low_stock"]')).toHaveTextContent("Stock faible · 3");
     expect(bracelet).toHaveTextContent("2 variantes");
     // Nothing is invented for a product without reference or category.
     expect(bracelet).toHaveTextContent("Sans référence");
+  });
+
+  it("says a product has run out, and does not show an unknown stock as zero", () => {
+    const products = [
+      parseProductListItem(productRow({ id: "p3", name: "Sac en cuir", stock: 0, stockStatus: "out_of_stock" })),
+      parseProductListItem(productRow({ id: "p4", name: "Natte", stock: null, stockStatus: null })),
+    ];
+    render(<ProductGrid {...BASE} products={products} />);
+
+    const [bag, mat] = cards();
+    expect(bag.querySelector('[data-status="out_of_stock"]')).toHaveTextContent("Rupture de stock");
+    expect(mat).toHaveTextContent("Stock non renseigné");
+    expect(mat).not.toHaveTextContent("en stock");
   });
 
   it("gives every card the menu of its product", () => {

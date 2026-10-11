@@ -44,7 +44,7 @@ import { DEFAULT_LIST_STATE, readListState, writeListState, type ListState } fro
 const MAIN_TABS = ["active", "draft", "submitted"] as const;
 
 const STOCK_OPTIONS: { value: StockLevel | ""; label: string }[] = [
-  { value: "", label: "Tous les niveaux" },
+  { value: "", label: "Tout le stock" },
   { value: "in_stock", label: "En stock" },
   { value: "low_stock", label: "Stock faible" },
   { value: "out_of_stock", label: "Rupture" },
@@ -204,6 +204,7 @@ export function ProductsContent() {
   const filters: ProductListFilters = useMemo(
     () => ({
       status: state.status || undefined,
+      category: state.category || undefined,
       stock: state.stock || undefined,
       search: state.search || undefined,
       sort: state.sort,
@@ -220,8 +221,23 @@ export function ProductsContent() {
 
   const page = products.data;
   const loadState = loadStateOf(products);
-  const narrowed = Boolean(state.status || state.search || state.stock);
-  const showAll = () => setState({ status: "", search: "", stock: "" });
+  const narrowed = Boolean(state.status || state.search || state.stock || state.category);
+  const showAll = () => setState({ status: "", search: "", stock: "", category: "" });
+
+  // The categories this catalogue is filed under, as the server counts them:
+  // the filter never offers one that would return nothing.
+  const categories = counts.data?.byCategory;
+  const categoryOptions = useMemo(() => {
+    const options = (categories ?? []).map((category) => ({ value: category.id, label: `${category.name} (${formatUnits(category.count)})` }));
+    // The category in force stays in the list when it holds no product any
+    // more (its last one was deleted, the link is old), or is not known yet.
+    if (state.category && !options.some((option) => option.value === state.category)) {
+      options.push({ value: state.category, label: categories ? "Catégorie sans produit" : "Catégorie sélectionnée" });
+    }
+    return [{ value: "", label: "Toutes les catégories" }, ...options];
+  }, [categories, state.category]);
+  // Shown while the counters load, so the row does not shift when they arrive.
+  const filtersByCategory = counts.isPending || categoryOptions.length > 1;
 
   const tabs = useMemo(() => {
     const byStatus = counts.data?.byStatus ?? {};
@@ -301,6 +317,8 @@ export function ProductsContent() {
       <PageHeader
         title="Produits"
         titleAddon={<CatalogueSize total={counts.data?.total} />}
+        description="Gérez votre catalogue : prix, stock et statut de publication."
+        hideDescriptionOnPhone
         primaryAction={{ label: "Nouveau produit", icon: Plus, href: "/vendor/products/new" }}
         secondaryActions={[{ label: "Inventaire", icon: Boxes, href: "/vendor/inventory" }]}
       />
@@ -330,10 +348,22 @@ export function ProductsContent() {
                 onSubmit={(value) => setState({ search: value.trim() })}
               />
             }
+            // Three filters: on the row only where the toolbar is wide enough for them.
+            collapseFilters="narrow"
             filters={
               <>
+                {filtersByCategory && (
+                  <ToolbarFilter
+                    label="Catégorie"
+                    hideLabelInline
+                    value={state.category}
+                    onValueChange={(value) => setState({ category: value })}
+                    options={categoryOptions}
+                  />
+                )}
                 <ToolbarFilter
                   label="Stock"
+                  hideLabelInline
                   value={state.stock}
                   onValueChange={(value) => setState({ stock: value as StockLevel | "" })}
                   options={STOCK_OPTIONS.map((option) => {
@@ -352,10 +382,10 @@ export function ProductsContent() {
                 />
               </>
             }
-            activeFilterCount={state.stock ? 1 : 0}
-            onResetFilters={() => setState({ stock: "", sort: DEFAULT_LIST_STATE.sort, direction: DEFAULT_LIST_STATE.direction })}
+            activeFilterCount={(state.stock ? 1 : 0) + (state.category ? 1 : 0)}
+            onResetFilters={() => setState({ stock: "", category: "", sort: DEFAULT_LIST_STATE.sort, direction: DEFAULT_LIST_STATE.direction })}
             // The size of the catalogue is next to the title: this row counts what a filter leaves.
-            count={<ToolbarCount total={narrowed ? page?.total : undefined} noun={{ one: "produit", other: "produits" }} />}
+            count={narrowed ? <ToolbarCount total={page?.total} noun={{ one: "produit", other: "produits" }} /> : undefined}
             countAction={
               narrowed ? (
                 <Button variant="quiet" size="compact" icon={X} onClick={showAll}>
@@ -365,8 +395,20 @@ export function ProductsContent() {
             }
             view={
               <ButtonGroup label="Affichage des produits">
-                <IconButton icon={LayoutGrid} label="Vue en grille" variant="secondary" aria-pressed={view === "grid"} onClick={() => setView("grid")} />
-                <IconButton icon={List} label="Vue en liste" variant="secondary" aria-pressed={view === "list"} onClick={() => setView("list")} />
+                <IconButton
+                  icon={LayoutGrid}
+                  label="Vue en grille"
+                  variant={view === "grid" ? "primary" : "secondary"}
+                  aria-pressed={view === "grid"}
+                  onClick={() => setView("grid")}
+                />
+                <IconButton
+                  icon={List}
+                  label="Vue en liste"
+                  variant={view === "list" ? "primary" : "secondary"}
+                  aria-pressed={view === "list"}
+                  onClick={() => setView("list")}
+                />
               </ButtonGroup>
             }
           />

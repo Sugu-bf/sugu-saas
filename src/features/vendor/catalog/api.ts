@@ -28,6 +28,8 @@ export type ProductSortKey = "created" | "name" | "price" | "stock";
 /** Filters of the product list, as `GET sellers/products` understands them. */
 export interface ProductListFilters {
   status?: string;
+  /** Id of a category: the products filed under it as their primary category. */
+  category?: string;
   stock?: StockLevel;
   search?: string;
   sort?: ProductSortKey;
@@ -42,6 +44,7 @@ export async function fetchProducts(query: ProductListQuery): Promise<ProductLis
   const response = await api.get<{ data: unknown }>("sellers/products", {
     params: {
       status: query.status || undefined,
+      category: query.category || undefined,
       stock: query.stock,
       search: query.search?.trim() || undefined,
       sort: query.sort,

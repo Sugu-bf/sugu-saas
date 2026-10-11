@@ -90,11 +90,32 @@ describe("counters", () => {
   });
 
   it("accepts the empty counters of a seller without store", () => {
-    expect(parseProductCounts({ total: 0, published: 0, drafts: 0, alerts: 0, outOfStock: 0, byStatus: {}, byStock: {} })).toEqual({
+    expect(parseProductCounts({ total: 0, published: 0, drafts: 0, alerts: 0, outOfStock: 0, byStatus: {}, byStock: {}, byCategory: [] })).toEqual({
       total: 0,
       byStatus: {},
       byStock: {},
+      byCategory: [],
     });
+  });
+
+  it("lists the categories the catalogue is filed under, with their size and the id the filter sends", () => {
+    const counts = parseProductCounts({
+      total: 3,
+      byStatus: { active: 3 },
+      byStock: { in_stock: 3 },
+      byCategory: [
+        { id: "01HZX0CATBIJOUX", name: "Bijoux", count: 1 },
+        { id: 42, name: "Pagnes", count: 2 },
+      ],
+    });
+    expect(counts.byCategory).toEqual([
+      { id: "01HZX0CATBIJOUX", name: "Bijoux", count: 1 },
+      { id: "42", name: "Pagnes", count: 2 },
+    ]);
+  });
+
+  it("knows when the backend does not list the categories: no filter is built on a guess", () => {
+    expect(parseProductCounts({ total: 10, byStatus: { active: 10 }, byStock: {} }).byCategory).toBeNull();
   });
 });
 
@@ -203,10 +224,16 @@ describe("stock adjustment", () => {
 describe("requests", () => {
   it("sends search, sort, filters and page to the server", async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: [], total: 0 } });
-    await fetchProducts({ status: "submitted", stock: "low_stock", search: "  pagne ", sort: "price", direction: "asc", page: 2 });
+    await fetchProducts({ status: "submitted", category: "01HZX0CATBIJOUX", stock: "low_stock", search: "  pagne ", sort: "price", direction: "asc", page: 2 });
     expect(api.get).toHaveBeenCalledWith("sellers/products", {
-      params: { status: "submitted", stock: "low_stock", search: "pagne", sort: "price", direction: "asc", page: 2, limit: 24 },
+      params: { status: "submitted", category: "01HZX0CATBIJOUX", stock: "low_stock", search: "pagne", sort: "price", direction: "asc", page: 2, limit: 24 },
     });
+  });
+
+  it("sends no category when none is chosen", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [], total: 0 } });
+    await fetchProducts({ category: "", page: 1 });
+    expect(vi.mocked(api.get).mock.calls.at(-1)?.[1]).toMatchObject({ params: { category: undefined } });
   });
 
   it("names the stock level and the sort as the inventory endpoint expects", async () => {

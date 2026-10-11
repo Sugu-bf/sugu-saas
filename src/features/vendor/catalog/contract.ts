@@ -137,7 +137,15 @@ const rawStatsSchema = z.object({
   outOfStock: z.number().int().nonnegative().optional(),
   byStatus: counters.optional(),
   byStock: counters.optional(),
+  byCategory: z.array(z.object({ id, name: z.string(), count: z.number().int().nonnegative() })).optional(),
 });
+
+/** A category the catalogue is filed under, with the number of products in it. */
+export interface CategoryCount {
+  id: string;
+  name: string;
+  count: number;
+}
 
 export interface ProductCounts {
   total: number;
@@ -148,6 +156,11 @@ export interface ProductCounts {
    */
   byStatus: Partial<Record<string, number>>;
   byStock: Partial<Record<string, number>>;
+  /**
+   * The categories that hold products of this seller, by name: what a
+   * category filter can offer. Null on a backend that does not list them.
+   */
+  byCategory: CategoryCount[] | null;
 }
 
 export function parseProductCounts(raw: unknown): ProductCounts {
@@ -162,7 +175,7 @@ export function parseProductCounts(raw: unknown): ProductCounts {
   const byStock: Partial<Record<string, number>> = stats.byStock ?? {};
   if (!stats.byStock && stats.outOfStock !== undefined) byStock.out_of_stock = stats.outOfStock;
 
-  return { total: stats.total, byStatus, byStock };
+  return { total: stats.total, byStatus, byStock, byCategory: stats.byCategory ?? null };
 }
 
 // ── Detail ──────────────────────────────────────────────────

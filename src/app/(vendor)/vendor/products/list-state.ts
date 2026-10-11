@@ -6,6 +6,8 @@ import { PRODUCT_STATUS_CODES, STOCK_LEVELS, type StockLevel } from "@/features/
 
 export interface ListState {
   status: string;
+  /** Id of a category, as the server names it. */
+  category: string;
   stock: StockLevel | "";
   search: string;
   sort: ProductSortKey;
@@ -15,6 +17,7 @@ export interface ListState {
 
 export const DEFAULT_LIST_STATE: ListState = {
   status: "",
+  category: "",
   stock: "",
   search: "",
   sort: "created",
@@ -24,18 +27,23 @@ export const DEFAULT_LIST_STATE: ListState = {
 
 const SORTS: ProductSortKey[] = ["created", "name", "price", "stock"];
 
+/** The shape of an id (ULID, UUID or number): the list of categories is the server's, not known here. */
+const ID = /^[0-9A-Za-z_-]{1,64}$/;
+
 interface ReadableParams {
   get(name: string): string | null;
 }
 
 export function readListState(params: ReadableParams): ListState {
   const status = params.get("status") ?? "";
+  const category = params.get("category") ?? "";
   const stock = params.get("stock") as StockLevel | null;
   const sort = params.get("sort") as ProductSortKey | null;
   const page = Number(params.get("page"));
 
   return {
     status: (PRODUCT_STATUS_CODES as readonly string[]).includes(status) ? status : "",
+    category: ID.test(category) ? category : "",
     stock: stock && STOCK_LEVELS.includes(stock) ? stock : "",
     search: (params.get("q") ?? "").trim().slice(0, 100),
     sort: sort && SORTS.includes(sort) ? sort : "created",
@@ -48,6 +56,7 @@ export function readListState(params: ReadableParams): ListState {
 export function writeListState(state: ListState): URLSearchParams {
   const params = new URLSearchParams();
   if (state.status) params.set("status", state.status);
+  if (state.category) params.set("category", state.category);
   if (state.stock) params.set("stock", state.stock);
   if (state.search) params.set("q", state.search);
   if (state.sort !== DEFAULT_LIST_STATE.sort) params.set("sort", state.sort);
