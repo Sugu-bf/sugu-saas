@@ -184,7 +184,7 @@ export function Gallery() {
                 </li>
               ))}
             </ul>
-            <Row label="Rayons : compact 4 · control 6 · panel 8 · pill (badges, avatars) · button (tous les boutons)">
+            <Row label="Rayons : compact 4 · control 8 · panel 12 · pill (badges, avatars) · button (tous les boutons)">
               {(["rounded-compact", "rounded-control", "rounded-panel", "rounded-pill", "rounded-button"] as const).map((radius) => (
                 <span key={radius} className={`flex h-10 w-24 items-center justify-center border border-border-strong bg-surface-subtle text-meta text-foreground-muted ${radius}`}>
                   {radius.replace("rounded-", "")}

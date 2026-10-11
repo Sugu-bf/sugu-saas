@@ -51,8 +51,8 @@ Cinq tons : `success`, `warning`, `danger`, `info`, `neutral`. Chacun a quatre f
 | Token | Valeur | Usage |
 |---|---|---|
 | `rounded-compact` | 4 px | Cases à cocher, éléments de menu |
-| `rounded-control` | 6 px | Champs |
-| `rounded-panel` | 8 px | Cartes, tables, dialogs |
+| `rounded-control` | 8 px | Champs, vignettes |
+| `rounded-panel` | 12 px | Cartes, tables, dialogs |
 | `rounded-pill` | pilule | Badges, avatars, interrupteur |
 | `rounded-button` | pilule | **Tous les boutons** (décision produit, un seul token) |
 | `h-control-sm` | 32 px | Contrôle compact |

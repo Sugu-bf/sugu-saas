@@ -70,8 +70,8 @@
 
   /* ── Radius: short scale ──────────────────────────────── */
   --radius-compact: 4px;
-  --radius-control: 6px;
-  --radius-panel: 8px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
   --radius-pill: 9999px;
   /* Product decision: every button is fully rounded. One token, so the
      choice can be revisited without touching components. */

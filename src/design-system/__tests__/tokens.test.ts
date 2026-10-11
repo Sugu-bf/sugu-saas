@@ -69,8 +69,8 @@ describe("design tokens — structure", () => {
 
   it("uses a short radius scale", () => {
     expect(css).toMatch(/--radius-compact:\s*4px/);
-    expect(css).toMatch(/--radius-control:\s*6px/);
-    expect(css).toMatch(/--radius-panel:\s*8px/);
+    expect(css).toMatch(/--radius-control:\s*8px/);
+    expect(css).toMatch(/--radius-panel:\s*12px/);
   });
 
   it("makes buttons fully rounded from a single token", () => {
