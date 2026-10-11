@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Combobox,
   FormActions,
   FormField,
   IconButton,
@@ -483,7 +484,8 @@ function StepInformations({
 
 function CategoryField({ value, onChange, options, loading, failed, error }: { value: string[]; onChange: (ids: string[]) => void; options: ProductCategoryOption[]; loading: boolean; failed: boolean; error?: string }) {
   const selected = value.map((id) => options.find((option) => option.id === id) ?? { id, name: "Catégorie enregistrée" });
-  const remaining = options.filter((option) => !value.includes(option.id));
+  const choices = useMemo(() => options.map((option) => ({ value: option.id, label: option.name })), [options]);
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((other) => other !== id) : [...value, id]);
 
   return (
     <FormField
@@ -491,7 +493,13 @@ function CategoryField({ value, onChange, options, loading, failed, error }: { v
       label="Catégorie"
       required
       error={error}
-      hint={failed ? "Les catégories n'ont pas pu être chargées. Rechargez la page pour en choisir une." : value.length > 1 ? "La première est la catégorie principale." : undefined}
+      hint={
+        failed
+          ? "Les catégories n'ont pas pu être chargées. Rechargez la page pour en choisir une."
+          : value.length > 1
+            ? "La première est la catégorie principale."
+            : "Recherchez par nom. Vous pouvez en choisir plusieurs."
+      }
     >
       <div className="flex flex-col gap-2">
         {selected.length > 0 && (
@@ -512,12 +520,17 @@ function CategoryField({ value, onChange, options, loading, failed, error }: { v
             ))}
           </ul>
         )}
-        <Select
-          value=""
-          disabled={loading || failed || remaining.length === 0}
-          placeholder={loading ? "Chargement des catégories…" : value.length === 0 ? "Choisir une catégorie" : "Ajouter une autre catégorie"}
-          options={remaining.map((option) => ({ value: option.id, label: option.name }))}
-          onChange={(event) => event.target.value && onChange([...value, event.target.value])}
+        {/* The catalogue has too many categories for a list to scroll: they are searched. */}
+        <Combobox
+          options={choices}
+          selected={value}
+          onToggle={toggle}
+          listLabel="Catégories"
+          placeholder={loading ? "Chargement des catégories…" : value.length === 0 ? "Rechercher une catégorie" : "Ajouter une autre catégorie"}
+          disabled={loading || failed}
+          // The field is required, not the search typed in it.
+          required={false}
+          aria-required
         />
       </div>
     </FormField>
