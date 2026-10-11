@@ -177,14 +177,18 @@ const rawVariantSchema = z.object({
   stock: z.number().int().nullish(),
   isActive: z.boolean().nullish(),
   isDefault: z.boolean().nullish(),
+  trackStock: z.boolean().nullish(),
   allowBackorder: z.boolean().nullish(),
   lowStockThreshold: z.number().int().nullish(),
+  minOrderQuantity: z.number().int().nullish(),
   options: z.record(z.unknown()).nullish(),
   bulkPrices: z.array(rawBulkPriceSchema).nullish(),
 });
 
 const rawDetailSchema = rawListItemSchema.extend({
   brand: nullableString,
+  category_ids: z.array(id).nullish(),
+  canSubmit: z.boolean().nullish(),
   // `ProductCondition` value: an integer, or "new" when the product has none.
   condition: z.union([z.string(), z.number()]).nullish().transform((value) => (value == null || value === "" ? null : String(value))),
   minOrderQuantity: z.number().int().nullish(),
@@ -217,8 +221,13 @@ export interface ProductVariant {
   stock: number;
   isActive: boolean;
   isDefault: boolean;
+  trackStock: boolean;
+  allowBackorder: boolean;
+  lowStockThreshold: number | null;
+  minOrderQuantity: number | null;
   /** Option name → value, e.g. { Couleur: "Rouge" }. */
   options: Record<string, string>;
+  bulkPrices: ProductBulkPrice[];
 }
 
 export interface ProductBulkPrice {
@@ -243,6 +252,13 @@ export interface ProductModeration {
 
 export interface ProductDetail extends ProductListItem {
   brand: string | null;
+  categoryIds: string[];
+  /**
+   * Whether the product can be sent to moderation now. Said by the backend
+   * (`canSubmit`); on an older backend, derived from the workflow: draft,
+   * rejected and changes requested.
+   */
+  canSubmit: boolean;
   /** `App\Enums\Products\ProductCondition` value, as sent. */
   condition: string | null;
   minOrderQuantity: number;
@@ -281,6 +297,12 @@ export function parseProductDetail(raw: unknown): ProductDetail {
   const hasModeration =
     moderation && [moderation.rejectionReason, moderation.notePublic, moderation.submittedAt, moderation.reviewedAt].some(Boolean);
 
+  const tiersOf = (tiers: z.infer<typeof rawBulkPriceSchema>[] | null | undefined): ProductBulkPrice[] =>
+    (tiers ?? [])
+      .filter((tier) => tier.isActive !== false)
+      .map((tier) => ({ id: tier.id, minQuantity: tier.minQty, priceFrancs: asFrancs(tier.price) }))
+      .sort((a, b) => a.minQuantity - b.minQuantity);
+
   const variants = (product.variants ?? []).map((variant) => ({
     id: variant.id,
     title: variantTitle(variant.title),
@@ -289,13 +311,21 @@ export function parseProductDetail(raw: unknown): ProductDetail {
     stock: variant.stock ?? 0,
     isActive: variant.isActive ?? true,
     isDefault: Boolean(variant.isDefault),
+    trackStock: variant.trackStock ?? true,
+    allowBackorder: Boolean(variant.allowBackorder),
+    lowStockThreshold: variant.lowStockThreshold ?? null,
+    minOrderQuantity: variant.minOrderQuantity ?? null,
     options: optionsOf(variant.options),
+    bulkPrices: tiersOf(variant.bulkPrices),
   }));
+  const listItem = parseProductListItem(raw);
 
   return {
-    ...parseProductListItem(raw),
+    ...listItem,
     variantCount: variants.length,
     brand: product.brand,
+    categoryIds: product.category_ids ?? [],
+    canSubmit: product.canSubmit ?? ["draft", "rejected", "changes_requested"].includes(listItem.status),
     condition: product.condition,
     minOrderQuantity: Math.max(1, product.minOrderQuantity ?? 1),
     descriptionHtml: product.description,
@@ -309,10 +339,7 @@ export function parseProductDetail(raw: unknown): ProductDetail {
       .filter((picture) => !PLACEHOLDER_IMAGE.test(picture.url))
       .map((picture) => ({ id: picture.id, url: picture.url, isMain: Boolean(picture.is_main) })),
     variants,
-    bulkPrices: (product.bulkPrices ?? [])
-      .filter((tier) => tier.isActive !== false)
-      .map((tier) => ({ id: tier.id, minQuantity: tier.minQty, priceFrancs: asFrancs(tier.price) }))
-      .sort((a, b) => a.minQuantity - b.minQuantity),
+    bulkPrices: tiersOf(product.bulkPrices),
     moderation: hasModeration
       ? {
           reason: moderation.rejectionReason,

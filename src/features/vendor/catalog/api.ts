@@ -156,3 +156,34 @@ export async function exportInventoryCsv(): Promise<void> {
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+// ── Product form ────────────────────────────────────────────
+
+export interface ProductCategoryOption {
+  id: string;
+  name: string;
+}
+
+/** Active categories a product can be filed under. */
+export async function fetchProductCategories(): Promise<ProductCategoryOption[]> {
+  const response = await api.get<{ data: { id: string | number; name: string }[] }>("sellers/products/categories");
+  return (response.data ?? []).map((category) => ({ id: String(category.id), name: category.name }));
+}
+
+/**
+ * Stores the product and answers its id. Creation always saves a draft; an
+ * update never changes the status. `body` comes from `buildProductBody`.
+ */
+export async function saveProduct(body: FormData, id?: string): Promise<string> {
+  const path = id ? `sellers/products/${encodeURIComponent(id)}` : "sellers/products";
+  const response = await api.post<{ data: { id: string | number } }>(path, body);
+  return String(response.data.id);
+}
+
+/**
+ * Queues the product for moderation. Refused (422) when its status does not
+ * allow it or when it misses what a moderator needs; the message says what.
+ */
+export async function submitProduct(id: string): Promise<void> {
+  await api.post(`sellers/products/${encodeURIComponent(id)}/submit`);
+}

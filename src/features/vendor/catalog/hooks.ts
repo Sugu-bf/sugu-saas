@@ -7,8 +7,11 @@ import {
   deleteProduct,
   fetchInventory,
   fetchProduct,
+  fetchProductCategories,
   fetchProductCounts,
   fetchProducts,
+  saveProduct,
+  submitProduct,
   type InventoryQuery,
   type ProductListQuery,
   type StockAdjustment,
@@ -78,4 +81,27 @@ export function useDeleteProduct() {
 export function useAdjustStock() {
   const invalidate = useInvalidateCatalogue();
   return useMutation({ mutationFn: (adjustment: StockAdjustment) => adjustStock(adjustment), onSettled: invalidate });
+}
+
+// ── Product form ────────────────────────────────────────────
+
+export function useProductCategoryOptions() {
+  return useQuery({
+    queryKey: queryKeys.vendor.productCategories(),
+    queryFn: fetchProductCategories,
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useSaveProduct() {
+  const invalidate = useInvalidateCatalogue();
+  return useMutation({
+    mutationFn: ({ body, id }: { body: FormData; id?: string }) => saveProduct(body, id),
+    onSettled: invalidate,
+  });
+}
+
+export function useSubmitProduct() {
+  const invalidate = useInvalidateCatalogue();
+  return useMutation({ mutationFn: (id: string) => submitProduct(id), onSettled: invalidate });
 }

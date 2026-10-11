@@ -1,12 +1,11 @@
-import { Metadata } from "next";
-import { CreateProductForm } from "./create-product-form";
+import type { Metadata } from "next";
+import { ProductForm } from "@/features/vendor/catalog/form/product-form";
 
 export const metadata: Metadata = {
-  title: "Ajouter un produit | SUGUPro Vendeur",
-  description:
-    "Créez un nouveau produit : informations, photos, prix, variantes et tarifs de gros.",
+  title: "Nouveau produit | SUGUPro Vendeur",
+  description: "Ajoutez un produit à votre catalogue : informations, photos, prix, stock et variantes.",
 };
 
 export default function CreateProductPage() {
-  return <CreateProductForm />;
+  return <ProductForm />;
 }
