@@ -1,6 +1,7 @@
 import { formatMoneyFromFrancs } from "@/design-system";
 import { deliveryLabel, type DeliveryDetail } from "../deliveries/contract";
-import { codMixteSummaryOf, paymentMethodLabel } from "../deliveries/payment";
+import { codMixteSummaryOf, paymentMethodLabel, paymentWords } from "../deliveries/payment";
+import { paymentCodeOf } from "./delivery-bits";
 import { formatLongDateTime } from "../format";
 
 /**
@@ -68,7 +69,7 @@ export function DeliverySlip({ delivery, agencyName }: { delivery: DeliveryDetai
           <>
             <p className="mt-1 text-body">Prix de la livraison : {formatMoneyFromFrancs(delivery.feeFrancs)}</p>
             <p className="text-body">
-              Commande : {delivery.paymentStatus === "paid" ? "payée" : "paiement en attente"}
+              Commande : {paymentWords(paymentCodeOf(delivery))}
               {paymentMethodLabel(delivery.paymentMethod) ? ` (${paymentMethodLabel(delivery.paymentMethod)})` : ""}
             </p>
           </>

@@ -72,7 +72,14 @@ const rawOrderSchema = z.object({
   order_number: text,
   items_count: z.number().nullish(),
   total: z.number().nullish(),
+  /** The raw column of the order (`OrderPaymentStatus`): unpaid, pending, paid, failed, refunded, hold. */
   payment_status: text,
+  /**
+   * `Order::paymentSituation()`: where the payment stands, COD and COD Mixte
+   * included (paid, partial, cod_pending, pending, hold, refunded, failed).
+   * Absent on a backend older than V3.1.
+   */
+  payment_status_code: text.optional(),
   shipping_address: z.object({ name: text, phone: text, line1: text, city: text }).nullish(),
   store: z.object({ name: text, address_line1: text }).nullish(),
   delivery_notes: text,
@@ -142,7 +149,11 @@ export interface DeliveryRow {
   pickup: { name: string | null; address: string | null; phone: string | null } | null;
   zone: { id: string; name: string } | null;
   courier: DeliveryCourier | null;
-  /** Payment status of the order, as the backend codes it. */
+  /**
+   * Where the payment of the order stands, in the codes of `deliveryPaymentStatus`.
+   * From a backend that does not derive it yet, the raw status of the order:
+   * `unpaid` is then shown as such, never as an unknown status.
+   */
   paymentStatus: string | null;
   codMixte: DeliveryCodMixte | null;
   /** What the delivery is priced: the agency's revenue. */
@@ -198,7 +209,7 @@ export function deliveryRowOf(row: RawRow): DeliveryRow {
     pickup: row.pickup ?? (row.order?.store ? { name: row.order.store.name, address: row.order.store.address_line1, phone: null } : null),
     zone: row.zone ?? null,
     courier: row.courier ? courierOf(row.courier) : null,
-    paymentStatus: row.order?.payment_status ?? null,
+    paymentStatus: row.order?.payment_status_code ?? row.order?.payment_status ?? null,
     codMixte: cod
       ? {
           deliveryFeePaid: Boolean(cod.deliveryFeePaid),

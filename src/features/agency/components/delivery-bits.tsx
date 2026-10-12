@@ -33,18 +33,25 @@ export function DeliveryStatus({ delivery, late = "label", className }: { delive
   );
 }
 
+type PaymentSource = Pick<DeliveryRow, "paymentStatus" | "codMixte" | "manual">;
+
 /**
  * The payment code to show for a delivery. COD Mixte is paid in two steps:
- * its badge follows the two fees, not the order's own status.
+ * its badge follows the two fees, not the order's own status. A delivery the
+ * agency entered as « à encaisser à la livraison » is stored as an order
+ * whose payment is pending: it is cash to collect, as its form said.
  */
-export function paymentCodeOf(delivery: Pick<DeliveryRow, "paymentStatus" | "codMixte">): string | null {
+export function paymentCodeOf(delivery: PaymentSource): string | null {
   const cod = delivery.codMixte;
-  if (!cod) return delivery.paymentStatus;
-  if (cod.deliveryFeePaid && cod.productFeePaid) return "paid";
-  return cod.deliveryFeePaid || cod.productFeePaid ? "partial" : "cod_pending";
+  if (cod) {
+    if (cod.deliveryFeePaid && cod.productFeePaid) return "paid";
+    return cod.deliveryFeePaid || cod.productFeePaid ? "partial" : "cod_pending";
+  }
+  if (delivery.manual && delivery.paymentStatus === "pending") return "cod_pending";
+  return delivery.paymentStatus;
 }
 
-export function DeliveryPayment({ delivery, className }: { delivery: Pick<DeliveryRow, "paymentStatus" | "codMixte">; className?: string }) {
+export function DeliveryPayment({ delivery, className }: { delivery: PaymentSource; className?: string }) {
   return <StatusBadge domain="deliveryPayment" code={paymentCodeOf(delivery)} className={className} />;
 }
 

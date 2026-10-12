@@ -156,7 +156,14 @@ export const agencyDeliveryStatus = defineStatusRegistry({
   },
 });
 
-/** Whether the money of a delivery is in: `OrderPaymentStatus`, in the short words of a delivery list. */
+/**
+ * Whether the money of a delivery is in, in the short words of a delivery
+ * list: `Order::paymentSituation()` (paid … failed).
+ *
+ * `unpaid` is not one of its answers: it is the raw `OrderPaymentStatus` of
+ * an order, which a backend older than V3.1 answers as it is. It does not
+ * say whether the amount is collected at the door, so it is worded plainly.
+ */
 export const deliveryPaymentStatus = defineStatusRegistry({
   domain: "delivery-payment",
   statuses: {
@@ -164,6 +171,7 @@ export const deliveryPaymentStatus = defineStatusRegistry({
     partial: { label: "Payé en partie", tone: "warning", icon: CircleDashed, description: "COD Mixte : un seul des deux frais est réglé." },
     cod_pending: { label: "À encaisser", tone: "warning", icon: Banknote, description: "Montant à collecter à la remise du colis." },
     pending: { label: "En attente", tone: "warning", icon: Clock, description: "Le paiement de la commande n'est pas encore reçu." },
+    unpaid: { label: "Non réglé", tone: "warning", icon: Clock, description: "La commande n'est pas encore réglée." },
     hold: { label: "En vérification", tone: "warning", icon: ShieldAlert },
     refunded: { label: "Remboursé", tone: "neutral", icon: Undo2 },
     failed: { label: "Non payé", tone: "danger", icon: XCircle },

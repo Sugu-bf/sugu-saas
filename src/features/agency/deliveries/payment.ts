@@ -31,6 +31,23 @@ export function codMixteSummaryOf(delivery: Pick<DeliveryRow, "codMixte">): CodM
   };
 }
 
+/** The payment of an order as a printed slip says it: a few words in a sentence, where a screen shows a badge. */
+const PAYMENT_WORDS: Record<string, string> = {
+  paid: "payée",
+  partial: "payée en partie",
+  cod_pending: "à encaisser à la livraison",
+  pending: "paiement en attente",
+  unpaid: "non réglée",
+  hold: "paiement en vérification",
+  refunded: "remboursée",
+  failed: "non payée",
+};
+
+/** `code` is what `paymentCodeOf` answers. An unknown one is not guessed. */
+export function paymentWords(code: string | null): string {
+  return (code && PAYMENT_WORDS[code]) || "paiement à confirmer";
+}
+
 /** `payment_method` as the order stores it. An unknown one is shown as it is. */
 const METHOD_LABEL: Record<string, string> = {
   cash: "Espèces",

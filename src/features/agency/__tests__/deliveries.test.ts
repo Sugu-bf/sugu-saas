@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatMoneyFromFrancs } from "@/design-system";
+import { deliveryPaymentStatus, formatMoneyFromFrancs } from "@/design-system";
+import { paymentCodeOf } from "../components/delivery-bits";
 import {
   deliveryLabel,
   displayStatusOf,
@@ -17,7 +18,7 @@ import {
   validateNewDelivery,
   type NewDeliveryForm,
 } from "../deliveries/new-delivery";
-import { codMixteSummaryOf, paymentMethodLabel, priorityLabel } from "../deliveries/payment";
+import { codMixteSummaryOf, paymentMethodLabel, paymentWords, priorityLabel } from "../deliveries/payment";
 import { parseShopSuggestions } from "../deliveries/shops";
 import { rawDetail, rawOverview, rawRow } from "./fixtures";
 
@@ -184,6 +185,49 @@ describe("payment", () => {
     expect(codMixteSummaryOf(parseDeliveryRow(rawRow()))).toBeNull();
   });
 
+  // Found on the real API (V3.1): it answered the raw status of the order, `unpaid` for a COD Mixte
+  // delivery, which no screen knew: the list read « Statut inconnu ».
+  it("reads where the payment stands from the code the backend derives, and the raw status before it does", () => {
+    const order = (payment: Record<string, unknown>) => parseDeliveryRow(rawRow({ order: { ...(rawRow().order as object), ...payment } }));
+    const labelOfPayment = (code: string) => deliveryPaymentStatus.resolve(code).label;
+
+    expect(order({ payment_status: "unpaid", payment_status_code: "cod_pending" }).paymentStatus).toBe("cod_pending");
+    expect(order({ payment_status: "paid", payment_status_code: "paid" }).paymentStatus).toBe("paid");
+    // A backend older than V3.1 answers the raw column only: it is kept, and has a label.
+    expect(order({ payment_status: "unpaid" }).paymentStatus).toBe("unpaid");
+    expect(labelOfPayment("unpaid")).toBe("Non réglé");
+    // Every raw status of an order, and every code the backend derives, is one the badge knows.
+    for (const code of ["unpaid", "pending", "paid", "failed", "refunded", "hold", "partial", "cod_pending"]) {
+      expect(labelOfPayment(code), code).not.toBe(labelOfPayment("a_code_added_later"));
+    }
+  });
+
+  it("shows the payment of a COD Mixte delivery by its two fees, and cash to collect for a delivery the agency typed as such", () => {
+    const mixte = (deliveryFeePaid: boolean, productFeePaid: boolean) =>
+      parseDeliveryRow(rawRow({ cod_mixte: { isCodMixte: true, deliveryFeePaid, productFeePaid, deliveryFeeAmount: 150000, productFeeAmount: 1350000 } }));
+    expect([mixte(false, false), mixte(true, false), mixte(false, true), mixte(true, true)].map(paymentCodeOf)).toEqual(["cod_pending", "partial", "partial", "paid"]);
+
+    const order = { ...(rawRow().order as object), payment_status: "pending", payment_status_code: "pending" };
+    // « À encaisser à la livraison » in the form of a new delivery is stored as a pending payment.
+    expect(paymentCodeOf(parseDeliveryRow(rawRow({ source: "agency_manual", order })))).toBe("cod_pending");
+    // For a marketplace order it is a payment that has not come in.
+    expect(paymentCodeOf(parseDeliveryRow(rawRow({ order })))).toBe("pending");
+    expect(paymentCodeOf(parseDeliveryRow(rawRow({ source: "agency_manual" })))).toBe("paid");
+  });
+
+  it("says the payment in words on the printed slip, and guesses nothing for a code it does not know", () => {
+    expect(["paid", "partial", "cod_pending", "pending", "unpaid", "hold", "refunded", "failed"].map(paymentWords)).toEqual([
+      "payée",
+      "payée en partie",
+      "à encaisser à la livraison",
+      "paiement en attente",
+      "non réglée",
+      "paiement en vérification",
+      "remboursée",
+      "non payée",
+    ]);
+    expect([paymentWords("a_code_added_later"), paymentWords(null)]).toEqual(["paiement à confirmer", "paiement à confirmer"]);
+  });
   it("names the payment methods it knows and shows the others as they are", () => {
     expect(paymentMethodLabel("cash")).toBe("Espèces");
     expect(paymentMethodLabel("Orange_Money")).toBe("Orange Money");
