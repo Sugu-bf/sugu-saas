@@ -13,10 +13,22 @@ type StatusSource = Pick<DeliveryRow, "status" | "awaitingDecision" | "late">;
  * The status as the agency reads it, with « En retard » next to it when the
  * promised time has passed. `late="icon"` keeps that mark to a clock, for a
  * column with no room for two labels; its name stays for assistive tech.
+ * `stacked` puts « En retard » under the status: in the heading of a phone
+ * card, two labels side by side pushed the number of the delivery under them.
  */
-export function DeliveryStatus({ delivery, late = "label", className }: { delivery: StatusSource; late?: "label" | "icon"; className?: string }) {
+export function DeliveryStatus({
+  delivery,
+  late = "label",
+  stacked = false,
+  className,
+}: {
+  delivery: StatusSource;
+  late?: "label" | "icon";
+  stacked?: boolean;
+  className?: string;
+}) {
   return (
-    <span className={cn("inline-flex items-center gap-1", late === "label" && "flex-wrap", className)}>
+    <span className={cn("inline-flex gap-1", stacked ? "flex-col items-end" : "items-center", late === "label" && !stacked && "flex-wrap", className)}>
       <StatusBadge domain="agencyDelivery" code={displayStatusOf(delivery)} />
       {delivery.late &&
         (late === "icon" ? (
@@ -72,7 +84,10 @@ export function Recipient({ delivery }: { delivery: Pick<DeliveryRow, "recipient
   const { name, phone } = delivery.recipient;
   return (
     <span className="flex min-w-0 flex-col">
-      <span className="truncate font-medium text-foreground">{name ?? <span className="font-normal text-foreground-muted">Destinataire non renseigné</span>}</span>
+      {/* One line in a table cell: the whole name is its tooltip, as for the address. */}
+      <span className="truncate font-medium text-foreground" title={name ?? undefined}>
+        {name ?? <span className="font-normal text-foreground-muted">Destinataire non renseigné</span>}
+      </span>
       {phone && <span className="truncate text-meta text-foreground-muted tabular-nums">{phone}</span>}
     </span>
   );

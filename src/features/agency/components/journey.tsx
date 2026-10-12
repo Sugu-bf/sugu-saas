@@ -82,7 +82,8 @@ export function JourneyBanner({ view, aside, className }: JourneyBannerProps) {
             <p className="mt-0.5 text-body text-foreground">{view.summary}</p>
           </div>
         </div>
-        {aside && <div className="flex shrink-0 flex-wrap items-center gap-3">{aside}</div>}
+        {/* It drops under the headline when it does not fit beside it, and wraps there: kept whole at any cost, the promised hour, « En retard » and the map button ran out of a phone. */}
+        {aside && <div className="flex max-w-full flex-wrap items-center gap-3">{aside}</div>}
       </div>
 
       <ol aria-label="Étapes de la livraison" className="grid auto-cols-fr grid-flow-col">

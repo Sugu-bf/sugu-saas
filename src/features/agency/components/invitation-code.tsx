@@ -68,7 +68,8 @@ export function InvitationCode({ className }: { className?: string }) {
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1 rounded-control border border-border bg-surface-subtle py-1 pr-1 pl-3">
-            <output aria-label="Code de recrutement" className="min-w-0 flex-1 truncate font-mono text-body font-semibold tracking-wider text-foreground select-all">
+            {/* On several lines rather than cut: a real code is longer than the box beside the list is wide. */}
+            <output aria-label="Code de recrutement" className="min-w-0 flex-1 py-1 font-mono text-body font-semibold tracking-wider break-all text-foreground select-all">
               {visible ? data.code : maskCode(data.code)}
             </output>
             <IconButton icon={visible ? EyeOff : Eye} label={visible ? "Masquer le code" : "Afficher le code"} size="compact" aria-pressed={visible} onClick={() => setVisible(!visible)} />

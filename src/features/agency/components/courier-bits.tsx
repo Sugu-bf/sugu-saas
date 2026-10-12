@@ -20,12 +20,17 @@ export function SuccessRate({ rate, className }: { rate: number | null; classNam
 }
 
 /** A courier in a list: his picture, his name linking to his page, his matricule under it. */
-export function CourierCell({ courier }: { courier: Pick<Courier, "id" | "name" | "employeeId"> }) {
+export function CourierCell({ courier, wrap = false }: { courier: Pick<Courier, "id" | "name" | "employeeId">; wrap?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <Avatar name={courier.name} size="sm" />
       <span className="flex min-w-0 flex-col">
-        <Link href={`/agency/drivers/${courier.id}`} className="truncate rounded-compact font-medium text-foreground underline-offset-2 hover:underline">
+        {/* One line in a table, where the whole name is its tooltip; `wrap` lets it run on in a phone card, which cut it at fourteen letters. */}
+        <Link
+          href={`/agency/drivers/${courier.id}`}
+          title={wrap ? undefined : courier.name}
+          className={cn("rounded-compact font-medium text-foreground underline-offset-2 hover:underline", wrap ? "break-words" : "truncate")}
+        >
           {courier.name}
         </Link>
         {courier.employeeId && <span className="truncate text-meta text-foreground-muted tabular-nums">{courier.employeeId}</span>}

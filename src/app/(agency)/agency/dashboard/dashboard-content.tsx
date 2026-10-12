@@ -41,7 +41,7 @@ const PRESSING = `${LIST}?scope=needs_action`;
 
 const COLUMNS: DataTableColumn<DeliveryRow>[] = [
   { id: "reference", header: "N°", mobile: "title", className: "whitespace-nowrap", cell: (delivery) => <DeliveryLink delivery={delivery} /> },
-  { id: "status", header: "Statut", mobile: "badge", cell: (delivery) => <DeliveryStatus delivery={delivery} /> },
+  { id: "status", header: "Statut", mobile: "badge", cell: (delivery) => <DeliveryStatus delivery={delivery} />, mobileCell: (delivery) => <DeliveryStatus delivery={delivery} stacked /> },
   {
     id: "recipient",
     header: "Destinataire",

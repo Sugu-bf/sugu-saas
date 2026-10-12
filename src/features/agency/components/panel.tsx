@@ -31,9 +31,14 @@ export function Panel({
   return (
     <Card flush className={cn("min-w-0", className)}>
       <section className="flex h-full flex-col">
-        {/* One line: the title wraps before its action drops under it. */}
-        <div className="flex items-start justify-between gap-3 p-4 pb-3">
-          <div className={cn("flex min-w-0 flex-1 gap-2.5", description ? "items-start" : "items-center")}>
+        {/*
+          One line while it fits: the title keeps ten rems (sixteen with a
+          description under it) before the actions drop under it, where they
+          wrap in turn. Kept beside the title at any cost, three buttons ran
+          over it and out of the card on a phone.
+        */}
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 p-4 pb-3">
+          <div className={cn("flex min-w-0 flex-1 gap-2.5", description ? "basis-64 items-start" : "basis-40 items-center")}>
             {Icon && (
               <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-control", iconTileClass[tone])}>
                 <Icon className="size-4" aria-hidden="true" />
@@ -44,7 +49,7 @@ export function Panel({
               {description && <p className="mt-0.5 text-body text-foreground-muted">{description}</p>}
             </div>
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">{actions}</div>}
+          {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
         </div>
         <div className={cn("min-w-0 flex-1", !flush && "px-4 pb-4")}>{children}</div>
       </section>

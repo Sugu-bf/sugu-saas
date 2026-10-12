@@ -361,7 +361,7 @@ const RECENT_COLUMNS: DataTableColumn<DeliveryRow>[] = [
     mobileCell: (delivery) => <Destination delivery={delivery} icon={false} wrap />,
   },
   { id: "amount", header: "Montant", numeric: true, cell: (delivery) => <Money francs={delivery.feeFrancs} /> },
-  { id: "status", header: "Statut", mobile: "badge", cell: (delivery) => <DeliveryStatus delivery={delivery} late="icon" />, mobileCell: (delivery) => <DeliveryStatus delivery={delivery} /> },
+  { id: "status", header: "Statut", mobile: "badge", cell: (delivery) => <DeliveryStatus delivery={delivery} late="icon" />, mobileCell: (delivery) => <DeliveryStatus delivery={delivery} stacked /> },
   { id: "date", header: "Date", className: "whitespace-nowrap", cell: (delivery) => <span className="tabular-nums">{formatDayTime(delivery.createdAt)}</span> },
 ];
 

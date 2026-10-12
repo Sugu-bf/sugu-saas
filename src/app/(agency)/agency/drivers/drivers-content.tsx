@@ -98,6 +98,7 @@ const COLUMNS: DataTableColumn<Courier>[] = [
     mobile: "title",
     className: "@2xl:max-w-44",
     cell: (courier) => <CourierCell courier={courier} />,
+    mobileCell: (courier) => <CourierCell courier={courier} wrap />,
   },
   {
     id: "phone",

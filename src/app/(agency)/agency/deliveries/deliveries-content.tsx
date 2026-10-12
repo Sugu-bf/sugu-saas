@@ -174,7 +174,7 @@ const COLUMNS: DataTableColumn<DeliveryRow>[] = [
     sortable: true,
     mobile: "badge",
     cell: (delivery) => <DeliveryStatus delivery={delivery} late="icon" />,
-    mobileCell: (delivery) => <DeliveryStatus delivery={delivery} />,
+    mobileCell: (delivery) => <DeliveryStatus delivery={delivery} stacked />,
   },
   {
     id: "courier",
