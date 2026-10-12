@@ -161,8 +161,18 @@ describe("deliveries list state", () => {
     expect(statusSelectValue(read("scope=awaiting_decision"))).toBe("to_accept");
     expect(withStatusSelect("to_accept", { scope: "" })).toEqual({ status: "", scope: "awaiting_decision" });
     // Leaving it leaves its group; another group chosen above the list stays.
-    expect(withStatusSelect("pending", { scope: "awaiting_decision" })).toEqual({ status: "pending", scope: "" });
-    expect(withStatusSelect("pending", { scope: "late" })).toEqual({ status: "pending", scope: "late" });
+    expect(withStatusSelect("assigned", { scope: "awaiting_decision" })).toEqual({ status: "assigned", scope: "" });
+    expect(withStatusSelect("assigned", { scope: "late" })).toEqual({ status: "assigned", scope: "late" });
+  });
+
+  // Found on real data (V3.1): by its status alone, « À assigner » also listed the requests the agency
+  // had not accepted, which read « À accepter »: four rows under a figure that said two.
+  it("lists under « À assigner » what waits for a courier, as the figure above the list counts it", () => {
+    expect(withStatusSelect("pending", { scope: "" })).toEqual({ status: "", scope: "to_assign" });
+    expect(filtersOf({ ...DEFAULT_LIST_STATE, ...withStatusSelect("pending", { scope: "" }) })).toMatchObject({ scope: "to_assign", status: undefined });
+    // The figure « À assigner » and the choice of the filter are one and the same list.
+    expect(statusSelectValue(read("scope=to_assign"))).toBe("pending");
+    expect(withStatusSelect("in_transit", { scope: "to_assign" })).toEqual({ status: "in_transit", scope: "" });
   });
 
   it("shows « À traiter en priorité » there too: what the dashboard lists first, as a filter of the list", () => {

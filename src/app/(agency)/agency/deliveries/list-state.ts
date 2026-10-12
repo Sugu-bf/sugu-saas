@@ -117,12 +117,17 @@ export function isNarrowed(state: ListState): boolean {
 export const CLEARED_FILTERS = { status: "", scope: "", search: "", date: "", zone: "", courier: "", priority: "" } as const satisfies Partial<ListState>;
 
 /**
- * Two choices of the status select are not statuses of the enum but groups:
- * « À accepter », the requests waiting for a decision, and « À traiter en
- * priorité », what the dashboard lists first.
+ * Three choices of the status select are groups of the server, not a status
+ * of the enum taken alone:
+ *   - « À accepter », the requests waiting for a decision;
+ *   - « À traiter en priorité », what the dashboard lists first;
+ *   - « À assigner », what the agency accepted and that waits for a courier.
+ *     By its status alone (`pending`) it also listed the requests the agency
+ *     has not accepted, which read « À accepter »: four rows under a figure
+ *     that said two.
  */
-const GROUP_OF_CHOICE: Record<string, DeliveryScope> = { to_accept: "awaiting_decision", needs_action: "needs_action" };
-const CHOICE_OF_GROUP: Partial<Record<DeliveryScope, string>> = { awaiting_decision: "to_accept", needs_action: "needs_action" };
+const GROUP_OF_CHOICE: Record<string, DeliveryScope> = { to_accept: "awaiting_decision", needs_action: "needs_action", pending: "to_assign" };
+const CHOICE_OF_GROUP: Partial<Record<DeliveryScope, string>> = { awaiting_decision: "to_accept", needs_action: "needs_action", to_assign: "pending" };
 
 /** The value of the status select. */
 export function statusSelectValue(state: Pick<ListState, "status" | "scope">): string {
@@ -132,6 +137,6 @@ export function statusSelectValue(state: Pick<ListState, "status" | "scope">): s
 export function withStatusSelect(value: string, state: Pick<ListState, "scope">): Pick<ListState, "status" | "scope"> {
   const group = GROUP_OF_CHOICE[value];
   if (group) return { status: "", scope: group };
-  // Leaving one of these two leaves its group; another group chosen above the list stays.
+  // Leaving one of these three leaves its group; another group chosen above the list stays.
   return { status: value, scope: state.scope && CHOICE_OF_GROUP[state.scope] ? "" : state.scope };
 }
