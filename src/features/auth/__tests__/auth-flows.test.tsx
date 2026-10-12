@@ -174,7 +174,10 @@ describe("login", () => {
       await waitFor(() => expect(nav.push).toHaveBeenLastCalledWith("/agency/dashboard"));
       view.unmount();
     }
-  });
+    // Five sign-ins in one test: at about a second each, the default five seconds were its
+    // exact cost, and it timed out whenever the machine was busy — leaving its last form
+    // mounted, which then failed the test after it.
+  }, 20_000);
 
   it("refuses an unknown role instead of treating it as a vendor", async () => {
     mockBff({ "/api/auth/login": () => ({ json: { data: { user: sessionUser("admin") } } }) });
