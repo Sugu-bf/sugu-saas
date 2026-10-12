@@ -74,11 +74,21 @@ export function upstreamHeaders(incoming: Headers, token: string | null): Header
   if (!headers.has("accept")) headers.set("accept", "application/json");
   if (token) headers.set("authorization", `Bearer ${token}`);
 
-  // Let Laravel see the real client for logs / per-IP limits when it trusts us.
-  const forwardedFor = incoming.get("x-forwarded-for");
-  if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
+  for (const [name, value] of Object.entries(clientAddressHeaders(incoming))) headers.set(name, value);
 
   return headers;
+}
+
+/**
+ * The address of the visitor, as the proxy in front of the portal wrote it.
+ * Laravel reads it only where it trusts the hop it comes from
+ * (TRUSTED_PROXIES): its limits by address then count each visitor, not the
+ * portal. What a visitor wrote in the header themselves sits to the left of
+ * what the proxy appended, and is not the entry Laravel picks.
+ */
+export function clientAddressHeaders(incoming: Headers): Record<string, string> {
+  const forwardedFor = incoming.get("x-forwarded-for");
+  return forwardedFor ? { "x-forwarded-for": forwardedFor } : {};
 }
 
 /** Response headers relayed to the browser. Set-Cookie, CORS and auth headers never are. */

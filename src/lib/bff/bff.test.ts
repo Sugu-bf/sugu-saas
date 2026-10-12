@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkProxyPath, downstreamHeaders, upstreamHeaders } from "./upstream";
+import { checkProxyPath, clientAddressHeaders, downstreamHeaders, upstreamHeaders } from "./upstream";
 import { checkSameOrigin } from "./same-origin";
 
 describe("checkProxyPath — the relay is not an open proxy", () => {
@@ -52,6 +52,18 @@ describe("header hygiene", () => {
     expect(out.get("x-evil")).toBeNull();
     expect(out.get("idempotency-key")).toBe("k1");
     expect(upstreamHeaders(incoming, null).get("authorization")).toBeNull();
+  });
+
+  it("passes on the address the proxy in front of the portal wrote, and invents none", () => {
+    const behind = new Headers({ "x-forwarded-for": "198.18.0.9, 41.203.64.10", "x-real-ip": "198.18.0.9", "cf-connecting-ip": "198.18.0.9", forwarded: "for=198.18.0.9" });
+    // The whole chain, untouched: Laravel picks the entry its trusted proxies appended.
+    expect(clientAddressHeaders(behind)).toEqual({ "x-forwarded-for": "198.18.0.9, 41.203.64.10" });
+    expect(upstreamHeaders(behind, null).get("x-forwarded-for")).toBe("198.18.0.9, 41.203.64.10");
+    // Headers a visitor can set and no proxy of ours writes are not relayed.
+    expect(upstreamHeaders(behind, null).get("x-real-ip")).toBeNull();
+    expect(upstreamHeaders(behind, null).get("cf-connecting-ip")).toBeNull();
+    expect(upstreamHeaders(behind, null).get("forwarded")).toBeNull();
+    expect(clientAddressHeaders(new Headers())).toEqual({});
   });
 
   it("never relays cookies, CORS or auth headers back, and forbids caching", () => {

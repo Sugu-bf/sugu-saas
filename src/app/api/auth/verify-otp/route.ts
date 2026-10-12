@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiBase } from "@/lib/bff/upstream";
+import { apiBase, clientAddressHeaders } from "@/lib/bff/upstream";
 import { checkSameOrigin, forbiddenOrigin } from "@/lib/bff/same-origin";
 import { toSessionUser } from "@/lib/auth/session-user";
 import { setSessionCookie } from "@/lib/bff/session";
@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        // Who is signing in, for the limits Laravel keeps by address.
+        ...clientAddressHeaders(request.headers),
       },
       body: JSON.stringify({ identifier, code, type }),
     });
