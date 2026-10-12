@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CircleAlert,
   CircleDashed,
+  CircleDot,
   Clock,
   Coffee,
   EyeOff,
@@ -154,6 +155,34 @@ export const agencyDeliveryStatus = defineStatusRegistry({
     delivery_failed: { label: "Échec", tone: "danger", icon: CircleAlert, description: "La tentative de livraison a échoué." },
     delivered: { label: "Livrée", tone: "success", icon: CheckCircle2 },
   },
+});
+
+/**
+ * The same shipment as the COURIER works on it
+ * (`CourierDeliveryService::stageOf`): « assigned » alone does not tell a
+ * mission to accept from a parcel to collect or a parcel collected.
+ * `available` is a mission of the agency nobody carries yet.
+ */
+export const courierMissionStatus = defineStatusRegistry({
+  domain: "courier-mission",
+  statuses: {
+    available: { label: "Disponible", tone: "success", icon: CircleDot, description: "Libre dans votre agence : à accepter pour la prendre." },
+    to_accept: { label: "À accepter", tone: "warning", icon: Inbox, description: "Votre agence vous l'a confiée : à accepter ou à refuser." },
+    awaiting_fee_payment: {
+      label: "Frais attendus",
+      tone: "warning",
+      icon: Hourglass,
+      description: "COD Mixte : le client doit régler les frais de livraison.",
+    },
+    to_collect: { label: "À collecter", tone: "warning", icon: Package, description: "Le colis est à prendre à la boutique." },
+    collected: { label: "Collectée", tone: "info", icon: PackageCheck, description: "Vous avez le colis." },
+    in_transit: { label: "En transit", tone: "info", icon: Truck },
+    arrived: { label: "Arrivé", tone: "warning", icon: MapPin, description: "Vous êtes chez le client : le colis reste à remettre." },
+    delivered: { label: "Terminée", tone: "success", icon: CheckCircle2 },
+    failed: { label: "Échec", tone: "danger", icon: CircleAlert, description: "La tentative de livraison a échoué." },
+  },
+  // The history answers the raw status of the shipment.
+  aliases: { delivery_failed: "failed" },
 });
 
 /**
@@ -316,6 +345,7 @@ export const statusRegistries = {
   orderPayment: orderPaymentStatus,
   delivery: deliveryStatus,
   agencyDelivery: agencyDeliveryStatus,
+  courierMission: courierMissionStatus,
   deliveryPayment: deliveryPaymentStatus,
   product: productStatus,
   stock: stockStatus,

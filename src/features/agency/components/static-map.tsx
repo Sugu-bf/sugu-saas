@@ -40,6 +40,11 @@ export interface StaticMapProps {
   label: string;
   /** Drawn on the point. */
   marker: ReactNode;
+  /**
+   * Other places drawn on the same map, where they are from the point in the
+   * middle. A place too far to be in the frame is simply out of it.
+   */
+  others?: { lat: number; lng: number; marker: ReactNode }[];
   /** Laid over a corner of the map (when the position was recorded…). */
   children?: ReactNode;
   className?: string;
@@ -52,7 +57,7 @@ interface Tiles {
   failed: ReadonlySet<number>;
 }
 
-export function StaticMap({ lat, lng, label, marker, children, className }: StaticMapProps) {
+export function StaticMap({ lat, lng, label, marker, others = [], children, className }: StaticMapProps) {
   const point = tilePosition(lat, lng);
   const [tileX, tileY] = [Math.floor(point.x), Math.floor(point.y)];
   const limit = 2 ** ZOOM;
@@ -106,6 +111,20 @@ export function StaticMap({ lat, lng, label, marker, children, className }: Stat
               );
             })}
           </div>
+
+          {others.map((other, index) => {
+            const position = tilePosition(other.lat, other.lng);
+            return (
+              <div
+                key={index}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                aria-hidden="true"
+                style={{ left: `calc(50% + ${(position.x - point.x) * TILE}px)`, top: `calc(50% + ${(position.y - point.y) * TILE}px)` }}
+              >
+                {other.marker}
+              </div>
+            );
+          })}
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" aria-hidden="true">
             {marker}

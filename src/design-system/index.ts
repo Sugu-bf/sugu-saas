@@ -77,6 +77,7 @@ export type { ResolvedStatus, StatusDefinition, StatusRegistry } from "./status/
 export {
   agencyDeliveryStatus,
   courierActivity,
+  courierMissionStatus,
   courierStatus,
   deliveryPaymentStatus,
   deliveryStatus,
