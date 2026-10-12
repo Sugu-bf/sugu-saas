@@ -48,6 +48,22 @@ const PROFILES = {
     user_type: "courier",
     courier: { id: 32, status: 4, delivery_partner: { id: 21 } },
   },
+  // Couriers who cannot work, each for another reason (V4): a file the agency
+  // refused, and an account it suspended. `operational` is what the server enforces.
+  "coursier-refuse@qa.test": {
+    id: 107,
+    name: "Adama Ouattara",
+    email: "coursier-refuse@qa.test",
+    user_type: "courier",
+    courier: { id: 33, status: 2, operational: false, delivery_partner: { id: 21 } },
+  },
+  "coursier-suspendu@qa.test": {
+    id: 108,
+    name: "Boukary Sanou",
+    email: "coursier-suspendu@qa.test",
+    user_type: "courier",
+    courier: { id: 34, status: 2, operational: false, delivery_partner: { id: 21 } },
+  },
   // A marketplace buyer: authenticated by the API, no place on the pro portal.
   "acheteur@qa.test": { id: 105, name: "Client", email: "acheteur@qa.test", user_type: "buyer" },
   "otp@qa.test": {
