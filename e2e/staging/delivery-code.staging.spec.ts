@@ -22,6 +22,7 @@ import { join } from "node:path";
 //
 // Accounts and orders are those of QaCourierSeeder: the customer
 // qa-acheteur-livraison@qa.sugu.test, the courier qa-coursier@qa.sugu.test,
+// the agency qa-agence-coursiers@qa.sugu.test (F), its free mission 608,
 // the orders SU-2099-000603 (on the way), 604 (at the door), 605 (not on the
 // way) and 610 (COD Mixte at the door, goods not paid). The tests that write
 // deliver 604, and 610 once paid: run QaCourierSeeder again to put them back.
@@ -218,20 +219,36 @@ test.describe("D. the customer, on the marketplace", () => {
     await context.close();
   });
 
-  test("D4 a failure of the network is said as one, with no code, and a retry brings the code back", async ({ browser }) => {
+  test("D4 a code that cannot be checked is not shown: at loading, and again once it was on screen", async ({ browser }) => {
     const { context, page } = await customer(browser);
     const id = await orderId(page, 603);
 
     await page.route("**/delivery-code", (route) => route.abort("failed"));
     await page.goto(`/track-order?order=${id}`, { waitUntil: "domcontentloaded" });
     await expect(card(page).getByRole("button", { name: "Réessayer" })).toBeVisible({ timeout: 90_000 });
-    await expect(card(page)).toContainText("Impossible de charger votre code");
+    await expect(card(page)).toContainText("ne peut pas être vérifié");
     await expect(shownCode(page)).toHaveCount(0);
     await shot(page, "D4-erreur-reseau-390");
 
     await page.unroute("**/delivery-code");
     await card(page).getByRole("button", { name: "Réessayer" }).click();
     await expect(shownCode(page)).toHaveText(CODE, { timeout: 30_000 });
+    const code = (await shownCode(page).innerText()).trim();
+
+    // The code is on screen and the network drops: the next check fails, and the code goes.
+    await page.route("**/delivery-code", (route) => route.abort("failed"));
+    await expect(shownCode(page)).toHaveCount(0, { timeout: 45_000 });
+    await expect(card(page)).toContainText("ne peut pas être vérifié");
+    await expect(card(page)).toContainText("il reste masqué");
+    expect(await card(page).innerText()).not.toContain(code);
+    await expect(card(page).getByRole("button", { name: "Réessayer" })).toBeVisible();
+    await card(page).scrollIntoViewIfNeeded();
+    await shot(page, "D4-code-masque-verification-impossible-390");
+
+    // The network is back: the server confirms, the code is shown again.
+    await page.unroute("**/delivery-code");
+    await card(page).getByRole("button", { name: "Réessayer" }).click();
+    await expect(shownCode(page)).toHaveText(code, { timeout: 30_000 });
     await context.close();
   });
 
@@ -352,5 +369,158 @@ test.describe("E. the handover", () => {
   test(write("E3 once the goods are paid, the customer reads the code and the COD Mixte is delivered with it"), async ({ browser, baseURL }) => {
     test.skip(!productPaid, "record the goods of SU-2099-000610 as paid on the QA order, then set STAGING_PRODUCT_PAID=1");
     await handover(browser, baseURL, 610);
+  });
+});
+
+// ── F. The agency, its courier and the customer ─────────────
+
+const AGENCY = "qa-agence-coursiers@qa.sugu.test";
+let agencySession: Session | undefined;
+
+/** The agency of the QA couriers, signed in on the portal. */
+async function agency(browser: Browser, baseURL: string | undefined): Promise<{ context: BrowserContext; page: Page }> {
+  const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, locale: "fr-FR", storageState: agencySession });
+  const page = await context.newPage();
+  if (agencySession) {
+    await page.goto("/agency/dashboard");
+    return { context, page };
+  }
+  await page.goto("/login");
+  await page.locator('input[type="email"], input[name="email"]').first().fill(AGENCY);
+  await page.locator('input[type="password"]').first().fill(password);
+  await page.getByRole("button", { name: /Se connecter/ }).click();
+  await expect(page).toHaveURL(/\/agency\/dashboard/, { timeout: 90_000 });
+  agencySession = await context.storageState();
+  return { context, page };
+}
+
+/** The API through the portal, with the session of the page, as its screens call it. */
+function through(page: Page, baseURL: string | undefined) {
+  const headers = { Accept: "application/json", Origin: baseURL ?? "" };
+  return {
+    data: async (path: string): Promise<Json> => {
+      const response = await page.request.get(`/api/proxy/${path}`, { headers });
+      expect(response.status(), `GET ${path}`).toBe(200);
+      return (await response.json()).data;
+    },
+    post: async (path: string, data: Json = {}): Promise<{ status: number; json: Json | null }> => {
+      const response = await page.request.post(`/api/proxy/${path}`, { headers, data });
+      return { status: response.status(), json: await response.json().catch(() => null) };
+    },
+  };
+}
+
+test.describe("F. the agency, its courier and the customer", () => {
+  test.beforeEach(() => {
+    test.skip(!mayWrite, "set STAGING_ALLOW_MUTATIONS=1 to run the tests that write on the QA missions");
+  });
+
+  test(write("F1 a free mission goes from the agency to the customer's door: assigned, accepted, carried, delivered with a code the server drew"), async ({ browser, baseURL }) => {
+    test.setTimeout(300_000);
+    const office = await agency(browser, baseURL);
+    const desk = through(office.page, baseURL);
+    const me = await (await office.page.request.get("/api/auth/me")).json();
+    const agencyId = String(me?.data?.delivery_partner_id ?? me?.data?.user?.delivery_partner_id);
+
+    // The mission nobody carries yet, and the people of the agency.
+    const rows = (await desk.data(`agencies/${agencyId}/shipments?per_page=50`)).shipments as Json[];
+    const free = rows.find((row) => row.order?.order_number === REF(608));
+    expect(free, `${REF(608)} is a delivery of the QA agency: run QaCourierSeeder`).toBeTruthy();
+    const delivery = () => desk.data(`agencies/${agencyId}/shipments/${free!.id}`);
+    expect((await delivery()).courier ?? null, `${REF(608)} is free: run QaCourierSeeder again`).toBeNull();
+    const people = (await desk.data(`agencies/${agencyId}/couriers?per_page=100`)).couriers as Json[];
+    const named = (name: string) => people.find((person) => (person.user?.name ?? "") === name);
+    const assign = (person: Json | undefined) => desk.post(`agencies/${agencyId}/shipments/${free!.id}/assign`, { courier_id: person?.user_id });
+
+    // Who cannot work is refused by the server itself, and the mission stays free.
+    for (const [name, code] of [["QA Coursier Suspendu", "SUGU-COURIER-SUSPENDED"], ["QA Coursier En Attente", "SUGU-COURIER-NOT-VERIFIED"]] as const) {
+      const refused = await assign(named(name));
+      expect(refused.status, `${name} is refused`).toBe(422);
+      expect(refused.json?.error_code).toBe(code);
+    }
+    expect((await assign(named("QA Coursier Refuse"))).status, "a courier whose file is refused").toBe(422);
+    expect((await delivery()).courier ?? null).toBeNull();
+
+    // The customer: no courier, no code.
+    const buyer = await customer(browser);
+    const order = await orderId(buyer.page, 608);
+    const codeState = async () => JSON.parse((await market(buyer.page, `orders/${order}/delivery-code`)).text).data.deliveries[0] as Json;
+    expect(await codeState()).toMatchObject({ state: "not_issued", code: null });
+
+    // The agency gives it to the courier who can work, and sees him on the delivery.
+    const moussa = named("QA Coursier Moussa");
+    expect(moussa, "the QA courier who can work").toBeTruthy();
+    expect((await assign(moussa)).status).toBe(200);
+    expect((await delivery()).courier?.user_id).toBe(moussa!.user_id);
+    await office.page.goto(`/agency/deliveries/${free!.id}`);
+    await expect(office.page.getByRole("heading", { level: 1 })).toContainText(REF(608), { timeout: 30_000 });
+    await expect(office.page.locator("main")).toContainText("QA Coursier Moussa");
+    await shot(office.page, "F1-1-agence-mission-assignee");
+
+    // The courier finds it among the missions to accept, and accepts it on his phone.
+    const carrier = await courier(browser, baseURL);
+    const road = through(carrier.page, baseURL);
+    const offered = (await road.data("courier/deliveries?scope=offered&per_page=50")).rows as Json[];
+    const mine = offered.find((row) => row.reference === REF(608));
+    expect(mine, "the mission is offered to the courier the agency chose").toBeTruthy();
+    await carrier.page.goto("/driver/deliveries?liste=disponibles");
+    const offer = carrier.page.locator("[data-mission]").filter({ hasText: REF(608) });
+    await expect(offer).toBeVisible({ timeout: 30_000 });
+    await shot(carrier.page, "F1-2-coursier-mission-a-accepter");
+    await offer.getByRole("button", { name: "Accepter" }).click();
+    await expect(carrier.page.getByRole("heading", { level: 1 })).toHaveText(`Mission ${REF(608)}`, { timeout: 30_000 });
+
+    // Accepted: the server drew a code. Neither the courier nor the agency is answered it; the customer not yet.
+    const accepted = await road.data(`courier/deliveries/${mine!.id}`);
+    expect(accepted.delivery_code_issued, "a code now exists").toBe(true);
+    expect(await codeState()).toMatchObject({ state: "not_on_the_way", code: null });
+    expect((await delivery()).status).toBe("assigned");
+
+    // He leaves, then arrives: the agency follows each step.
+    await carrier.page.getByRole("button", { name: "Démarrer la livraison" }).click();
+    await expect(carrier.page.locator("header").getByText("En transit")).toBeVisible({ timeout: 30_000 });
+    expect((await delivery()).status).toBe("in_transit");
+    const onTheWay = await codeState();
+    expect(onTheWay.state).toBe("available");
+    expect(onTheWay.code).toMatch(CODE);
+    // A code the server drew, not one the seeder fixes.
+    expect(onTheWay.code).not.toMatch(/^QAD00/);
+    for (const answer of [await road.data(`courier/deliveries/${mine!.id}`), await delivery(), await desk.data(`agencies/${agencyId}/shipments?per_page=50`)]) {
+      expect(JSON.stringify(answer), "neither the courier nor the agency is answered the code").not.toContain(onTheWay.code);
+    }
+    await carrier.page.getByRole("button", { name: "Confirmer l'arrivée" }).click();
+    await expect(carrier.page.locator("header").getByText("Arrivé")).toBeVisible({ timeout: 30_000 });
+    expect((await delivery()).status).toBe("arrived");
+    await buyer.context.close();
+    await carrier.context.close();
+
+    // The handover, with the code the customer reads on the marketplace.
+    await handover(browser, baseURL, 608);
+
+    // Delivered, for the agency too, on its screen as in its list.
+    expect((await delivery()).status).toBe("delivered");
+    await office.page.goto(`/agency/deliveries/${free!.id}`);
+    await expect(office.page.getByRole("heading", { level: 1 })).toContainText(REF(608), { timeout: 30_000 });
+    await expect(office.page.locator("main").getByText("Livrée").first()).toBeVisible();
+    expect(await office.page.content()).not.toContain(onTheWay.code);
+    await shot(office.page, "F1-3-agence-mission-livree");
+    await office.context.close();
+  });
+
+  test("F2 a courier who may not work signs in to his file, and is given no mission by the server", async ({ browser, baseURL }) => {
+    for (const [account, landing] of [["qa-coursier-suspendu@qa.sugu.test", /Compte suspendu/], ["qa-coursier-attente@qa.sugu.test", /Dossier (incomplet|en cours de vérification)/]] as const) {
+      const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, locale: "fr-FR" });
+      const page = await context.newPage();
+      await page.goto("/login");
+      await page.locator('input[type="email"], input[name="email"]').first().fill(account);
+      await page.locator('input[type="password"]').first().fill(password);
+      await page.getByRole("button", { name: /Se connecter/ }).click();
+      await expect(page, `${account} lands on their file`).toHaveURL(/\/driver\/documents/, { timeout: 90_000 });
+      await expect(page.locator("main")).toContainText(landing);
+      for (const path of ["courier/dashboard", "courier/deliveries?scope=offered", "courier/deliveries/available"]) {
+        expect((await page.request.get(`/api/proxy/${path}`)).status(), `${account}: ${path}`).toBe(403);
+      }
+      await context.close();
+    }
   });
 });
