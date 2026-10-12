@@ -21,6 +21,7 @@ import {
 } from "@/features/agency/couriers/courier-form";
 import { useCourier, useCourierAction } from "@/features/agency/couriers/hooks";
 import { describeAgencyFailure } from "@/features/agency/errors";
+import { useOneAtATime } from "@/features/agency/single-flight";
 
 const LIST = "/agency/drivers";
 
@@ -91,8 +92,7 @@ function EditDriverFields({ courier }: { courier: Courier }) {
     top.current?.scrollIntoView({ block: "start" });
   }
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  async function saving() {
     const found = validateCourierForm(form, "edit");
     if (Object.keys(found).length > 0) {
       showErrors(found);
@@ -112,6 +112,12 @@ function EditDriverFields({ courier }: { courier: Courier }) {
       if (Object.keys(fromServer).length > 0) showErrors(fromServer);
       toast.error(failure.message);
     }
+  }
+  // One at a time: a second click joins the saving under way.
+  const save = useOneAtATime(saving);
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    void save();
   }
 
   return (

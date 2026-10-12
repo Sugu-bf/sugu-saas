@@ -40,6 +40,7 @@ import {
 } from "@/features/agency/deliveries/new-delivery";
 import type { ShopSuggestion } from "@/features/agency/deliveries/shops";
 import { describeAgencyFailure } from "@/features/agency/errors";
+import { useOneAtATime } from "@/features/agency/single-flight";
 import { formatLongDate } from "@/features/agency/format";
 
 const LIST = "/agency/deliveries";
@@ -161,7 +162,8 @@ export function CreateDeliveryForm() {
     }
   }
 
-  async function submit() {
+  // One at a time: two clicks on « Créer la course » used to create two deliveries.
+  const submit = useOneAtATime(async () => {
     const found = validateNewDelivery(form);
     if (Object.keys(found).length > 0) {
       showErrors(found);
@@ -181,7 +183,7 @@ export function CreateDeliveryForm() {
       if (Object.keys(fromServer).length > 0) showErrors(fromServer);
       toast.error(failure.message);
     }
-  }
+  });
 
   const items = parseAmount(form.itemsCount);
   const total = parseAmount(form.orderTotal);

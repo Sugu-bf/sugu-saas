@@ -197,6 +197,7 @@ export function DeliveryDetailContent({ id }: { id: string }) {
     { label: "Priorité", value: priorityLabel(delivery.priority) },
   ];
 
+  // A second click before the button is drawn disabled sends nothing more: the mutation is in flight once (single-flight).
   async function submitNote(event: React.FormEvent) {
     event.preventDefault();
     const memo = note.trim();

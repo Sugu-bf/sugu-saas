@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { X, type LucideIcon } from "lucide-react";
@@ -101,8 +101,13 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState(false);
+  // `pending` disables the button on the next render: a second click that
+  // lands before it must not confirm again.
+  const confirming = useRef(false);
 
   async function handleConfirm() {
+    if (confirming.current) return;
+    confirming.current = true;
     setPending(true);
     try {
       await onConfirm();
@@ -110,6 +115,7 @@ export function ConfirmDialog({
     } catch {
       // The caller reports the failure; the dialog stays open for a retry.
     } finally {
+      confirming.current = false;
       setPending(false);
     }
   }

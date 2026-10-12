@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import { useAgencyId } from "../session";
+import { once } from "../single-flight";
 import {
   activateCourier,
   addCourierDocument,
@@ -80,7 +81,7 @@ export function useCourierAction() {
   const agencyId = useAgencyId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (action: CourierAction) => run(agencyId!, action),
+    mutationFn: (action: CourierAction) => once(["courier", agencyId, action], () => run(agencyId!, action)),
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.agency.all }),
   });
 }
@@ -89,7 +90,7 @@ export function useRegisterCourier() {
   const agencyId = useAgencyId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (request: NewCourierRequest) => registerCourier(agencyId!, request),
+    mutationFn: (request: NewCourierRequest) => once(["new courier", agencyId, request], () => registerCourier(agencyId!, request)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.agency.all }),
   });
 }

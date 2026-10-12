@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import { useAgencyId } from "../session";
+import { once } from "../single-flight";
 import {
   acceptDelivery,
   addDeliveryNote,
@@ -111,7 +112,7 @@ export function useDeliveryAction() {
   const agencyId = useAgencyId();
   const refresh = useRefreshAgency();
   return useMutation({
-    mutationFn: (action: DeliveryAction) => run(agencyId!, action),
+    mutationFn: (action: DeliveryAction) => once(["delivery", agencyId, action], () => run(agencyId!, action)),
     onSettled: refresh,
   });
 }
@@ -125,9 +126,9 @@ export function useBulkDeliveryAction() {
   const refresh = useRefreshAgency();
   return useMutation({
     mutationFn: (action: BulkDeliveryAction) =>
-      action.type === "assign"
-        ? assignDeliveries(agencyId!, action.ids, action.courierUserId)
-        : changeDeliveriesStatus(agencyId!, action.ids, action.status),
+      once(["deliveries", agencyId, action], () =>
+        action.type === "assign" ? assignDeliveries(agencyId!, action.ids, action.courierUserId) : changeDeliveriesStatus(agencyId!, action.ids, action.status),
+      ),
     onSettled: refresh,
   });
 }
@@ -136,7 +137,8 @@ export function useCreateDelivery() {
   const agencyId = useAgencyId();
   const refresh = useRefreshAgency();
   return useMutation({
-    mutationFn: (request: NewDeliveryRequest) => createDelivery(agencyId!, request),
+    // The one that mattered most: two clicks on « Créer la course » created two deliveries.
+    mutationFn: (request: NewDeliveryRequest) => once(["new delivery", agencyId, request], () => createDelivery(agencyId!, request)),
     onSuccess: refresh,
   });
 }

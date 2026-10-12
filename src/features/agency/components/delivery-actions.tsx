@@ -7,6 +7,7 @@ import { Button, ConfirmDialog, Dialog, DialogClose, DialogContent, FormField, I
 import { deliveryLabel, type DeliveryRow } from "../deliveries/contract";
 import { useDeliveryAction } from "../deliveries/hooks";
 import { describeAgencyFailure } from "../errors";
+import { useOneAtATime } from "../single-flight";
 import { AssignCourierDialog } from "./assign-courier-dialog";
 
 // ============================================================
@@ -167,8 +168,8 @@ export function DeliveryActionDialogs({ intent, onClose, onDone }: DeliveryActio
   const refusing = intent?.kind === "refuse";
   const reasoned = refusing || (intent?.kind === "status" && Boolean(statusAction?.withReason));
 
-  /** Runs an action, reports it, and rethrows on failure so the dialog stays open. */
-  async function run(request: Parameters<typeof action.mutateAsync>[0], done: string) {
+  /** Runs an action, reports it, and rethrows on failure so the dialog stays open. One at a time: a second click joins the first. */
+  const run = useOneAtATime(async (request: Parameters<typeof action.mutateAsync>[0], done: string) => {
     if (!intent) return;
     try {
       await action.mutateAsync(request);
@@ -178,7 +179,7 @@ export function DeliveryActionDialogs({ intent, onClose, onDone }: DeliveryActio
       toast.error(describeAgencyFailure(error).message);
       throw error;
     }
-  }
+  });
 
   /** The same, for a form inside a dialog: closes it on success, leaves it open on a refusal. */
   function submit(request: Parameters<typeof action.mutateAsync>[0], done: string) {

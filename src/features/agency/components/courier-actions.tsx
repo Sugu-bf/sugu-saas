@@ -7,6 +7,7 @@ import { Button, ConfirmDialog, Dialog, DialogClose, DialogContent, FormField, T
 import type { Courier } from "../couriers/contract";
 import { useCourierAction, type CourierAction } from "../couriers/hooks";
 import { describeAgencyFailure } from "../errors";
+import { useOneAtATime } from "../single-flight";
 import { AssignDeliveryDialog } from "./assign-delivery-dialog";
 
 // ============================================================
@@ -73,8 +74,8 @@ export function CourierActionDialogs({ intent, onClose }: { intent: CourierInten
   const courier = intent?.courier ?? null;
   const name = courier?.name ?? "";
 
-  /** Runs an action, reports it, and rethrows on failure so the dialog stays open. */
-  async function run(request: CourierAction, done: string) {
+  /** Runs an action, reports it, and rethrows on failure so the dialog stays open. One at a time: a second click joins the first. */
+  const run = useOneAtATime(async (request: CourierAction, done: string) => {
     try {
       await action.mutateAsync(request);
       toast.success(done);
@@ -82,7 +83,7 @@ export function CourierActionDialogs({ intent, onClose }: { intent: CourierInten
       toast.error(describeAgencyFailure(error).message);
       throw error;
     }
-  }
+  });
 
   function suspend(reason: string) {
     if (!courier) return;

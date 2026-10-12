@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Trash2 } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -122,6 +122,22 @@ describe("ConfirmDialog", () => {
     expect(confirm).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button", { name: "Annuler" })).toBeDisabled();
     await userEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledOnce();
+    finish();
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  });
+
+  // The button is drawn disabled on the render that follows the first click: a double click lands before it.
+  it("confirms once when two clicks land before the button is drawn disabled", async () => {
+    let finish: () => void = () => {};
+    const onConfirm = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    render(<ConfirmHarness onConfirm={onConfirm} />);
+    await userEvent.click(screen.getByRole("button", { name: "Supprimer" }));
+    const confirm = screen.getByRole("button", { name: "Supprimer définitivement" });
+    act(() => {
+      confirm.click();
+      confirm.click();
+    });
     expect(onConfirm).toHaveBeenCalledOnce();
     finish();
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());

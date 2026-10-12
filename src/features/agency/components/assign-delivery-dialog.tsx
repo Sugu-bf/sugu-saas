@@ -7,6 +7,7 @@ import { Button, Dialog, DialogClose, DialogContent, EmptyState, ErrorState, Mon
 import { deliveryLabel } from "../deliveries/contract";
 import { useDeliveries, useDeliveryAction } from "../deliveries/hooks";
 import { describeAgencyFailure } from "../errors";
+import { useOneAtATime } from "../single-flight";
 import { formatDayTime } from "../format";
 
 export interface AssignDeliveryDialogProps {
@@ -39,7 +40,7 @@ function AssignDeliveryPanel({ courier, action, close }: { courier: AssignDelive
   const rows = waiting.data?.rows ?? [];
   const selected = rows.find((row) => row.id === chosen) ?? null;
 
-  async function confirm() {
+  const confirm = useOneAtATime(async () => {
     if (!selected || !courier) return;
     try {
       await action.mutateAsync({ type: "assign", id: selected.id, courierUserId: courier.userId });
@@ -48,7 +49,7 @@ function AssignDeliveryPanel({ courier, action, close }: { courier: AssignDelive
     } catch (error) {
       toast.error(describeAgencyFailure(error).message);
     }
-  }
+  });
 
   return (
       <DialogContent

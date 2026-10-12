@@ -34,6 +34,7 @@ import {
 } from "@/features/agency/couriers/courier-form";
 import { useRegisterCourier } from "@/features/agency/couriers/hooks";
 import { describeAgencyFailure } from "@/features/agency/errors";
+import { useOneAtATime } from "@/features/agency/single-flight";
 import { useAgencyId } from "@/features/agency/session";
 
 const LIST = "/agency/drivers";
@@ -111,7 +112,8 @@ export function CreateDriverForm() {
   const patchDocument = (key: number, patch: Partial<PendingDocument>) =>
     setDocuments((current) => current.map((document) => (document.key === key ? { ...document, ...patch } : document)));
 
-  async function submit() {
+  // One at a time: a second click joins the registration under way.
+  const submit = useOneAtATime(async () => {
     const found = validateCourierForm(form, "register");
     if (Object.keys(found).length > 0) {
       showErrors(found);
@@ -167,7 +169,7 @@ export function CreateDriverForm() {
       toast.success(`${name} est enregistré. Son compte est à vérifier.`);
     }
     router.push(`${LIST}/${courierId}${toSend.length > 0 || failed > 0 ? "#pieces" : ""}`);
-  }
+  });
 
   return (
     <AgencyPage className="max-w-3xl">
