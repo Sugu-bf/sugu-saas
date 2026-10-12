@@ -369,7 +369,8 @@ test.describe("C. writes", () => {
     await page.goto("/driver/deliveries?liste=disponibles");
     await card(page, 601).getByRole("button", { name: "Accepter" }).dblclick();
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Mission ${REF(601)}`);
+    // Accepting notifies the agency and the customer before it answers: several seconds on a slow backend.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Mission ${REF(601)}`, { timeout: 30_000 });
     const id = page.url().split("/").pop()!;
     const { body } = await api(page, `courier/deliveries/${id}`);
     expect(body.data.stage).toBe("to_collect");
