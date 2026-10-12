@@ -2,19 +2,21 @@
 
 import { useState, type ReactNode } from "react";
 import { cn } from "@/design-system";
+import { MAP_TILE_ZOOM, mapTileUrl } from "@/lib/map-tiles";
 
 // A map of one point, drawn with OpenStreetMap tiles: pictures laid side by
 // side, the point in the middle. No script, no library, nothing to interact
 // with — "Ouvrir l'itinéraire" next to it opens a real map.
 //
-// The tiles come from another site. When none of them can be loaded — no
-// network, the tile server down, or a content security policy that does not
-// list it, as the one in front of pro.sugu.pro — the frame says so instead of
-// showing broken pictures with a marker on nothing. What is laid over the map
-// stays, and the link beside it still opens a real one.
+// The tiles are asked of the portal itself (/api/map-tiles), which relays
+// them: the content security policy served in front of pro.sugu.pro refuses
+// an image from another site, the tile server included. When none of them
+// can be loaded — no network, the tile server out of reach — the frame says
+// so instead of showing broken pictures with a marker on nothing. What is
+// laid over the map stays, and the link beside it still opens a real one.
 
 const TILE = 256;
-const ZOOM = 15;
+const ZOOM = MAP_TILE_ZOOM;
 /** Tiles drawn around the one that holds the point: enough to fill a card on a wide screen. */
 const COLUMNS = 5;
 const ROWS = 3;
@@ -86,10 +88,10 @@ export function StaticMap({ lat, lng, label, marker, children, className }: Stat
               // Beyond the poles there is no tile; east and west, the world wraps.
               if (y < 0 || y >= limit) return <span key={index} style={{ width: TILE, height: TILE }} />;
               return (
-                // eslint-disable-next-line @next/next/no-img-element -- map tiles: fixed 256px pictures from the tile server, nothing for the image optimiser to do.
+                // eslint-disable-next-line @next/next/no-img-element -- map tiles: fixed 256px pictures relayed as they are, nothing for the image optimiser to do.
                 <img
                   key={`${view}/${index}`}
-                  src={`https://tile.openstreetmap.org/${ZOOM}/${((x % limit) + limit) % limit}/${y}.png`}
+                  src={mapTileUrl(((x % limit) + limit) % limit, y)}
                   alt=""
                   width={TILE}
                   height={TILE}

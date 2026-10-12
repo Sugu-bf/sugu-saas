@@ -42,7 +42,7 @@ export async function signIn(page: Page, baseURL: string | undefined) {
   expect(response.ok(), `login: ${response.status()}`).toBe(true);
 }
 
-/** A drawn tile, served in place of the map tiles: no test reaches the network. */
+/** A drawn tile, served in place of the map tiles (the portal relays them from OpenStreetMap): no test reaches the network. */
 const BLANK_TILE =
   '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#eef0ec"/>' +
   '<path d="M0 70h256M0 190h256M60 0v256M170 0v256" stroke="#fff" stroke-width="10"/><path d="M0 128h256M118 0v256" stroke="#fff" stroke-width="4"/>' +
@@ -52,7 +52,7 @@ export async function open(page: Page, baseURL: string | undefined, path: string
   await page.setViewportSize({ width: options.width ?? 1280, height: options.height ?? 900 });
   // The page lives at the moment the data set was built for: "today", "late" and "il y a 5 min" hold at any hour.
   await page.clock.setFixedTime(fixtureNow());
-  await page.route(/tile\.openstreetmap\.org/, (route) => route.fulfill({ status: 200, contentType: "image/svg+xml", body: BLANK_TILE }));
+  await page.route(/\/api\/map-tiles\//, (route) => route.fulfill({ status: 200, contentType: "image/svg+xml", body: BLANK_TILE }));
   await signIn(page, baseURL);
   await page.goto(path);
   await expect(page.locator('[data-shell="pro"][data-role="agency"]')).toBeVisible();

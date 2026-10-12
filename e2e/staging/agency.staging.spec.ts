@@ -74,7 +74,7 @@ async function sessionOf(browser: Browser, baseURL: string | undefined) {
   return storage;
 }
 
-/** Map tiles the browser refused to load because of the content security policy it was served. */
+/** Map tiles that could not be loaded: refused by the content security policy the browser was served, or not relayed by the portal. */
 let refusedTiles = 0;
 
 /** What went wrong while a page was used: an error of the page, of the console, or an answer of the API that is not a success. */
@@ -85,8 +85,8 @@ function watch(page: Page, problems: string[]) {
     const text = message.text();
     // The realtime socket is not part of this run, and a failed request is listed with its status below.
     if (/WebSocket|wss?:\/\/|Failed to load resource/.test(text)) return;
-    // The tiles of the map come from another site. Where the policy served in front of the portal does not
-    // list it, each one is refused: counted apart, and told once by the check of the map (G1).
+    // A portal older than the relay of the tiles asks them of another site, which the policy served in front
+    // of it refuses: counted apart, and told once by the check of the map (G1).
     if (/tile\.openstreetmap\.org/.test(text) && /Content Security Policy/.test(text)) {
       refusedTiles += 1;
       return;
@@ -95,6 +95,11 @@ function watch(page: Page, problems: string[]) {
   });
   page.on("response", (response) => {
     const url = new URL(response.url());
+    // A tile the portal could not relay (the tile server out of reach): counted with the refused ones, told by the check of the map.
+    if (url.pathname.startsWith("/api/map-tiles/")) {
+      if (response.status() >= 400) refusedTiles += 1;
+      return;
+    }
     if (url.pathname.startsWith("/api/") && response.status() >= 400) problems.push(`${response.status()} ${response.request().method()} ${url.pathname}`);
   });
 }
@@ -974,12 +979,16 @@ test.describe(`V3.1 agency acceptance — ${TARGET}`, () => {
       const unavailable = position.getByText("Le fond de carte n'a pas pu être chargé.");
       await expect(position.getByRole("img", { name: /Carte/ }).or(unavailable).first()).toBeVisible();
       const broken = await position.locator("img").evaluateAll((tiles) => tiles.filter((tile) => (tile as HTMLImageElement).complete && (tile as HTMLImageElement).naturalWidth === 0 && getComputedStyle(tile).visibility !== "hidden").length);
-      note("map", { tilesRefusedByThePolicy: refusedTiles, shown: (await unavailable.count()) > 0 ? "said unavailable" : "drawn", brokenPictures: broken });
+      const drawnTiles = await position.locator("img").evaluateAll((tiles) => tiles.filter((tile) => (tile as HTMLImageElement).naturalWidth > 0).length);
+      note("map", { tilesNotLoaded: refusedTiles, tilesDrawn: drawnTiles, shown: (await unavailable.count()) > 0 ? "said unavailable" : "drawn", brokenPictures: broken });
       expect(broken, "no broken picture where the map should be").toBe(0);
       if (refusedTiles > 0) {
-        // A fact of the environment, not of the screen: said in the report of the run, the map stays replaced by its sentence until the policy lists the tile server.
-        test.info().annotations.push({ type: "environment", description: `the content security policy served in front of ${TARGET} refuses tile.openstreetmap.org (img-src): the map is said unavailable` });
-        await expect(unavailable).toBeVisible();
+        // A fact of the environment, not of the screen: the tiles are refused by the policy served in front of a portal that
+        // still asks them of another site, or the tile server is out of reach of the portal. The map says so.
+        test.info().annotations.push({ type: "environment", description: `${TARGET}: ${refusedTiles} map tiles could not be loaded` });
+        if (drawnTiles === 0) await expect(unavailable).toBeVisible();
+      } else {
+        expect(drawnTiles, "the map is drawn with its tiles").toBeGreaterThan(0);
       }
     } else {
       await expect(position).toContainText("n'a transmis aucune position");

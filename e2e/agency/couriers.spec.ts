@@ -317,14 +317,14 @@ test.describe("courier page", () => {
     await expect(pageAlert(page)).toContainText("Ce livreur est introuvable");
   });
 
-  // Found on staging (V3.1): the policy served in front of the portal refuses the tile server.
-  test("says that the map could not be loaded when its tiles are refused, without a broken picture", async ({ page, baseURL }) => {
+  // Found on staging (V3.1): the policy served in front of the portal refused the tile server, and the card showed broken pictures.
+  test("says that the map could not be loaded when its tiles cannot be, without a broken picture", async ({ page, baseURL }) => {
     await open(page, baseURL, `${LIST}/courier-1`, { width: 1440 });
     const position = panel(page, "Dernière position");
     await expect(position.getByRole("img", { name: /Carte/ })).toBeVisible();
 
-    // The same page, the tile server out of reach.
-    await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+    // The same page, the tile server out of reach: the portal answers 502 for each tile.
+    await page.route(/\/api\/map-tiles\//, (route) => route.fulfill({ status: 502, body: "" }));
     await page.reload();
     await expect(position).toContainText("Le fond de carte n'a pas pu être chargé.");
     await expect(position.locator("img")).toHaveCount(0);

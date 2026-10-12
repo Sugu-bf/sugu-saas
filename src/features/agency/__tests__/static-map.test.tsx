@@ -3,8 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { StaticMap } from "../components/static-map";
 
 // Found on staging (V3.1): the content security policy served in front of the
-// portal does not list the tile server. Every tile was refused, and the card
-// showed broken pictures with the marker of the courier on nothing.
+// portal refuses an image from another site. Every tile of OpenStreetMap was
+// refused, and the card showed broken pictures with the marker of the courier
+// on nothing. The tiles are now asked of the portal itself, and a map whose
+// tiles cannot be loaded says so.
 
 const OUAGADOUGOU = { lat: 12.3657, lng: -1.5339 };
 
@@ -23,7 +25,8 @@ describe("StaticMap", () => {
     const { container } = draw();
 
     expect(tilesOf(container)).toHaveLength(15);
-    expect(tilesOf(container)[0].getAttribute("src")).toMatch(/^https:\/\/tile\.openstreetmap\.org\/15\/\d+\/\d+\.png$/);
+    // From the portal's own origin: nothing is asked of another site by the browser.
+    for (const tile of tilesOf(container)) expect(tile.getAttribute("src")).toMatch(/^\/api\/map-tiles\/15\/\d+\/\d+$/);
     expect(screen.getByRole("img", { name: "Carte : dernière position connue de Moussa" })).toBeTruthy();
     expect(screen.getByTestId("marker")).toBeTruthy();
     expect(screen.getByText("© OpenStreetMap")).toBeTruthy();
