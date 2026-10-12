@@ -1,4 +1,4 @@
-import { api, apiFetch } from "@/lib/http/client";
+import { API_PROXY_PREFIX, api, apiFetch } from "@/lib/http/client";
 import { ApiError } from "@/lib/http/api-error";
 import { downloadBlob, saveBlob } from "@/lib/http/download";
 import { parseCourierDetail, parseCourierListPage, type CourierDetail, type CourierListPage } from "./contract";
@@ -38,6 +38,14 @@ function filterParams(filters: CourierListFilters): Record<string, string | unde
 
 const couriers = (agencyId: string) => `agencies/${encodeURIComponent(agencyId)}/couriers`;
 const courier = (agencyId: string, id: string) => `${couriers(agencyId)}/${encodeURIComponent(id)}`;
+
+/**
+ * Address of the file of a document, on the portal's own origin: the relay
+ * adds the session and Laravel checks who may read it. Nobody is sent to the
+ * host of the API to look at an identity document.
+ */
+export const courierDocumentFilePath = (agencyId: string, courierId: string, documentId: string): string =>
+  `${API_PROXY_PREFIX}${courier(agencyId, courierId)}/kyc-documents/${encodeURIComponent(documentId)}/file`;
 
 export async function fetchCouriers(agencyId: string, query: CourierListQuery): Promise<CourierListPage> {
   const pageSize = query.pageSize ?? COURIER_PAGE_SIZE;

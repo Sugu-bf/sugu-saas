@@ -17,6 +17,7 @@ vi.mock("@/lib/env", () => ({
 
 import { ApiError } from "@/lib/http/api-error";
 import { maskCode } from "../components/invitation-code";
+import { courierDocumentFilePath } from "../couriers/api";
 import { tilePosition } from "../components/static-map";
 import { describeAgencyFailure, describeRejection } from "../errors";
 import {
@@ -90,6 +91,14 @@ describe("links", () => {
     expect(whatsappHref("+226 70 12 34 56")).toBe("https://wa.me/22670123456");
     expect(mapsSearchHref("Avenue Kwame Nkrumah, Ouagadougou")).toBe("https://www.google.com/maps/search/?api=1&query=Avenue%20Kwame%20Nkrumah%2C%20Ouagadougou");
     expect(mapsPointHref(12.3657, -1.5339)).toBe("https://www.google.com/maps/search/?api=1&query=12.3657,-1.5339");
+  });
+});
+
+describe("the file of a document", () => {
+  // Found on staging (V3.1): « Voir le fichier » opened a signed link to the host of the API.
+  it("is opened on the origin of the portal, whose relay adds the session", () => {
+    expect(courierDocumentFilePath("agency-1", "courier-profile-1", "d1")).toBe("/api/proxy/agencies/agency-1/couriers/courier-profile-1/kyc-documents/d1/file");
+    expect(courierDocumentFilePath("a/1", "c 1", "d?1")).toBe("/api/proxy/agencies/a%2F1/couriers/c%201/kyc-documents/d%3F1/file");
   });
 });
 

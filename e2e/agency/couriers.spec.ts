@@ -285,6 +285,19 @@ test.describe("courier page", () => {
       fields: { document_type: "driver_license", document_name: "Permis de conduire", document_number: "P-77006", expires_on: "2030-06-30" },
       files: ["permis.pdf"],
     });
+
+    // Found on staging (V3.1): « Voir le fichier » opened a signed link to the host of the API.
+    // The file is asked of the portal itself, behind the session; a document without a file offers none.
+    const file = documents.getByRole("link", { name: "Voir le fichier" });
+    await expect(file).toHaveCount(1);
+    const href = (await file.getAttribute("href")) ?? "";
+    expect(href).toMatch(/^\/api\/proxy\/agencies\/[^/]+\/couriers\/courier-6\/kyc-documents\/doc-new-\d+\/file$/);
+    const opened = await page.request.get(href);
+    expect(opened.status()).toBe(200);
+    expect(opened.headers()["content-type"]).toBe("application/pdf");
+    expect(opened.headers()["content-disposition"]).toBe('inline; filename="permis.pdf"');
+    expect(await opened.text()).toContain("%PDF-1.4");
+    await expect(page.locator('a[href*="api.invalid"], a[href*="signature="]')).toHaveCount(0);
   });
 
   test("sets the share of a courier, and goes back to the rate of the agency", async ({ page, baseURL }) => {

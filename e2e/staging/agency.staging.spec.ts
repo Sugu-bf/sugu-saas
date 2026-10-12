@@ -55,6 +55,33 @@ const COURIER_EMAIL = `qa-recette-livreur-${STAMP}@qa.sugu.test`;
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/**
+ * A synthetic identity document: one page that says what it is. A real PDF,
+ * so that it can be opened as the agency would open one — the first runs
+ * joined a few bytes no reader could display.
+ */
+function syntheticPdf(): Buffer {
+  const text = "PIECE FACTICE DE RECETTE SUGU - AUCUNE VALEUR";
+  const stream = `BT /F1 14 Tf 30 100 Td (${text}) Tj ET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 440 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = objects.map((object, index) => {
+    const offset = body.length;
+    body += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    return offset;
+  });
+  const xref = body.length;
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}`;
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(body, "latin1");
+}
+
 // ── Session ─────────────────────────────────────────────────
 
 let storage: Awaited<ReturnType<BrowserContext["storageState"]>> | null = null;
@@ -1542,7 +1569,7 @@ test.describe(`V3.1 agency acceptance — ${TARGET}`, () => {
       await piece.getByLabel("Numéro").fill(`QA-FACTICE-${STAMP}`);
       await piece.getByLabel("Fichier").setInputFiles({ name: "cnib.gif", mimeType: "image/gif", buffer: Buffer.from("GIF89a") });
       await expect(piece).toContainText("Formats acceptés : JPG, PNG ou PDF.");
-      await piece.getByLabel("Fichier").setInputFiles({ name: "piece-factice-de-recette.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n% PIECE FACTICE DE RECETTE SUGU - AUCUNE VALEUR\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n") });
+      await piece.getByLabel("Fichier").setInputFiles({ name: "piece-factice-de-recette.pdf", mimeType: "application/pdf", buffer: syntheticPdf() });
       await agency.getByRole("button", { name: "Enregistrer le livreur" }).click();
 
       await expect(agency).toHaveURL(/\/agency\/drivers\/[0-9a-z]{26}(#pieces)?$/, { timeout: 45_000 });
@@ -1564,6 +1591,21 @@ test.describe(`V3.1 agency acceptance — ${TARGET}`, () => {
       expect(record.courier.kyc_documents[0]).toMatchObject({ document_type: "id_card", document_number: `QA-FACTICE-${STAMP}` });
       await expect(panel(agency, "Pièces justificatives").getByRole("listitem")).toHaveCount(1);
       await shot(agency, "livreur-inscrit-1440");
+
+      // His document opens through the portal, behind the session: the very file that was joined, and never a link to the host of the API.
+      const file = panel(agency, "Pièces justificatives").getByRole("link", { name: "Voir le fichier" });
+      const href = (await file.getAttribute("href")) ?? "";
+      expect(href, "the file is asked of the portal itself").toMatch(new RegExp(`^/api/proxy/agencies/${id}/couriers/${created!.id}/kyc-documents/[0-9a-z]{26}/file$`));
+      const opened = await agency.request.get(href);
+      expect(opened.status(), `GET ${href}`).toBe(200);
+      expect(opened.headers()["content-type"]).toContain("application/pdf");
+      expect(opened.headers()["content-disposition"] ?? "").toMatch(/^inline/);
+      expect((await opened.body()).equals(syntheticPdf()), "the file read is the file joined").toBe(true);
+      await expect(agency.locator('a[href*="kyc-files"], a[href*="signature="]'), "no signed link to the API in the page").toHaveCount(0);
+      // Without the session, the same address hands nothing.
+      const stranger = await agency.context().browser()!.newContext({ baseURL });
+      expect((await stranger.request.get(href)).status()).toBe(401);
+      await stranger.close();
 
       // In the list, among those to verify, and not offered a delivery.
       await open(agency, "/agency/drivers?activity=to_verify", "Livreurs");

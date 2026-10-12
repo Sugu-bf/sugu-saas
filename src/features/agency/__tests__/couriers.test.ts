@@ -20,7 +20,16 @@ describe("courier", () => {
       vehicleMake: "Yamaha YBR 125",
       vehicleYear: "2022",
     });
-    expect(courier.documents).toEqual([{ id: "d1", type: "id_card", number: "B 1000000", expiresOn: "2029-01-01", status: "1", fileUrl: null }]);
+    expect(courier.documents).toEqual([{ id: "d1", type: "id_card", number: "B 1000000", expiresOn: "2029-01-01", status: "1", hasFile: false }]);
+  });
+
+  // Found on staging (V3.1): « Voir le fichier » opened a signed link to the host of the API.
+  it("knows that a document has a file, and keeps nothing of the signed link of the API", () => {
+    const signed = "https://api.example.test/api/v1/kyc-files/courier/f1?expires=1791789219&signature=abc";
+    const courier = parseCourier(rawCourier({ kyc_documents: [{ id: "d1", document_type: "id_card", status: 1, file_url: signed }, { id: "d2", document_type: "driver_license", status: 0, file_url: null }] }));
+
+    expect(courier.documents?.map((document) => [document.id, document.hasFile])).toEqual([["d1", true], ["d2", false]]);
+    expect(JSON.stringify(courier)).not.toContain("api.example.test");
   });
 
   it("never shows the made-up address of a courier registered without an e-mail", () => {

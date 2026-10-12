@@ -75,9 +75,11 @@ import { AgencyPage, KpiMoney, KpiRow } from "@/features/agency/components/page"
 import { Panel } from "@/features/agency/components/panel";
 import { StaticMap } from "@/features/agency/components/static-map";
 import { DOCUMENT_TYPE_LABEL, documentLabel, vehicleLabel, type Courier, type CourierDayEvent, type CourierDetail, type CourierDocument } from "@/features/agency/couriers/contract";
+import { courierDocumentFilePath } from "@/features/agency/couriers/api";
 import { useCourier, useCourierAction } from "@/features/agency/couriers/hooks";
 import type { DeliveryRow } from "@/features/agency/deliveries/contract";
 import { describeAgencyFailure } from "@/features/agency/errors";
+import { useAgencyId } from "@/features/agency/session";
 import {
   formatCount,
   formatDay,
@@ -370,6 +372,7 @@ const DAY_EVENTS_SHOWN = 6;
 
 export function CourierProfileContent({ id }: { id: string }) {
   const query = useCourier(id);
+  const agencyId = useAgencyId();
   const [intent, setIntent] = useState<CourierIntent | null>(null);
   // What is asked of one of his last deliveries, from its menu.
   const [deliveryIntent, setDeliveryIntent] = useState<DeliveryIntent | null>(null);
@@ -831,8 +834,9 @@ export function CourierProfileContent({ id }: { id: string }) {
                         </p>
                         {document.number && <p className="truncate text-meta text-foreground-muted tabular-nums">N° {document.number}</p>}
                         {expiry && <p className={cn("text-meta", expiry.tone === "danger" ? "text-danger-fg" : expiry.tone === "warning" ? "text-warning-fg" : "text-foreground-muted")}>{expiry.text}</p>}
-                        {document.fileUrl && (
-                          <a href={document.fileUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 rounded-compact text-meta font-medium text-primary underline-offset-2 hover:underline">
+                        {/* Opened through the portal, behind the session: never by a link to the host of the API. */}
+                        {document.hasFile && agencyId && (
+                          <a href={courierDocumentFilePath(agencyId, courier.id, document.id)} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 rounded-compact text-meta font-medium text-primary underline-offset-2 hover:underline">
                             Voir le fichier
                             <ExternalLink className="size-3" aria-hidden="true" />
                           </a>

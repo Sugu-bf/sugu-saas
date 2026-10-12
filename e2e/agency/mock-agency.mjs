@@ -612,7 +612,8 @@ function courierRow(set, courier, { documents = true, detailed = false } = {}) {
       ...(detailed ? { document_number: document.document_number, expires_on: document.expires_on } : {}),
       status: document.status,
       reviewed_at: null,
-      file_url: null,
+      // As the real API: a signed link to its own host. The portal never sends anyone there.
+      file_url: document.file_name ? `https://api.invalid/api/v1/kyc-files/courier/${document.id}?expires=1791789219&signature=stand-in` : null,
     }));
   }
   return data;
@@ -1129,6 +1130,17 @@ export default async function agency({ req, res, url, path, method, token, send,
     return true;
   }
 
+  // The file of a document, behind the session.
+  const file = rest.match(/^\/couriers\/([^/]+)\/kyc-documents\/([^/]+)\/file$/);
+  if (file && method === "GET") {
+    const document = set.couriers.find((entry) => entry.id === file[1])?.documents.find((entry) => entry.id === file[2]);
+    if (!document) return refuse(404, "Pièce, livreur ou agence introuvable.");
+    if (!document.file_name) return refuse(404, "Aucun fichier n'a été transmis pour cette pièce.");
+    res.writeHead(200, { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${document.file_name}"` });
+    res.end(`%PDF-1.4\n% stand-in for ${document.file_name}\n%%EOF\n`);
+    return true;
+  }
+
   const person = rest.match(/^\/couriers\/([^/]+)(?:\/(suspend|activate|verify-kyc|kyc-documents|commission-rate))?$/);
   if (person) {
     const courier = set.couriers.find((entry) => entry.id === person[1]);
@@ -1143,7 +1155,7 @@ export default async function agency({ req, res, url, path, method, token, send,
       const files = [...raw.matchAll(/name="files\[\]"; filename="([^"]*)"/g)].map((part) => part[1]);
       set.received.push({ path: rest, fields: { document_type: field("document_type"), document_name: field("document_name"), document_number: field("document_number"), expires_on: field("expires_on") }, files });
       if (files.length === 0) return refuse(422, "Erreur de validation.", { errors: { files: ["Au moins un fichier est requis."] } });
-      courier.documents.push({ id: `doc-new-${set.sequence++}`, document_type: field("document_type"), document_name: field("document_name"), document_number: field("document_number"), expires_on: field("expires_on"), status: 0 });
+      courier.documents.push({ id: `doc-new-${set.sequence++}`, document_type: field("document_type"), document_name: field("document_name"), document_number: field("document_number"), expires_on: field("expires_on"), status: 0, file_name: files[0] });
       send(res, 201, { success: true, message: "Document ajouté." });
       return true;
     }

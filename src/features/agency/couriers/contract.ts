@@ -83,7 +83,12 @@ export interface CourierDocument {
   expiresOn: string | null;
   /** `CourierKycDocument.status`: 0 pending, 1 approved, 2 rejected. */
   status: string | null;
-  fileUrl: string | null;
+  /**
+   * Whether a file was sent for it. The portal opens it through its own
+   * origin (`courierDocumentFilePath`); the signed link the API also answers
+   * (`file_url`) leads to the host of the API, and is not used.
+   */
+  hasFile: boolean;
 }
 
 export interface Courier {
@@ -195,7 +200,7 @@ function courierOf(courier: RawCourier): Courier {
           number: document.document_number ?? null,
           expiresOn: document.expires_on ?? null,
           status: document.status === null || document.status === undefined ? null : String(document.status),
-          fileUrl: document.file_url ?? null,
+          hasFile: Boolean(document.file_url),
         }))
       : null,
   };
