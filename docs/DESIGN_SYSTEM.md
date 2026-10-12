@@ -327,3 +327,20 @@ Statuts ajoutés (`status/domains.ts`) :
 Impression : `@media print` retire le cadre (menu, barre du haut, barre d'onglets) et laisse sortir toute la page. Une page qui imprime un document cache son contenu d'écran (`print:hidden`) et montre le document (`hidden print:block`) : voir le bon de livraison de la fiche livraison.
 
 Code de l'espace : `src/features/agency/{deliveries,couriers,dashboard}` (contrats Zod, appels, états), `src/features/agency/components` (pièces partagées par les écrans), `src/app/(agency)/agency/*` (pages). Tests : `npx vitest run src/features/agency src/design-system`, puis `npx next build --webpack && npx playwright test -c playwright.agency.config.ts`.
+
+## 11. Espace Coursier (V4)
+
+Les écrans du coursier suivent leurs maquettes (`docs/captures/references/v4-coursier-planche-3.png` ; les trois autres planches pour ce que la 3 ne dessine pas). Le téléphone est l'écran pour lequel ils sont faits.
+
+- **Cadre** : `DriverPage` (une colonne de 42 rem, ou `wide` pour l'accueil et l'historique), `ScreenHeader` (retour à gauche, titre centré sur téléphone comme dans une application), `ActionBar` (l'action de l'écran, posée sur la barre d'onglets du téléphone). Dans `src/features/driver/components/frame.tsx`.
+- **Indicateurs** : `KpiCard`, la tuile d'icône teintée à gauche, le chiffre, son libellé ; `KpiGrid`, deux par rangée sur téléphone, le cinquième sous les quatre autres. C'est le dessin de la planche 3 : il diffère des indicateurs sobres de l'Agence (section 10), sur demande explicite de conformité aux maquettes. Aucune tendance, aucun chiffre calculé par l'écran.
+- **Carte de mission** (`MissionCard`) : référence, statut, la boutique (tuile verte) et le destinataire (tuile rouge), ce qui est à encaisser, une action. Les deux tuiles disent les deux bouts du trajet : elles informent, elles ne décorent pas.
+- **Progression** (`MissionJourney`) : quatre étapes, la dernière atteinte est l'étape en cours. Lue comme une liste par les lecteurs d'écran (« En transit : en cours »).
+- **Carte** (`MissionMap`) : les deux lieux, quand le serveur a leurs coordonnées. Ni position du coursier, ni tracé, ni distance : « Voir l'itinéraire » ouvre une vraie application de cartes. Tuiles relayées par le portail (`StaticMap`, prop `others` pour le second lieu).
+- **Statuts** : domaine `courierMission` (`CourierDeliveryService::stageOf`). « assigned » ne dit pas si la mission est à accepter, à collecter ou collectée : le serveur le dit, l'écran ne le déduit pas.
+- **Actions** : `next_actions` et `blocked_actions` viennent du serveur. Un écran n'offre que ce qui y figure (`can(mission, action)`), et dit ce qui retient l'étape suivante (`blockedReason`). Aucune règle du parcours n'est recopiée dans le portail.
+- **Codes** : le code d'une boutique et celui du client ne sont jamais affichés au coursier. Il saisit ce qu'on lui dit ; le serveur vérifie.
+- **Argent** : `collectionOf(mission)` donne la ligne sous le montant. « À encaisser (COD) » seulement pour un paiement à la livraison en espèces ; un COD Mixte se paie par mobile money et n'affiche jamais de montant à encaisser.
+- **Navigation** : Accueil, Missions, Historique, Profil sont les quatre onglets du téléphone ; Documents, Gains, Messages, Paramètres et Aide sont dans le menu. Un coursier qui ne peut pas encore livrer voit « Mon dossier » à la place d'Accueil et de Missions (`courierCanWork`, confort de navigation : le serveur refuse les missions de lui-même).
+
+Code de l'espace : `src/features/driver/{missions,history,kyc}` (contrats Zod, appels, états), `src/features/driver/components`, `src/app/(driver)/driver/*`. Tests : `npx vitest run src/features/driver`, puis `npx next build --webpack && npx playwright test -c playwright.driver.config.ts`. Captures : `CAPTURE=1 npx playwright test -c playwright.driver.config.ts e2e/driver/captures.spec.ts` vers `docs/captures/v4-courier/`.
