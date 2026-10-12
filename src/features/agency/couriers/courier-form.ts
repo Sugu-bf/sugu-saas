@@ -201,13 +201,18 @@ export function updateRequestOf(form: CourierForm): CourierUpdateRequest {
   };
 }
 
-/** The form of an existing courier. His name is one field on the server: its first word is the first name. */
+/**
+ * The form of an existing courier. His first name and his name are the ones
+ * the server answers, as they were typed. A backend that answers his whole
+ * name only has it cut at its first word: a compound first name then comes
+ * back in two.
+ */
 export function courierFormOf(courier: Courier): CourierForm {
-  const [firstName, ...rest] = courier.name.trim().split(/\s+/);
+  const [firstWord, ...rest] = courier.name.trim().split(/\s+/);
   return {
     ...EMPTY_COURIER_FORM,
-    firstName: firstName ?? "",
-    lastName: rest.join(" "),
+    firstName: courier.names?.first ?? firstWord ?? "",
+    lastName: courier.names ? courier.names.last : rest.join(" "),
     phone: courier.phone ?? "",
     email: courier.email ?? "",
     dateOfBirth: courier.dateOfBirth ?? "",

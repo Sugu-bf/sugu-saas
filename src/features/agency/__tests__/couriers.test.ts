@@ -155,7 +155,10 @@ describe("courier form", () => {
     expect(single).toMatchObject({ firstName: "Moussa", lastName: "" });
     expect(validateCourierForm(single, "edit", undefined, now)).toEqual({});
     expect(updateRequestOf(single).last_name).toBeUndefined();
-    // Three words: the first is the first name, the rest the name.
+    // His first name and his name, as the server kept them: a compound first name stays whole.
+    const typed = rawCourier({ first_name: "Jean Baptiste", last_name: "Nikiéma", user: { id: "u", name: "Jean Baptiste Nikiéma", email: null, phone_e164: null } });
+    expect(courierFormOf(parseCourier(typed))).toMatchObject({ firstName: "Jean Baptiste", lastName: "Nikiéma" });
+    // A backend that answers the whole name only: the first word is the first name, the rest the name.
     expect(courierFormOf(parseCourier(rawCourier({ user: { id: "u", name: "Jean Baptiste Nikiéma", email: null, phone_e164: null } })))).toMatchObject({ firstName: "Jean", lastName: "Baptiste Nikiéma" });
   });
 

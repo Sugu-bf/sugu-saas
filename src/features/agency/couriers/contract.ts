@@ -62,6 +62,9 @@ const rawCourierSchema = z.object({
   created_at: text.optional(),
   metadata: z.record(z.string(), z.unknown()).nullish(),
   user: z.object({ id, name: z.string(), email: text, phone_e164: text }).nullish(),
+  // His first name and his name as they were typed (CourierService::namesOf); on his page only.
+  first_name: text.optional(),
+  last_name: text.optional(),
   branch: z.object({ id, name: z.string() }).nullish(),
   kyc_documents: z.array(rawDocumentSchema).nullish(),
   // Figures of the day (AgencyCourierOverviewService::figuresFor).
@@ -89,6 +92,8 @@ export interface Courier {
   /** His user account: what assigning a delivery expects. */
   userId: string;
   name: string;
+  /** His first name and his name, apart; null when the backend answers his whole name only. */
+  names: { first: string; last: string } | null;
   email: string | null;
   phone: string | null;
   employeeId: string | null;
@@ -148,6 +153,7 @@ function courierOf(courier: RawCourier): Courier {
     id: courier.id,
     userId: courier.user_id,
     name: courier.user?.name ?? "Livreur",
+    names: courier.first_name ? { first: courier.first_name, last: courier.last_name ?? "" } : null,
     email: courier.user?.email && !PLACEHOLDER_EMAIL.test(courier.user.email) ? courier.user.email : null,
     phone: courier.user?.phone_e164 ?? courier.phone_e164,
     employeeId: courier.employee_id,
