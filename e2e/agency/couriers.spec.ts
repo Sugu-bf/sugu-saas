@@ -316,4 +316,22 @@ test.describe("courier page", () => {
     await page.goto(`${LIST}/courier-unknown`);
     await expect(pageAlert(page)).toContainText("Ce livreur est introuvable");
   });
+
+  // Found on staging (V3.1): the policy served in front of the portal refuses the tile server.
+  test("says that the map could not be loaded when its tiles are refused, without a broken picture", async ({ page, baseURL }) => {
+    await open(page, baseURL, `${LIST}/courier-1`, { width: 1440 });
+    const position = panel(page, "Dernière position");
+    await expect(position.getByRole("img", { name: /Carte/ })).toBeVisible();
+
+    // The same page, the tile server out of reach.
+    await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+    await page.reload();
+    await expect(position).toContainText("Le fond de carte n'a pas pu être chargé.");
+    await expect(position.locator("img")).toHaveCount(0);
+    await expect(position.getByRole("img", { name: /Carte/ })).toHaveCount(0);
+    await expect(position).not.toContainText("OpenStreetMap");
+    // When he was last seen, and the way to a real map, are still there.
+    await expect(position).toContainText("Il y a 3 min");
+    await expect(position.getByRole("link", { name: "Ouvrir la carte" })).toHaveAttribute("href", /query=12\.3657,-1\.5339/);
+  });
 });

@@ -74,6 +74,9 @@ async function sessionOf(browser: Browser, baseURL: string | undefined) {
   return storage;
 }
 
+/** Map tiles the browser refused to load because of the content security policy it was served. */
+let refusedTiles = 0;
+
 /** What went wrong while a page was used: an error of the page, of the console, or an answer of the API that is not a success. */
 function watch(page: Page, problems: string[]) {
   page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
@@ -82,6 +85,12 @@ function watch(page: Page, problems: string[]) {
     const text = message.text();
     // The realtime socket is not part of this run, and a failed request is listed with its status below.
     if (/WebSocket|wss?:\/\/|Failed to load resource/.test(text)) return;
+    // The tiles of the map come from another site. Where the policy served in front of the portal does not
+    // list it, each one is refused: counted apart, and told once by the check of the map (G1).
+    if (/tile\.openstreetmap\.org/.test(text) && /Content Security Policy/.test(text)) {
+      refusedTiles += 1;
+      return;
+    }
     problems.push(`console: ${text.slice(0, 240)}`);
   });
   page.on("response", (response) => {
@@ -958,8 +967,21 @@ test.describe(`V3.1 agency acceptance — ${TARGET}`, () => {
     } else await expect(mission).toContainText("Aucune course en main.");
 
     const position = panel(agency, "Dernière position");
-    if (activity.last_position) await expect(position.getByRole("link", { name: "Ouvrir la carte" })).toHaveAttribute("href", new RegExp(`query=${activity.last_position.lat},${activity.last_position.lng}`));
-    else {
+    if (activity.last_position) {
+      await expect(position.getByRole("link", { name: "Ouvrir la carte" })).toHaveAttribute("href", new RegExp(`query=${activity.last_position.lat},${activity.last_position.lng}`));
+      // The map itself: drawn, or said unavailable where its tiles are refused. Never broken pictures under a marker.
+      await agency.waitForLoadState("networkidle");
+      const unavailable = position.getByText("Le fond de carte n'a pas pu être chargé.");
+      await expect(position.getByRole("img", { name: /Carte/ }).or(unavailable).first()).toBeVisible();
+      const broken = await position.locator("img").evaluateAll((tiles) => tiles.filter((tile) => (tile as HTMLImageElement).complete && (tile as HTMLImageElement).naturalWidth === 0 && getComputedStyle(tile).visibility !== "hidden").length);
+      note("map", { tilesRefusedByThePolicy: refusedTiles, shown: (await unavailable.count()) > 0 ? "said unavailable" : "drawn", brokenPictures: broken });
+      expect(broken, "no broken picture where the map should be").toBe(0);
+      if (refusedTiles > 0) {
+        // A fact of the environment, not of the screen: said in the report of the run, the map stays replaced by its sentence until the policy lists the tile server.
+        test.info().annotations.push({ type: "environment", description: `the content security policy served in front of ${TARGET} refuses tile.openstreetmap.org (img-src): the map is said unavailable` });
+        await expect(unavailable).toBeVisible();
+      }
+    } else {
       await expect(position).toContainText("n'a transmis aucune position");
       await expect(agency.getByRole("img", { name: /Carte/ })).toHaveCount(0);
     }
