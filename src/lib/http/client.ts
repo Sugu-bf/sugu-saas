@@ -173,7 +173,8 @@ export async function apiRequest<T>(
         throw new ApiError({
           message: json.message ?? `HTTP ${response.status}`,
           status: response.status,
-          code: json.code ?? `HTTP_${response.status}`,
+          // Laravel names it `error_code` (COURIER_KYC_PENDING, SUGU-…); the BFF's own routes say `code`.
+          code: json.code ?? json.error_code ?? `HTTP_${response.status}`,
           errors: json.errors,
           requestId: correlationId,
         });
