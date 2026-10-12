@@ -37,13 +37,19 @@ export const SUGU_MESSAGES: Record<string, string> = {
   "SUGU-DELIVERY-CODE-NOT-VERIFIED":
     "La livraison ne peut pas être finalisée : le client n'a pas encore confirmé la réception avec son code de livraison.",
   // Agency shipments (AgencyShipmentService).
-  "SUGU-AGENCY-NOT-ACCEPTED": "Acceptez d'abord cette livraison : un livreur ne peut lui être assigné qu'ensuite.",
+  "SUGU-AGENCY-NOT-ACCEPTED": "Acceptez d'abord cette livraison : elle ne peut être ni assignée ni modifiée avant.",
   "SUGU-AGENCY-ALREADY-PROCESSED": "Cette livraison a déjà été acceptée ou refusée.",
   "SUGU-ASSIGN-INVALID-STATUS": "Cette livraison est déjà collectée, en route ou terminée : son livreur ne peut plus être choisi.",
   "SUGU-REASSIGN-TOO-LATE": "Le livreur ne peut plus être changé : la collecte est en cours ou terminée.",
   "SUGU-STATUS-TRANSITION-INVALID": "Ce changement de statut n'est pas possible depuis l'état actuel de la livraison.",
   "SUGU-PRICE-LOCKED": "Le prix ne peut plus être modifié : la livraison est déjà payée.",
   "SUGU-PRICE-CEILING-EXCEEDED": "Ce montant dépasse de trop le prix annoncé au client.",
+  // COD Mixte: the parcel does not leave before the customer has paid the delivery fee.
+  "SUGU-COD-MIXTE-DELIVERY-FEE-UNPAID": "Le client doit régler les frais de livraison avant le départ du livreur.",
+  // The courier chosen cannot be given a delivery (AgencyShipmentService::courierRefusal).
+  "SUGU-COURIER-SUSPENDED": "Le compte de ce livreur est suspendu : aucune course ne peut lui être confiée.",
+  "SUGU-COURIER-NOT-VERIFIED": "Les pièces de ce livreur ne sont pas encore validées : aucune course ne peut lui être confiée.",
+  "SUGU-COURIER-PAUSED": "Ce livreur est en pause : aucune course ne peut lui être confiée.",
 };
 
 /** Extract a usable message string from any thrown value. */

@@ -22,6 +22,7 @@ export type FailureKind =
   | "conflict"
   | "validation"
   | "refused"
+  | "throttled"
   | "server";
 
 export interface Failure {
@@ -40,6 +41,7 @@ const NEUTRAL: Record<FailureKind, string> = {
   conflict: "Les données ont changé. Actualisez la page avant de réessayer.",
   validation: "Certaines informations sont incorrectes.",
   refused: "Cette action n'est pas possible pour le moment.",
+  throttled: "Trop de demandes en peu de temps. Patientez une minute, puis réessayez.",
   server: "Le serveur a rencontré un problème. Réessayez dans un instant.",
 };
 
@@ -50,6 +52,8 @@ function kindOf(status: number): FailureKind {
   if (status === 404) return "not_found";
   if (status === 409) return "conflict";
   if (status === 422) return "validation";
+  // The sentence of a rate limit is the framework's, in English: never shown.
+  if (status === 429) return "throttled";
   if (status >= 500) return "server";
   return "refused";
 }

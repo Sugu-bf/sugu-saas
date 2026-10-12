@@ -96,7 +96,7 @@ describe("links", () => {
 describe("failures", () => {
   it("shows the sentence of a bare code, never the code", () => {
     const failure = describeAgencyFailure(new ApiError({ message: "SUGU-AGENCY-NOT-ACCEPTED", status: 422 }));
-    expect(failure.message).toBe("Acceptez d'abord cette livraison : un livreur ne peut lui être assigné qu'ensuite.");
+    expect(failure.message).toBe("Acceptez d'abord cette livraison : elle ne peut être ni assignée ni modifiée avant.");
     expect(describeAgencyFailure(new ApiError({ message: "SUGU-ADDED-LATER", status: 422 })).message).not.toContain("SUGU");
   });
 
@@ -110,6 +110,27 @@ describe("failures", () => {
     const failure = describeAgencyFailure(new ApiError({ message: "Erreur de validation.", status: 422, errors: { phone: ["Ce numéro de téléphone est déjà associé à un compte."] } }));
     expect(failure).toMatchObject({ kind: "validation", fields: { phone: "Ce numéro de téléphone est déjà associé à un compte." } });
     expect(describeAgencyFailure(new ApiError({ message: "Cette livraison a déjà été acceptée ou refusée.", status: 409 })).message).toBe("Cette livraison a déjà été acceptée ou refusée.");
+  });
+
+  // The refusals the API holds by itself since V3.1: a courier who cannot work, a COD Mixte parcel whose fee is not paid.
+  it("has a sentence for each refusal of the rules, whether its code comes alone, with its sentence, or as a bulk reason", () => {
+    const sentences = {
+      "SUGU-COURIER-SUSPENDED": "Le compte de ce livreur est suspendu : aucune course ne peut lui être confiée.",
+      "SUGU-COURIER-NOT-VERIFIED": "Les pièces de ce livreur ne sont pas encore validées : aucune course ne peut lui être confiée.",
+      "SUGU-COURIER-PAUSED": "Ce livreur est en pause : aucune course ne peut lui être confiée.",
+      "SUGU-COD-MIXTE-DELIVERY-FEE-UNPAID": "Le client doit régler les frais de livraison avant le départ du livreur.",
+    };
+    for (const [code, sentence] of Object.entries(sentences)) {
+      expect(describeAgencyFailure(new ApiError({ message: code, status: 422 })).message, code).toBe(sentence);
+      expect(describeAgencyFailure(new ApiError({ message: `${code}: une phrase du serveur`, status: 422 })).message, code).toBe(sentence);
+      expect(describeRejection(code), code).toBe(sentence);
+    }
+  });
+
+  // Laravel words a rate limit in English (« Too Many Attempts. »): it was shown as it came.
+  it("asks to wait when requests come too fast, in its own words", () => {
+    const failure = describeAgencyFailure(new ApiError({ message: "Too Many Attempts.", status: 429 }));
+    expect(failure).toMatchObject({ kind: "throttled", message: "Trop de demandes en peu de temps. Patientez une minute, puis réessayez." });
   });
 
   it("turns the reason of a bulk refusal into a sentence", () => {
