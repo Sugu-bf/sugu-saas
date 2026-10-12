@@ -7,20 +7,19 @@ import { PillButton } from "@/components/shared/settings-ui";
 import { SettingsShell, SettingsLoadingSkeleton, type SettingsNavItem } from "@/components/shared/settings-shell";
 import { TabProfile } from "./tab-profile";
 import { TabVehicle } from "./tab-vehicle";
-import { TabKyc } from "./tab-kyc";
 import { TabNotifications } from "./tab-notifications";
 import { TabSecurity } from "./tab-security";
 import { TabDeleteAccount } from "./tab-delete-account";
 import {
   User,
   Bike,
-  FileCheck,
   Bell,
   Shield,
   Trash2,
   RefreshCw,
   Loader2,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 
@@ -52,20 +51,21 @@ export function SettingsPageClient() {
 // Main Component
 // ────────────────────────────────────────────────────────────
 
-type DriverSettingsTab = "profile" | "vehicle" | "kyc" | "notifications" | "security" | "delete";
+// The documents of the courier have their own screen (/driver/documents),
+// open to a courier whose file is not approved yet.
+const TABS = ["profile", "vehicle", "notifications", "security", "delete"] as const;
+type DriverSettingsTab = (typeof TABS)[number];
 
 function SettingsContent({ data }: { data: DriverSettings }) {
-  const [activeTab, setActiveTab] = useState<DriverSettingsTab>("profile");
+  // `?tab=` lets the profile screen open a section directly.
+  const asked = useSearchParams().get("tab");
+  const [activeTab, setActiveTab] = useState<DriverSettingsTab>(TABS.find((tab) => tab === asked) ?? "profile");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const qc = useQueryClient();
-
-  // Dynamic KYC badge: count of not_uploaded documents
-  const kycMissing = data.kyc.documents.filter((d) => d.status === "not_uploaded").length;
 
   const NAV_ITEMS: SettingsNavItem[] = [
     { key: "profile", label: "Mon profil", icon: <User className="h-4 w-4" /> },
     { key: "vehicle", label: "Véhicule", icon: <Bike className="h-4 w-4" /> },
-    { key: "kyc", label: "Documents KYC", icon: <FileCheck className="h-4 w-4" />, badge: kycMissing > 0 ? kycMissing : undefined },
     { key: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
     { key: "security", label: "Sécurité", icon: <Shield className="h-4 w-4" /> },
     { key: "delete", label: "Supprimer le compte", icon: <Trash2 className="h-4 w-4" />, danger: true },
@@ -92,7 +92,6 @@ function SettingsContent({ data }: { data: DriverSettings }) {
     >
       {activeTab === "profile" && <TabProfile data={data} />}
       {activeTab === "vehicle" && <TabVehicle data={data} />}
-      {activeTab === "kyc" && <TabKyc data={data} />}
       {activeTab === "notifications" && <TabNotifications data={data} />}
       {activeTab === "security" && <TabSecurity data={data} />}
       {activeTab === "delete" && <TabDeleteAccount />}
