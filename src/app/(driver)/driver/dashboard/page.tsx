@@ -1,18 +1,11 @@
-import { Metadata } from "next";
-import DriverDashboardClient from "./DriverDashboardClient";
+import type { Metadata } from "next";
+import { DriverDashboardContent } from "./dashboard-content";
 
-// --- SEO ---
 export const metadata: Metadata = {
-  title: "Dashboard | SUGUPro Livreur",
-  description:
-    "Tableau de bord livreur : livraisons en cours, gains, performance.",
+  title: "Accueil | SUGUPro Coursier",
+  description: "Vos missions à accepter, en cours et terminées, et la prochaine mission à traiter.",
 };
 
-// ════════════════════════════════════════════════════════════
-// Server Component wrapper — delegates to Client component
-// that uses the useDriverDashboard() hook for mock data.
-// ════════════════════════════════════════════════════════════
-
 export default function DriverDashboardPage() {
-  return <DriverDashboardClient />;
+  return <DriverDashboardContent />;
 }

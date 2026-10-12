@@ -1,36 +1,18 @@
-export default function Loading() {
+import { Skeleton } from "@/design-system";
+import { DriverPage } from "@/features/driver/components/frame";
+
+export default function HistoryLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-3 animate-fade-in lg:space-y-5">
-      {/* Header skeleton */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="h-7 w-64 rounded-lg bg-gray-200 animate-shimmer" />
-          <div className="h-4 w-44 rounded bg-gray-200 animate-shimmer" />
-        </div>
-        <div className="h-9 w-28 rounded-xl bg-gray-200 animate-shimmer" />
-      </div>
-      {/* KPIs skeleton */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="glass-card h-20 rounded-2xl animate-shimmer"
-          />
-        ))}
-      </div>
-      {/* Filter bar skeleton */}
-      <div className="glass-card h-14 rounded-2xl animate-shimmer" />
-      {/* Table skeleton */}
-      <div className="glass-card overflow-hidden rounded-2xl">
-        <div className="h-12 bg-gray-50/30 animate-shimmer" />
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-14 border-b border-gray-50 animate-shimmer"
-          />
-        ))}
-        <div className="h-14 animate-shimmer" />
-      </div>
-    </div>
+    <DriverPage wide aria-busy>
+      <p role="status" className="sr-only">
+        Chargement de l&apos;historique…
+      </p>
+      <Skeleton className="h-11 w-48" />
+      <Skeleton className="h-10 rounded-panel" />
+      <Skeleton className="h-10 rounded-panel" />
+      {Array.from({ length: 3 }, (_, index) => (
+        <Skeleton key={index} className="h-24 rounded-panel" />
+      ))}
+    </DriverPage>
   );
 }

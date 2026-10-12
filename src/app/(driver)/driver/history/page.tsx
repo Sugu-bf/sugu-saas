@@ -1,16 +1,18 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { DriverHistoryContent } from "./history-content";
+import { HistoryContent } from "./history-content";
+import HistoryLoading from "./loading";
 
 export const metadata: Metadata = {
-  title: "Historique des livraisons | SUGUPro Livreur",
-  description:
-    "Consultez l'historique complet de vos courses passées, gains et performances.",
+  title: "Historique des missions | SUGUPro Coursier",
+  description: "Vos missions terminées : livrées ou en échec.",
 };
 
 export default function DriverHistoryPage() {
+  // The list reads its filters and its page from the address.
   return (
-    <div className="flex h-full flex-col">
-      <DriverHistoryContent />
-    </div>
+    <Suspense fallback={<HistoryLoading />}>
+      <HistoryContent />
+    </Suspense>
   );
 }
