@@ -193,7 +193,7 @@ export function DeliveryDetailContent({ id }: { id: string }) {
     ...(delivery.pickup?.name ? [{ label: "Expéditeur", value: delivery.pickup.name }] : []),
     ...(delivery.items.length > 0 ? [{ label: "Contenu", value: delivery.items.map((item) => (item.quantity > 1 ? `${item.quantity} × ${item.name}` : item.name)).join(", ") }] : []),
     { label: "Quantité", value: `${formatCount(delivery.itemsCount)} article${delivery.itemsCount > 1 ? "s" : ""}` },
-    { label: "Valeur des articles", value: <Money francs={delivery.orderTotalFrancs} /> },
+    { label: "Valeur des articles", value: <Money francs={delivery.goodsFrancs} /> },
     { label: "Priorité", value: priorityLabel(delivery.priority) },
   ];
 
@@ -526,7 +526,9 @@ export function DeliveryDetailContent({ id }: { id: string }) {
                 className="-my-2"
                 items={[
                   { label: "Prix de la livraison", value: <Money francs={delivery.feeFrancs} className="font-semibold" /> },
-                  { label: "Valeur des articles", value: <Money francs={delivery.orderTotalFrancs} /> },
+                  { label: "Valeur des articles", value: <Money francs={delivery.goodsFrancs} /> },
+                  // The total of a marketplace order also holds the delivery its customer pays: said apart, not passed for goods.
+                  ...(delivery.orderTotalFrancs !== delivery.goodsFrancs ? [{ label: "Total de la commande", value: <Money francs={delivery.orderTotalFrancs} /> }] : []),
                   ...(paymentMethodLabel(delivery.paymentMethod) ? [{ label: "Mode de paiement", value: paymentMethodLabel(delivery.paymentMethod) }] : []),
                   { label: "Statut", value: <DeliveryPayment delivery={delivery} /> },
                 ]}

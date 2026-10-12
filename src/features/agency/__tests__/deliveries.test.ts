@@ -4,6 +4,7 @@ import { paymentCodeOf } from "../components/delivery-bits";
 import {
   deliveryLabel,
   displayStatusOf,
+  goodsFrancsOf,
   parseBulkOutcome,
   parseDeliveryDetail,
   parseDeliveryListPage,
@@ -228,6 +229,21 @@ describe("payment", () => {
     ]);
     expect([paymentWords("a_code_added_later"), paymentWords(null)]).toEqual(["paiement à confirmer", "paiement à confirmer"]);
   });
+
+  // The total of a marketplace order also holds the delivery its customer pays: it was shown as « Valeur des articles ».
+  it("tells the value of the goods from the lines of the order, not from its total", () => {
+    const order = { ...(rawDetail().order as object), total: 1650000 };
+    const marketplace = parseDeliveryDetail(rawDetail({ order }));
+    expect(marketplace).toMatchObject({ goodsFrancs: 15000, orderTotalFrancs: 16500 });
+
+    // A delivery the agency entered has no line: its total is the value it typed.
+    const manual = parseDeliveryDetail(rawDetail({ source: "agency_manual", order: { ...order, items: [] } }));
+    expect(manual).toMatchObject({ goodsFrancs: 16500, orderTotalFrancs: 16500 });
+    // An order that lists nothing is not worth nothing.
+    expect(parseDeliveryDetail(rawDetail({ order: { ...order, items: undefined } })).goodsFrancs).toBe(16500);
+    expect(goodsFrancsOf({ manual: false, orderTotalFrancs: marketplace.orderTotalFrancs }, [])).toBe(16500);
+  });
+
   it("names the payment methods it knows and shows the others as they are", () => {
     expect(paymentMethodLabel("cash")).toBe("Espèces");
     expect(paymentMethodLabel("Orange_Money")).toBe("Orange Money");

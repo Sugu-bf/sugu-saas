@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { asCents, centsToFrancs, type MoneyFrancs } from "@/design-system";
+import { asCents, asFrancs, centsToFrancs, type MoneyFrancs } from "@/design-system";
 
 // ============================================================
 // Agency deliveries — contract with `agencies/{id}/shipments/*`
@@ -158,7 +158,11 @@ export interface DeliveryRow {
   codMixte: DeliveryCodMixte | null;
   /** What the delivery is priced: the agency's revenue. */
   feeFrancs: MoneyFrancs;
-  /** Value of the goods carried. */
+  /**
+   * Total of the order. For a delivery the agency entered itself it is the
+   * value of the goods, as typed; for a marketplace order it also holds what
+   * the customer pays for the delivery (see `goodsFrancsOf`).
+   */
   orderTotalFrancs: MoneyFrancs;
   itemsCount: number;
   /** 30 and under is urgent, over 100 is low (DeliveryOrder.priority). */
@@ -394,6 +398,8 @@ export interface DeliveryDetail extends Omit<DeliveryRow, "courier"> {
   directions: string | null;
   refusalReason: string | null;
   items: DeliveryItem[];
+  /** What the goods are worth: see `goodsFrancsOf`. */
+  goodsFrancs: MoneyFrancs;
   notes: DeliveryNote[];
   /** Null on a backend that does not build it: the page then draws no progress. */
   journey: DeliveryJourney | null;
@@ -405,10 +411,27 @@ export interface DeliveryDetail extends Omit<DeliveryRow, "courier"> {
   position: DeliveryPosition | null | undefined;
 }
 
+/**
+ * What the goods of a delivery are worth. The lines of the order say it for
+ * a marketplace order, whose total also holds the delivery the customer
+ * pays; a delivery the agency entered has no line, and its total IS the
+ * value it typed.
+ */
+export function goodsFrancsOf(delivery: Pick<DeliveryRow, "manual" | "orderTotalFrancs">, items: Pick<DeliveryItem, "quantity" | "unitPriceFrancs">[]): MoneyFrancs {
+  if (delivery.manual || items.length === 0) return delivery.orderTotalFrancs;
+  return asFrancs(items.reduce((total, item) => total + item.unitPriceFrancs * item.quantity, 0));
+}
+
 export function parseDeliveryDetail(raw: unknown): DeliveryDetail {
   const detail = rawDetailSchema.parse(raw);
   const row = deliveryRowOf(detail);
   const schedule = detail.schedule;
+  const items = (detail.order?.items ?? []).map((item) => ({
+    name: item.name,
+    quantity: item.qty,
+    unitPriceFrancs: francs(item.unit_price),
+    image: item.image,
+  }));
   return {
     ...row,
     courier:
@@ -428,12 +451,8 @@ export function parseDeliveryDetail(raw: unknown): DeliveryDetail {
     addressLine2: detail.order?.shipping_address_line2 ?? null,
     directions: detail.delivery_instructions ?? null,
     refusalReason: detail.agency_refusal_reason ?? null,
-    items: (detail.order?.items ?? []).map((item) => ({
-      name: item.name,
-      quantity: item.qty,
-      unitPriceFrancs: francs(item.unit_price),
-      image: item.image,
-    })),
+    items,
+    goodsFrancs: goodsFrancsOf(row, items),
     notes: (detail.notes ?? []).map((note) => ({ id: note.id, text: note.memo, author: note.author, at: note.noted_at })),
     journey: detail.journey
       ? { state: detail.journey.state, steps: detail.journey.steps.map((step) => ({ key: step.key, status: step.status, at: step.timestamp ?? null })) }

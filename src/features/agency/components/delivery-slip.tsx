@@ -50,7 +50,7 @@ export function DeliverySlip({ delivery, agencyName }: { delivery: DeliveryDetai
           {delivery.itemsCount} article{delivery.itemsCount > 1 ? "s" : ""}
           {delivery.items.length > 0 && ` : ${delivery.items.map((item) => `${item.quantity} × ${item.name}`).join(", ")}`}
         </p>
-        <p className="text-body">Valeur des articles : {formatMoneyFromFrancs(delivery.orderTotalFrancs)}</p>
+        <p className="text-body">Valeur des articles : {formatMoneyFromFrancs(delivery.goodsFrancs)}</p>
         {delivery.instructions && <p className="mt-1 text-body">Consigne : {delivery.instructions}</p>}
       </section>
 
