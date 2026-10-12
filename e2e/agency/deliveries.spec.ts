@@ -70,7 +70,8 @@ test.describe("deliveries list", () => {
     await expect(page).toHaveURL(/courier=user-1/);
     await expect(page.getByRole("button", { name: /Filtres avancés/ })).toContainText("1");
 
-    // A reload lands on the same list.
+    // A reload lands on the same list. Its count is read once the filtered answer is shown: read too soon, it is still the count it replaces.
+    await page.waitForLoadState("networkidle");
     const count = await heading(page).textContent();
     await page.reload();
     await expect(heading(page)).toHaveText(count ?? "");
