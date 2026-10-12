@@ -51,11 +51,13 @@ const NAVIGATION: Record<Role, Entry[]> = {
     { label: "Paramètres", href: "/agency/settings" },
   ],
   courier: [
-    { label: "Tableau de bord", href: "/driver/dashboard", tab: "Accueil" },
-    { label: "Livraisons", href: "/driver/deliveries", tab: "Livraisons" },
-    { label: "Historique", href: "/driver/history" },
-    { label: "Gains", href: "/driver/earnings", tab: "Gains" },
-    { label: "Messages", href: "/driver/messages", tab: "Messages" },
+    { label: "Accueil", href: "/driver/dashboard", tab: "Accueil" },
+    { label: "Missions", href: "/driver/deliveries", tab: "Missions" },
+    { label: "Historique", href: "/driver/history", tab: "Historique" },
+    { label: "Profil", href: "/driver/profile", tab: "Profil" },
+    { label: "Documents", href: "/driver/documents" },
+    { label: "Gains", href: "/driver/earnings" },
+    { label: "Messages", href: "/driver/messages" },
     { label: "Paramètres", href: "/driver/settings" },
   ],
 };
@@ -363,19 +365,30 @@ test.describe("access and session", () => {
     await expect(page).toHaveURL(/\/driver\/dashboard$/);
   });
 
-  test("a courier awaiting approval never enters the courier space", async ({ page, baseURL }) => {
+  test("a courier awaiting approval is kept to their file: never a mission page", async ({ page, baseURL }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await signIn(page, "coursier-attente@qa.test", baseURL);
-    for (const path of ["/driver/dashboard", "/driver/deliveries", "/driver/earnings"]) {
+    // The mission pages send them to their file, where it is completed (V4):
+    // the waiting screen of the sign-up left them nothing to do.
+    for (const path of ["/driver/dashboard", "/driver/deliveries", "/driver/deliveries/42"]) {
       await page.goto(path);
-      await expect(page).toHaveURL(/\/signup\/driver\?step=pending$/);
-      await expect(page.locator('[data-shell="pro"]')).toHaveCount(0);
+      await expect(page).toHaveURL(/\/driver\/documents$/);
     }
+    await expect(page.locator('[data-shell="pro"][data-role="courier"]')).toBeVisible();
+    await expect(tabBar(page).getByRole("link")).toHaveText(["Dossier", "Historique", "Profil"]);
+    await expect(tabBar(page).getByRole("link", { name: "Missions" })).toHaveCount(0);
+
+    // What they did and earned before stays readable.
+    await page.goto("/driver/earnings");
+    await expect(page).toHaveURL(/\/driver\/earnings$/);
+
+    // The waiting screen of the sign-up still answers, and leads to the file.
+    await page.goto("/signup/driver?step=pending");
     await expect(page.getByRole("heading", { name: "Compte en attente de validation" })).toBeVisible();
     await expect(page.getByText("skip")).toHaveCount(0);
     await page.getByRole("button", { name: "Vérifier mon statut" }).click();
     await expect(page.getByText(/toujours en cours d'examen/)).toBeVisible();
-    await expect(page).toHaveURL(/\/signup\/driver\?step=pending$/);
+    await expect(page.getByRole("link", { name: "Voir ou compléter mon dossier" })).toHaveAttribute("href", "/driver/documents");
     expect(await blockingViolations(page, ["body"])).toEqual([]);
     await shot(page, "courier-pending-390");
   });

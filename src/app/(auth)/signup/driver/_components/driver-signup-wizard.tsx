@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Check,
   Circle,
+  FileText,
   FileUp,
   Hourglass,
   LogOut,
@@ -32,7 +33,7 @@ import {
 import { useLogout } from "@/features/auth";
 import { AuthCard } from "@/features/auth/components/auth-frame";
 import { OTP_LENGTH, OtpInput } from "@/features/auth/components/otp-input";
-import { COURIER_STATUS_PENDING_KYC, homePathFor } from "@/lib/auth/session-user";
+import { COURIER_FILE_PATH, courierCanWork, homePathFor } from "@/lib/auth/session-user";
 import { queryKeys } from "@/lib/query";
 
 type Step = "CODE" | "PERSONAL" | "VERIFY_EMAIL" | "VEHICLE" | "DOCUMENTS" | "PENDING";
@@ -309,7 +310,7 @@ export function DriverSignupWizard() {
         router.push("/login");
         return;
       }
-      if (user.role === "courier" && user.courier_status === COURIER_STATUS_PENDING_KYC) {
+      if (user.role === "courier" && !courierCanWork(user)) {
         setStatusNotice({ tone: "info", text: "Votre dossier est toujours en cours d'examen par votre agence." });
         return;
       }
@@ -604,6 +605,10 @@ export function DriverSignupWizard() {
 
         <Button variant="primary" icon={RefreshCw} onClick={handleCheckStatus} loading={isChecking} className="h-touch w-full">
           Vérifier mon statut
+        </Button>
+        {/* A file sent in part used to end here, with nothing left to do but wait. */}
+        <Button asChild icon={FileText} className="w-full">
+          <Link href={COURIER_FILE_PATH}>Voir ou compléter mon dossier</Link>
         </Button>
         <Button icon={LogOut} onClick={() => logout.mutate()} loading={logout.isPending} className="w-full">
           Se déconnecter

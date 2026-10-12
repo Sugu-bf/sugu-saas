@@ -6,23 +6,26 @@ import {
   CircleHelp,
   ClipboardList,
   Contact,
+  FileText,
   HandCoins,
   Headset,
   History,
+  House,
   LayoutDashboard,
   MessagesSquare,
   Package,
-  PackageCheck,
   PackageMinus,
   PackagePlus,
   Plus,
   Settings,
   ShoppingBag,
+  UserRound,
   Users,
   Wallet,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
+import { COURIER_FILE_PATH, courierCanWork } from "@/lib/auth/session-user";
 import type { User, UserRole } from "@/types";
 
 // ============================================================
@@ -184,22 +187,31 @@ const courier: WorkspaceNavigation = {
   fallbackName: "Mon espace",
   home: "/driver/dashboard",
   immersiveRoutes: [/^\/driver\/messages\/[^/]+$/],
+  // The entries and their order are those of the courier mock-ups (V4):
+  // Accueil, Missions, Historique and Profil are the four tabs of a phone.
+  // Gains and Messages are not drawn there; they are kept, in the menu.
   groups: [
     {
       id: "courier-activity",
       items: [
-        { id: "courier-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/driver/dashboard", icon: LayoutDashboard, mobilePriority: 1 },
-        { id: "courier-deliveries", label: "Livraisons", href: "/driver/deliveries", icon: PackageCheck, mobilePriority: 2 },
-        { id: "courier-history", label: "Historique", href: "/driver/history", icon: History },
-        { id: "courier-earnings", label: "Gains", href: "/driver/earnings", icon: HandCoins, mobilePriority: 3 },
-        { id: "courier-messages", label: "Messages", href: "/driver/messages", icon: MessagesSquare, mobilePriority: 4 },
+        // Missions are for a courier who can work; the server refuses them
+        // to the others, who land on their file instead.
+        { id: "courier-dashboard", label: "Accueil", href: "/driver/dashboard", icon: House, mobilePriority: 1, visible: courierCanWork },
+        { id: "courier-deliveries", label: "Missions", href: "/driver/deliveries", icon: ClipboardList, mobilePriority: 2, visible: courierCanWork },
+        { id: "courier-file", label: "Mon dossier", shortLabel: "Dossier", href: COURIER_FILE_PATH, icon: FileText, mobilePriority: 1, visible: (user) => !courierCanWork(user) },
+        { id: "courier-history", label: "Historique", href: "/driver/history", icon: History, mobilePriority: 3 },
+        { id: "courier-profile", label: "Profil", href: "/driver/profile", icon: UserRound, mobilePriority: 4, inUserMenu: true },
       ],
     },
     {
       id: "courier-account",
       label: "Compte",
       items: [
+        { id: "courier-documents", label: "Documents", href: COURIER_FILE_PATH, icon: FileText, visible: courierCanWork },
+        { id: "courier-earnings", label: "Gains", href: "/driver/earnings", icon: HandCoins },
+        { id: "courier-messages", label: "Messages", href: "/driver/messages", icon: MessagesSquare },
         { id: "courier-settings", label: "Paramètres", href: "/driver/settings", icon: Settings, inUserMenu: true },
+        { id: "courier-help", label: "Aide et support", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true },
       ],
     },
   ],

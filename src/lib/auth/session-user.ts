@@ -64,6 +64,12 @@ function extractCourierStatus(backendUser: BackendUser): number | null {
   return typeof status === "number" && Number.isFinite(status) ? status : null;
 }
 
+/** `courier.operational` (DeliveryCourier::isOperational), or null when the backend does not say it. */
+function extractCourierOperational(backendUser: BackendUser): boolean | null {
+  const value = asRecord(backendUser.courier)?.operational;
+  return typeof value === "boolean" ? value : null;
+}
+
 /**
  * Build the session user, or `null` when the profile has no place on the pro
  * portal. Callers must treat `null` as "unsupported profile", not as a vendor.
@@ -89,19 +95,48 @@ export function toSessionUser(backendUser: BackendUser): User | null {
     business_name: extractBusinessName(backendUser),
     store_id: store?.id ? String(store.id) : null,
     courier_status: role === "courier" ? extractCourierStatus(backendUser) : null,
+    courier_operational: role === "courier" ? extractCourierOperational(backendUser) : null,
   };
 }
 
 /** CourierStatus::PENDING_KYC on the backend. */
 export const COURIER_STATUS_PENDING_KYC = 4;
 
+type CourierFacts = Pick<User, "role" | "courier_status"> & Partial<Pick<User, "courier_operational">>;
+
+/**
+ * Whether a courier can take missions, as the session knows it: what
+ * `courier.operational` enforces on the server (approved documents, active,
+ * not suspended). Navigation comfort only — the server refuses the mission
+ * routes by itself. A backend that does not say it yet is read as before:
+ * everybody but a courier whose documents are pending.
+ */
+export function courierCanWork(user: CourierFacts): boolean {
+  if (user.role !== "courier") return false;
+  return user.courier_operational ?? user.courier_status !== COURIER_STATUS_PENDING_KYC;
+}
+
+/** Where a courier who cannot work yet completes and follows their file. */
+export const COURIER_FILE_PATH = "/driver/documents";
+
+/**
+ * What stays open to a courier who cannot work: their file, their profile,
+ * and what they did and earned before. Everything else of the space is about
+ * missions, which the server refuses them.
+ */
+const COURIER_OPEN_PATHS = [COURIER_FILE_PATH, "/driver/profile", "/driver/settings", "/driver/history", "/driver/earnings", "/driver/messages"];
+
+export function isOpenToEveryCourier(pathname: string): boolean {
+  return COURIER_OPEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 /** Where a signed-in user of this role lands. */
-export function homePathFor(user: Pick<User, "role" | "courier_status">): string {
+export function homePathFor(user: CourierFacts): string {
   if (user.role === "vendor") return "/vendor/dashboard";
   if (user.role === "agency") return "/agency/dashboard";
-  return user.courier_status === COURIER_STATUS_PENDING_KYC
-    ? "/signup/driver?step=pending"
-    : "/driver/dashboard";
+  // A courier who cannot work yet lands on their file, where it is completed:
+  // the waiting screen of the sign-up left them nothing to do.
+  return courierCanWork(user) ? "/driver/dashboard" : COURIER_FILE_PATH;
 }
 
 const ROLE_PREFIX: Record<UserRole, string> = {
@@ -116,11 +151,13 @@ const ROLE_PREFIX: Record<UserRole, string> = {
  * Anything else (absolute URL, protocol-relative, another role's space) is
  * ignored — no open redirect, no bounce through a RoleGuard.
  */
-export function postLoginPath(user: Pick<User, "role" | "courier_status">, redirect?: string | null): string {
+export function postLoginPath(user: CourierFacts, redirect?: string | null): string {
   const home = homePathFor(user);
-  if (user.role === "courier" && user.courier_status === COURIER_STATUS_PENDING_KYC) return home;
   if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//") || redirect.includes("\\")) return home;
-  return redirect.startsWith(ROLE_PREFIX[user.role]) ? redirect : home;
+  if (!redirect.startsWith(ROLE_PREFIX[user.role])) return home;
+  // A mission page would bounce a courier who cannot work straight back.
+  if (user.role === "courier" && !courierCanWork(user) && !isOpenToEveryCourier(redirect.split(/[?#]/)[0])) return home;
+  return redirect;
 }
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;

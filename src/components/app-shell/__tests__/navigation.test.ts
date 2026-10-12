@@ -190,10 +190,25 @@ describe("visibility and identity", () => {
     expect(visibleGroups(workspace, user("agency")).some((group) => group.id === "agency-account")).toBe(false);
   });
 
-  it("declares no frontend-invented permission today", () => {
-    for (const role of ROLES) {
+  it("declares no frontend-invented permission: only what the session says of a courier", () => {
+    for (const role of ["vendor", "agency"] as const) {
       expect(flattenItems(WORKSPACES[role].groups).filter((item) => item.visible)).toEqual([]);
     }
+    // The mission entries follow `courier_operational`, which the server
+    // enforces on its own (courier.operational); the file is offered instead.
+    const conditional = flattenItems(WORKSPACES.courier.groups).filter((item) => item.visible).map((item) => item.id);
+    expect(conditional).toEqual(["courier-dashboard", "courier-deliveries", "courier-file", "courier-documents"]);
+
+    const seen = (extra: Partial<User>) => flattenItems(visibleGroups(WORKSPACES.courier, user("courier", extra))).map((item) => item.id);
+    expect(seen({ courier_status: 1, courier_operational: true })).toEqual(expect.arrayContaining(["courier-dashboard", "courier-deliveries", "courier-documents"]));
+    expect(seen({ courier_status: 1, courier_operational: true })).not.toContain("courier-file");
+    expect(seen({ courier_status: 4, courier_operational: false })).toEqual(["courier-file", "courier-history", "courier-profile", "courier-earnings", "courier-messages", "courier-settings", "courier-help"]);
+  });
+
+  it("gives the courier the four tabs of their mock-ups", () => {
+    const tabs = (extra: Partial<User>) => mobileTabs(visibleGroups(WORKSPACES.courier, user("courier", extra))).map((item) => item.shortLabel ?? item.label);
+    expect(tabs({ courier_status: 1, courier_operational: true })).toEqual(["Accueil", "Missions", "Historique", "Profil"]);
+    expect(tabs({ courier_status: 4, courier_operational: false })).toEqual(["Dossier", "Historique", "Profil"]);
   });
 
   it("offers real destinations in the user menu", () => {
@@ -202,7 +217,7 @@ describe("visibility and identity", () => {
       "/vendor/tickets",
       "/faq",
     ]);
-    expect(userMenuItems(WORKSPACES.courier.groups).map((item) => item.href)).toEqual(["/driver/settings"]);
+    expect(userMenuItems(WORKSPACES.courier.groups).map((item) => item.href)).toEqual(["/driver/profile", "/driver/settings", "/faq"]);
   });
 
   it("names the space from the session, with a neutral fallback", () => {

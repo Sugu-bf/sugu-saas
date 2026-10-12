@@ -110,9 +110,12 @@ describe("AppShell — one frame, three roles", () => {
       "/driver/dashboard",
       "/driver/deliveries",
       "/driver/history",
+      "/driver/profile",
+      "/driver/documents",
       "/driver/earnings",
       "/driver/messages",
       "/driver/settings",
+      "/faq",
     ]);
   });
 
@@ -125,7 +128,7 @@ describe("AppShell — one frame, three roles", () => {
     expect(screen.queryByText(/mettre à niveau/i)).toBeNull();
     expect(screen.queryByLabelText(/notification/i)).toBeNull();
     expect(screen.queryByText(/en ligne/i)).toBeNull();
-    expect(tabBar().getByRole("link", { name: "Livraisons" }).textContent).toBe("Livraisons");
+    expect(tabBar().getByRole("link", { name: "Missions" }).textContent).toBe("Missions");
   });
 
   it("collapses the sidebar to an icon rail and remembers it", async () => {
@@ -230,12 +233,15 @@ describe("AppShell — phone tab bar and menus", () => {
     const drawer = screen.getByRole("dialog");
     expect(within(drawer).getByRole("navigation", { name: "Navigation principale" })).toBeInTheDocument();
     expect(within(drawer).getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Tableau de bord",
-      "Livraisons",
+      "Accueil",
+      "Missions",
       "Historique",
+      "Profil",
+      "Documents",
       "Gains",
       "Messages",
       "Paramètres",
+      "Aide et support",
     ]);
   });
 
@@ -303,8 +309,23 @@ describe("WorkspaceShell — guards are preserved", () => {
   it("courier awaiting KYC approval: kept out of the courier space", async () => {
     signIn("courier", "/driver/deliveries", { courier_status: 4 });
     render(<WorkspaceShell role="courier">secret</WorkspaceShell>);
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/signup/driver?step=pending"));
+    // Sent to their file, where it is completed: the waiting screen left them nothing to do.
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/driver/documents"));
     expect(screen.queryByText("secret")).toBeNull();
+  });
+
+  it("courier who cannot work: their file, profile and history stay open, without the mission entries", () => {
+    for (const extra of [{ courier_status: 4 }, { courier_status: 2, courier_operational: false }]) {
+      signIn("courier", "/driver/documents", extra);
+      const { unmount } = render(<WorkspaceShell role="courier">dossier</WorkspaceShell>);
+      expect(screen.getByText("dossier")).toBeInTheDocument();
+      expect(nav.replace).not.toHaveBeenCalled();
+      expect(sidebar().getByRole("link", { name: "Mon dossier" })).toHaveAttribute("aria-current", "page");
+      expect(sidebar().queryByRole("link", { name: "Missions" })).toBeNull();
+      expect(sidebar().queryByRole("link", { name: "Accueil" })).toBeNull();
+      expect(tabBar().getAllByRole("link").map((link) => link.textContent)).toEqual(["Dossier", "Historique", "Profil"]);
+      unmount();
+    }
   });
 
   it("unsupported profile (403): explicit message and sign-out, no retry, no vendor fallback", async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { homePathFor, mapRole, postLoginPath, sessionMaxAge, toSessionUser } from "./session-user";
+import { homePathFor, mapRole, postLoginPath, sessionMaxAge, toSessionUser, courierCanWork, isOpenToEveryCourier } from "./session-user";
 
 describe("mapRole", () => {
   it("maps the backend user types of the pro portal", () => {
@@ -78,7 +78,29 @@ describe("post-login destination", () => {
     expect(homePathFor(vendor)).toBe("/vendor/dashboard");
     expect(homePathFor({ role: "agency", courier_status: null })).toBe("/agency/dashboard");
     expect(homePathFor(courier)).toBe("/driver/dashboard");
-    expect(homePathFor({ role: "courier", courier_status: 4 })).toBe("/signup/driver?step=pending");
+    // A courier who cannot work yet lands on their file, where it is completed.
+    expect(homePathFor({ role: "courier", courier_status: 4 })).toBe("/driver/documents");
+    expect(homePathFor({ role: "courier", courier_status: 2, courier_operational: false })).toBe("/driver/documents");
+    expect(homePathFor({ role: "courier", courier_status: 1, courier_operational: true })).toBe("/driver/dashboard");
+  });
+
+  it("reads whether a courier can work from the server, and falls back on the status", () => {
+    expect(courierCanWork({ role: "courier", courier_status: 1, courier_operational: true })).toBe(true);
+    // Active on paper, suspended for a while: the server says no.
+    expect(courierCanWork({ role: "courier", courier_status: 1, courier_operational: false })).toBe(false);
+    // A backend that does not say it yet: everybody but a pending file, as before.
+    expect(courierCanWork({ role: "courier", courier_status: 1 })).toBe(true);
+    expect(courierCanWork({ role: "courier", courier_status: 4, courier_operational: null })).toBe(false);
+    expect(courierCanWork({ role: "vendor", courier_status: null })).toBe(false);
+  });
+
+  it("keeps the file, the profile and the past open to a courier who cannot work", () => {
+    for (const path of ["/driver/documents", "/driver/documents/new", "/driver/profile", "/driver/settings", "/driver/history", "/driver/earnings/withdraw", "/driver/messages/42"]) {
+      expect(isOpenToEveryCourier(path)).toBe(true);
+    }
+    for (const path of ["/driver/dashboard", "/driver/deliveries", "/driver/deliveries/01h", "/driver/documentsx"]) {
+      expect(isOpenToEveryCourier(path)).toBe(false);
+    }
   });
 
   it("honours a redirect inside the space of the user", () => {
@@ -93,10 +115,13 @@ describe("post-login destination", () => {
     }
   });
 
-  it("keeps a KYC-pending courier on the pending screen", () => {
-    expect(postLoginPath({ role: "courier", courier_status: 4 }, "/driver/deliveries")).toBe(
-      "/signup/driver?step=pending",
-    );
+  it("sends a courier who cannot work to their file, whatever mission page was asked for", () => {
+    const pending = { role: "courier" as const, courier_status: 4 };
+    expect(postLoginPath(pending, "/driver/deliveries")).toBe("/driver/documents");
+    expect(postLoginPath(pending, "/driver/dashboard")).toBe("/driver/documents");
+    // What stays open to them is honoured.
+    expect(postLoginPath(pending, "/driver/documents/new?type=id_card")).toBe("/driver/documents/new?type=id_card");
+    expect(postLoginPath(pending, "/driver/history")).toBe("/driver/history");
   });
 });
 

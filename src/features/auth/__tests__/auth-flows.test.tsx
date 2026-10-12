@@ -149,7 +149,8 @@ describe("login", () => {
     ["vendor", {}, "/vendor/dashboard"],
     ["agency", {}, "/agency/dashboard"],
     ["courier", { courier_status: 1 }, "/driver/dashboard"],
-    ["courier", { courier_status: 4 }, "/signup/driver?step=pending"],
+    // A courier who cannot work yet lands on their file, where it is completed.
+    ["courier", { courier_status: 4 }, "/driver/documents"],
   ])("sends a %s to its own space", async (role, extra, destination) => {
     mockBff({ "/api/auth/login": () => ({ json: { data: { user: sessionUser(role, extra) } } }) });
     renderWithClient(<LoginForm />);

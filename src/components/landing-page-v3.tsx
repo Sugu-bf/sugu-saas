@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, useLogout } from "@/features/auth/hooks";
+import { homePathFor } from "@/lib/auth/session-user";
 import {
   ArrowLeft,
   User,
@@ -55,11 +56,7 @@ export function LandingPageV3() {
     } else if (user.role === "agency") {
       dashboardUrl = "/agency/dashboard";
     } else if (user.role === "courier") {
-      if (user.courier_status === 4) {
-        dashboardUrl = "/signup/driver?step=pending";
-      } else {
-        dashboardUrl = "/driver/dashboard";
-      }
+      dashboardUrl = homePathFor(user);
     }
   }
 

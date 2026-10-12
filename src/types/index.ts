@@ -22,6 +22,8 @@ export interface User {
   store_id: string | null;
   /** Courier status if role is courier */
   courier_status?: number | null;
+  /** Whether the courier can take missions (server rule); null when unknown. */
+  courier_operational?: boolean | null;
 }
 
 /** Auth session carried client‑side */

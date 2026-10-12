@@ -25,6 +25,8 @@ export const userSchema = z.object({
   // CourierStatus from the API (4 = KYC pending). Without this key Zod strips
   // the field and the KYC barrier in RoleGuard can never fire.
   courier_status: z.number().nullable().optional().default(null),
+  // Whether the courier can take missions, as the server enforces it.
+  courier_operational: z.boolean().nullable().optional().default(null),
 });
 
 export const loginResponseSchema = z.object({
