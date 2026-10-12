@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, type LucideIcon } from "lucide-react";
-import { Skeleton, cn, iconTileClass, type Tone } from "@/design-system";
+import { Skeleton, cn } from "@/design-system";
 
 // The frame of a courier screen, after its mock-ups (V4): a phone first. A
 // column a thumb reaches on a phone, which widens into the usual page on a
@@ -61,21 +61,21 @@ export function ScreenHeader({
   );
 }
 
-/** A key figure of the courier: what it counts on a tinted tile, the figure, its label. */
-export function KpiCard({ icon: Icon, tone, value, label, loading = false, href }: { icon: LucideIcon; tone: Tone | "brand"; value: ReactNode; label: string; loading?: boolean; href?: string }) {
+/**
+ * A key figure of the courier, drawn as every key figure of the portal
+ * (`Stat layout="figure"`): the icon alone, dark, neither tinted nor in a
+ * tile; the figure; its label. Colour is kept for what a status says.
+ */
+export function KpiCard({ icon: Icon, value, label, loading = false, href }: { icon: LucideIcon; value: ReactNode; label: string; loading?: boolean; href?: string }) {
   const body = (
     <>
-      <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-control", iconTileClass[tone])}>
-        <Icon className="size-5" aria-hidden="true" />
-      </span>
-      <span className="flex min-w-0 flex-col-reverse">
-        {/* Read label first, drawn figure first. */}
-        <span className="truncate text-meta text-foreground-muted">{label}</span>
-        {loading ? <Skeleton className="mb-1 h-6 w-10" /> : <span className="text-section-title leading-6 font-semibold text-foreground tabular-nums">{value}</span>}
-      </span>
+      {/* Read label first; drawn icon, figure, label. */}
+      <Icon className="order-1 size-5 shrink-0 text-foreground" strokeWidth={1.75} aria-hidden="true" />
+      <span className="order-3 mt-0.5 line-clamp-2 text-label text-foreground-muted">{label}</span>
+      {loading ? <Skeleton className="order-2 mt-2 h-7 w-12 md:mt-3 md:h-9" /> : <span className="order-2 mt-2 min-w-0 text-kpi text-foreground tabular-nums [overflow-wrap:anywhere] md:mt-3">{value}</span>}
     </>
   );
-  const frame = "flex min-w-0 items-center gap-3 rounded-panel border border-border bg-surface p-3";
+  const frame = "flex min-w-0 flex-col rounded-panel border border-border bg-surface p-3 md:p-4";
   return href ? (
     <Link href={href} className={cn(frame, "transition-colors duration-100 hover:border-border-strong")}>
       {body}

@@ -53,11 +53,11 @@ export function DriverDashboardContent() {
       ) : (
         <>
           <KpiGrid label="Vos missions en chiffres">
-            <KpiCard icon={ClipboardList} tone="warning" value={counts?.toAccept} label="À accepter" loading={isLoading} href="/driver/deliveries?liste=disponibles" />
-            <KpiCard icon={Truck} tone="success" value={counts?.inProgress} label="En cours" loading={isLoading} href="/driver/deliveries" />
-            <KpiCard icon={PackageCheck} tone="success" value={counts?.delivered} label="Terminées" loading={isLoading} href="/driver/history?statut=terminees" />
-            <KpiCard icon={CircleAlert} tone="danger" value={counts?.failed} label={counts?.failed === 1 ? "Échec" : "Échecs"} loading={isLoading} href="/driver/history?statut=echecs" />
-            <KpiCard icon={ClipboardCheck} tone="neutral" value={counts?.weekTotal} label="Total cette semaine" loading={isLoading} />
+            <KpiCard icon={ClipboardList} value={counts?.toAccept} label="À accepter" loading={isLoading} href="/driver/deliveries?liste=disponibles" />
+            <KpiCard icon={Truck} value={counts?.inProgress} label="En cours" loading={isLoading} href="/driver/deliveries" />
+            <KpiCard icon={PackageCheck} value={counts?.delivered} label="Terminées" loading={isLoading} href="/driver/history?statut=terminees" />
+            <KpiCard icon={CircleAlert} value={counts?.failed} label={counts?.failed === 1 ? "Échec" : "Échecs"} loading={isLoading} href="/driver/history?statut=echecs" />
+            <KpiCard icon={ClipboardCheck} value={counts?.weekTotal} label="Total cette semaine" loading={isLoading} />
           </KpiGrid>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
