@@ -835,12 +835,14 @@ export function CourierProfileContent({ id }: { id: string }) {
                         {document.number && <p className="truncate text-meta text-foreground-muted tabular-nums">N° {document.number}</p>}
                         {expiry && <p className={cn("text-meta", expiry.tone === "danger" ? "text-danger-fg" : expiry.tone === "warning" ? "text-warning-fg" : "text-foreground-muted")}>{expiry.text}</p>}
                         {/* Opened through the portal, behind the session: never by a link to the host of the API. */}
-                        {document.hasFile && agencyId && (
+                        {document.file === "available" && agencyId && (
                           <a href={courierDocumentFilePath(agencyId, courier.id, document.id)} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 rounded-compact text-meta font-medium text-primary underline-offset-2 hover:underline">
                             Voir le fichier
                             <ExternalLink className="size-3" aria-hidden="true" />
                           </a>
                         )}
+                        {/* The record outlived its file: said, instead of a link that would answer an error page. */}
+                        {document.file === "missing" && <p className="mt-1 text-meta text-warning-fg">Le fichier n&apos;est plus sur le serveur. Ajoutez de nouveau cette pièce.</p>}
                       </div>
                     </li>
                   );

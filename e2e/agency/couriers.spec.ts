@@ -264,6 +264,9 @@ test.describe("courier page", () => {
     await open(page, baseURL, `${LIST}/courier-6`, { width: 1440 });
     const documents = panel(page, "Pièces justificatives");
     await expect(documents.getByRole("listitem")).toHaveCount(1);
+    // The file of his only document is no longer on the server (found on staging, V3.1): said, and no link that would answer an error page.
+    await expect(documents.getByRole("listitem")).toContainText("Le fichier n'est plus sur le serveur. Ajoutez de nouveau cette pièce.");
+    await expect(documents.getByRole("link", { name: "Voir le fichier" })).toHaveCount(0);
     await documents.getByRole("button", { name: "Ajouter une pièce" }).click();
 
     await dialog(page).getByRole("button", { name: "Ajouter la pièce" }).click();

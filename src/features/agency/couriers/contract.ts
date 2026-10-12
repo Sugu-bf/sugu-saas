@@ -36,6 +36,8 @@ const rawDocumentSchema = z.object({
   status: z.union([z.string(), z.number()]).nullish(),
   reviewed_at: text.optional(),
   file_url: text.optional(),
+  /** Whether the file is still on its disk. Absent on a backend that does not check. */
+  file_available: z.boolean().nullish(),
 });
 
 const rawCourierSchema = z.object({
@@ -84,11 +86,15 @@ export interface CourierDocument {
   /** `CourierKycDocument.status`: 0 pending, 1 approved, 2 rejected. */
   status: string | null;
   /**
-   * Whether a file was sent for it. The portal opens it through its own
-   * origin (`courierDocumentFilePath`); the signed link the API also answers
-   * (`file_url`) leads to the host of the API, and is not used.
+   * The file sent for it: `available`, it can be opened; `missing`, it was
+   * sent and is no longer on the server (a record can outlive its file);
+   * `none`, no file was sent.
+   *
+   * The portal opens it through its own origin (`courierDocumentFilePath`);
+   * the signed link the API also answers (`file_url`) leads to the host of
+   * the API, and is not used.
    */
-  hasFile: boolean;
+  file: "available" | "missing" | "none";
 }
 
 export interface Courier {
@@ -200,7 +206,7 @@ function courierOf(courier: RawCourier): Courier {
           number: document.document_number ?? null,
           expiresOn: document.expires_on ?? null,
           status: document.status === null || document.status === undefined ? null : String(document.status),
-          hasFile: Boolean(document.file_url),
+          file: !document.file_url ? "none" : document.file_available === false ? "missing" : "available",
         }))
       : null,
   };

@@ -165,7 +165,8 @@ function seed() {
           { id: `doc-${index}-1`, document_type: "id_card", document_name: "CNIB", document_number: `B ${1000000 + index * 4321}`, expires_on: new Date(now + (index === 1 ? 5 : 900) * DAY).toISOString().slice(0, 10), status: 1 },
           { id: `doc-${index}-2`, document_type: "driver_license", document_name: "Permis A", document_number: `P-${77000 + index}`, expires_on: new Date(now + (index === 4 ? -3 : index === 2 ? 21 : 700) * DAY).toISOString().slice(0, 10), status: 1 },
         ]
-      : [{ id: `doc-${index}-1`, document_type: "id_card", document_name: "CNIB", document_number: `B ${1000000 + index * 4321}`, expires_on: null, status: 0 }],
+      : // A document whose file the server no longer has: its record outlived it.
+        [{ id: `doc-${index}-1`, document_type: "id_card", document_name: "CNIB", document_number: `B ${1000000 + index * 4321}`, expires_on: null, status: 0, file_name: "cnib.jpg", file_lost: true }],
   }));
 
   const shipments = SHIPMENTS.map(([status, courierIndex, minutesAgo, options], index) => {
@@ -614,6 +615,7 @@ function courierRow(set, courier, { documents = true, detailed = false } = {}) {
       reviewed_at: null,
       // As the real API: a signed link to its own host. The portal never sends anyone there.
       file_url: document.file_name ? `https://api.invalid/api/v1/kyc-files/courier/${document.id}?expires=1791789219&signature=stand-in` : null,
+      file_available: Boolean(document.file_name) && !document.file_lost,
     }));
   }
   return data;
@@ -1136,6 +1138,7 @@ export default async function agency({ req, res, url, path, method, token, send,
     const document = set.couriers.find((entry) => entry.id === file[1])?.documents.find((entry) => entry.id === file[2]);
     if (!document) return refuse(404, "Pièce, livreur ou agence introuvable.");
     if (!document.file_name) return refuse(404, "Aucun fichier n'a été transmis pour cette pièce.");
+    if (document.file_lost) return refuse(404, "Le fichier de cette pièce n'est plus sur le serveur. Ajoutez-la de nouveau.", { error_code: "SUGU-KYC-FILE-MISSING" });
     res.writeHead(200, { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${document.file_name}"` });
     res.end(`%PDF-1.4\n% stand-in for ${document.file_name}\n%%EOF\n`);
     return true;
