@@ -260,6 +260,18 @@ test.describe("courier page", () => {
     expect((await received(page)).at(-1)).toEqual({ path: "/couriers/courier-6/verify-kyc", body: { approved: true } });
   });
 
+  test("refuses the documents of a courier with a reason the courier will read", async ({ page, baseURL }) => {
+    await open(page, baseURL, `${LIST}/courier-6`, { width: 1440 });
+    await panel(page, "Pièces justificatives").getByRole("button", { name: "Refuser", exact: true }).click();
+
+    await expect(dialog(page)).toContainText("Il lit le motif dans son espace");
+    await dialog(page).getByLabel("Motif").fill("Photo du permis floue.");
+    await dialog(page).getByRole("button", { name: "Refuser les pièces" }).click();
+
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await received(page)).at(-1)).toEqual({ path: "/couriers/courier-6/verify-kyc", body: { approved: false, notes: "Photo du permis floue." } });
+  });
+
   test("adds a document to the file of a courier, refusing what the server would refuse", async ({ page, baseURL }) => {
     await open(page, baseURL, `${LIST}/courier-6`, { width: 1440 });
     const documents = panel(page, "Pièces justificatives");

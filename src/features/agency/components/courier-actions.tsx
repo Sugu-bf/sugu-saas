@@ -68,6 +68,30 @@ function SuspendForm({ onSubmit }: { onSubmit: (reason: string) => void }) {
   );
 }
 
+const REJECT_FORM = "courier-reject-form";
+
+/**
+ * Why the documents are refused. Read by the courier, in their own space:
+ * without it they are told they were refused, and not what to send again.
+ */
+function RejectForm({ onSubmit }: { onSubmit: (reason: string) => void }) {
+  const [reason, setReason] = useState("");
+  return (
+    <form
+      id={REJECT_FORM}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit(reason);
+      }}
+    >
+      <FormField label="Motif" hint="Facultatif. Le livreur le lit dans son espace : dites-lui quelle pièce refaire.">
+        <Textarea rows={3} maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Photo du permis floue, pièce expirée…" />
+      </FormField>
+    </form>
+  );
+}
+
 export function CourierActionDialogs({ intent, onClose }: { intent: CourierIntent | null; onClose: () => void }) {
   const action = useCourierAction();
 
@@ -84,6 +108,11 @@ export function CourierActionDialogs({ intent, onClose }: { intent: CourierInten
       throw error;
     }
   });
+
+  function reject(reason: string) {
+    if (!courier) return;
+    run({ type: "verify", id: courier.id, approved: false, notes: reason.trim() || undefined }, `Pièces de ${name} refusées : son compte est suspendu.`).then(onClose, () => undefined);
+  }
 
   function suspend(reason: string) {
     if (!courier) return;
@@ -133,16 +162,25 @@ export function CourierActionDialogs({ intent, onClose }: { intent: CourierInten
         onConfirm={() => (courier ? run({ type: "verify", id: courier.id, approved: true }, `Pièces de ${name} validées : son compte est actif.`) : undefined)}
       />
 
-      <ConfirmDialog
-        open={intent?.kind === "reject"}
-        onOpenChange={(open) => !open && onClose()}
-        title={`Refuser les pièces de ${name} ?`}
-        description="Ses pièces ne sont pas validées et son compte est suspendu. Vous pourrez le réactiver une fois les bonnes pièces reçues."
-        confirmLabel="Refuser les pièces"
-        confirmIcon={ShieldX}
-        tone="danger"
-        onConfirm={() => (courier ? run({ type: "verify", id: courier.id, approved: false }, `Pièces de ${name} refusées : son compte est suspendu.`) : undefined)}
-      />
+      <Dialog open={intent?.kind === "reject"} onOpenChange={(open) => !open && !action.isPending && onClose()}>
+        <DialogContent
+          size="sm"
+          title={`Refuser les pièces de ${name} ?`}
+          description="Ses pièces ne sont pas validées et son compte est suspendu. Il lit le motif dans son espace, transmet de nouveau ses pièces, et revient alors dans vos livreurs à vérifier."
+          footer={
+            <>
+              <DialogClose asChild>
+                <Button disabled={action.isPending}>Annuler</Button>
+              </DialogClose>
+              <Button type="submit" form={REJECT_FORM} variant="destructive" icon={ShieldX} loading={action.isPending}>
+                Refuser les pièces
+              </Button>
+            </>
+          }
+        >
+          <RejectForm onSubmit={reject} />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={intent?.kind === "suspend"} onOpenChange={(open) => !open && !action.isPending && onClose()}>
         <DialogContent
