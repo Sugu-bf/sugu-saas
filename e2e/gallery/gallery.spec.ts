@@ -189,7 +189,10 @@ test.describe("interactions", () => {
   test("dialog fits a phone screen", async ({ page }) => {
     await openGallery(page, 375);
     await page.getByRole("button", { name: "Ouvrir un dialogue" }).click();
-    const box = await page.getByRole("dialog", { name: "Modifier le stock" }).boundingBox();
+    const dialog = page.getByRole("dialog", { name: "Modifier le stock" });
+    // Measured at rest: read while the sheet slides in, its box ends a fraction of a pixel under the screen.
+    await dialog.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))));
+    const box = await dialog.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(375);
