@@ -257,8 +257,9 @@ export function DeliveryDetailContent({ id }: { id: string }) {
                 <Expected delivery={delivery} />
                 {position && (
                   <Button asChild icon={Navigation}>
+                    {/* The last point his phone sent, not a parcel followed live: said as what it is. */}
                     <a href={mapsPointHref(position.lat, position.lng)} target="_blank" rel="noreferrer">
-                      Suivre sur la carte
+                      Voir la dernière position
                     </a>
                   </Button>
                 )}

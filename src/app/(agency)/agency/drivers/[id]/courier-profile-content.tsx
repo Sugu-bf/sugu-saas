@@ -487,8 +487,9 @@ export function CourierProfileContent({ id }: { id: string }) {
             <Badge tone={courier.kycVerified ? "success" : "warning"} icon={courier.kycVerified ? ShieldCheck : CircleAlert}>
               {courier.kycVerified ? "Pièces validées" : "Pièces à vérifier"}
             </Badge>
+            {/* An account waiting for its documents was never opened: it is not « en pause », which the agency decides. */}
             <Badge tone={suspended ? "danger" : courier.isActive ? "success" : "neutral"} icon={suspended ? Ban : courier.isActive ? CircleCheck : CirclePause}>
-              {suspended ? "Compte suspendu" : courier.isActive ? "Compte actif" : "Compte en pause"}
+              {suspended ? "Compte suspendu" : courier.isActive ? "Compte actif" : courier.activity === "to_verify" ? "Compte non activé" : "Compte en pause"}
             </Badge>
             {since(courier.hiredAt) && <Badge icon={Clock}>{since(courier.hiredAt)}</Badge>}
           </span>
@@ -700,7 +701,7 @@ export function CourierProfileContent({ id }: { id: string }) {
             </ul>
             <p className="mt-2 text-meta text-foreground-muted">
               {rhythm && delivered30 > 0
-                ? `Constaté sur ses ${formatCount(delivered30)} livraison${delivered30 > 1 ? "s" : ""} des ${rhythm.windowDays} derniers jours.`
+                ? `Constaté sur ${delivered30 > 1 ? `ses ${formatCount(delivered30)} livraisons` : "sa seule livraison"} des ${rhythm.windowDays} derniers jours.`
                 : "Aucune livraison terminée sur les 30 derniers jours."}
             </p>
           </div>
@@ -809,7 +810,11 @@ export function CourierProfileContent({ id }: { id: string }) {
             {courier.documents === null ? (
               <Empty>Les pièces sont réservées au responsable de l&apos;agence.</Empty>
             ) : courier.documents.length === 0 ? (
-              <Empty>Aucune pièce transmise. Ajoutez sa pièce d&apos;identité et son permis pour pouvoir valider son compte.</Empty>
+              <Empty>
+                {courier.kycVerified
+                  ? "Aucune pièce au dossier. Vous pouvez y ajouter sa pièce d'identité et son permis."
+                  : "Aucune pièce transmise. Ajoutez sa pièce d'identité et son permis avant de valider son compte."}
+              </Empty>
             ) : (
               <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {courier.documents.map((document) => {

@@ -178,7 +178,7 @@ const COLUMNS: DataTableColumn<DeliveryRow>[] = [
   },
   {
     id: "courier",
-    header: "Coursier",
+    header: "Livreur",
     className: "@2xl:max-w-32",
     // As the mock-up names a courier in this column: « Moussa K. ». The cards of a phone have room for the whole name.
     cell: (delivery) => <CourierIdentity courier={delivery.courier} short />,
