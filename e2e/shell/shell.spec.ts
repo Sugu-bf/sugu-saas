@@ -26,13 +26,13 @@ const NAVIGATION: Record<Role, Entry[]> = {
   vendor: [
     { label: "Tableau de bord", href: "/vendor/dashboard", tab: "Accueil" },
     { label: "Commandes", href: "/vendor/orders", tab: "Commandes" },
-    { label: "Produits", href: "/vendor/products", tab: "Produits" },
+    { label: "Produits", href: "/vendor/products", tab: "Catalogue" },
     { label: "Clients", href: "/vendor/clients" },
     { label: "Inventaire", href: "/vendor/inventory" },
     { label: "Statistiques", href: "/vendor/statistics" },
-    { label: "Portefeuille", href: "/vendor/wallet" },
+    { label: "Finances", href: "/vendor/wallet", tab: "Finances" },
     { label: "Marketing", href: "/vendor/marketing" },
-    { label: "Messages", href: "/vendor/messages", tab: "Messages" },
+    { label: "Messages", href: "/vendor/messages" },
     { label: "Vue d'ensemble", href: "/vendor/sugubox" },
     { label: "Mon stock", href: "/vendor/sugubox/stock" },
     { label: "Réceptions", href: "/vendor/sugubox/inbound" },
@@ -45,7 +45,7 @@ const NAVIGATION: Record<Role, Entry[]> = {
     { label: "Tableau de bord", href: "/agency/dashboard", tab: "Accueil" },
     { label: "Livraisons", href: "/agency/deliveries", tab: "Livraisons" },
     { label: "Livreurs", href: "/agency/drivers", tab: "Livreurs" },
-    { label: "Gains", href: "/agency/earnings", tab: "Gains" },
+    { label: "Finances", href: "/agency/earnings", tab: "Finances" },
     { label: "Statistiques", href: "/agency/statistics" },
     { label: "Messages", href: "/agency/messages" },
     { label: "Paramètres", href: "/agency/settings" },
@@ -53,10 +53,10 @@ const NAVIGATION: Record<Role, Entry[]> = {
   courier: [
     { label: "Accueil", href: "/driver/dashboard", tab: "Accueil" },
     { label: "Missions", href: "/driver/deliveries", tab: "Missions" },
-    { label: "Historique", href: "/driver/history", tab: "Historique" },
+    { label: "Gains", href: "/driver/earnings", tab: "Gains" },
+    { label: "Historique", href: "/driver/history" },
     { label: "Profil", href: "/driver/profile", tab: "Profil" },
     { label: "Documents", href: "/driver/documents" },
-    { label: "Gains", href: "/driver/earnings" },
     { label: "Messages", href: "/driver/messages" },
     { label: "Paramètres", href: "/driver/settings" },
   ],
@@ -375,7 +375,7 @@ test.describe("access and session", () => {
       await expect(page).toHaveURL(/\/driver\/documents$/);
     }
     await expect(page.locator('[data-shell="pro"][data-role="courier"]')).toBeVisible();
-    await expect(tabBar(page).getByRole("link")).toHaveText(["Dossier", "Historique", "Profil"]);
+    await expect(tabBar(page).getByRole("link")).toHaveText(["Dossier", "Gains", "Profil"]);
     await expect(tabBar(page).getByRole("link", { name: "Missions" })).toHaveCount(0);
 
     // What they did and earned before stays readable.

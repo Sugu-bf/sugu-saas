@@ -30,7 +30,7 @@ test.describe("a courier who cannot work yet", () => {
       await expect(page).toHaveURL(/\/driver\/documents$/);
     }
     const tabs = page.getByRole("navigation", { name: "Navigation rapide" });
-    await expect(tabs.getByRole("link")).toHaveText(["Dossier", "Historique", "Profil"]);
+    await expect(tabs.getByRole("link")).toHaveText(["Dossier", "Gains", "Profil"]);
   });
 
   test("the server refuses the missions by itself, whatever the screen does", async ({ page, baseURL }) => {

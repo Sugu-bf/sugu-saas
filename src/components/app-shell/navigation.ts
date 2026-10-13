@@ -105,7 +105,7 @@ const vendor: WorkspaceNavigation = {
       items: [
         { id: "vendor-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/vendor/dashboard", icon: LayoutDashboard, mobilePriority: 1 },
         { id: "vendor-orders", label: "Commandes", href: "/vendor/orders", icon: ShoppingBag, mobilePriority: 2 },
-        { id: "vendor-products", label: "Produits", href: "/vendor/products", icon: Package, mobilePriority: 3 },
+        { id: "vendor-products", label: "Produits", shortLabel: "Catalogue", href: "/vendor/products", icon: Package, mobilePriority: 4 },
         { id: "vendor-clients", label: "Clients", href: "/vendor/clients", icon: Contact },
         { id: "vendor-inventory", label: "Inventaire", href: "/vendor/inventory", icon: ClipboardList },
       ],
@@ -115,9 +115,11 @@ const vendor: WorkspaceNavigation = {
       label: "Activité",
       items: [
         { id: "vendor-statistics", label: "Statistiques", href: "/vendor/statistics", icon: ChartColumn },
-        { id: "vendor-wallet", label: "Portefeuille", href: "/vendor/wallet", icon: Wallet },
+        // The tabs of a phone are those of the money mock-ups (V5): Accueil,
+        // Commandes, Finances, Catalogue. Messages are kept, in the menu.
+        { id: "vendor-wallet", label: "Finances", href: "/vendor/wallet", icon: Wallet, mobilePriority: 3 },
         { id: "vendor-marketing", label: "Marketing", href: "/vendor/marketing", icon: BadgePercent },
-        { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare, mobilePriority: 4 },
+        { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare },
       ],
     },
     {
@@ -157,7 +159,7 @@ const agency: WorkspaceNavigation = {
       items: [
         { id: "agency-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/agency/dashboard", icon: LayoutDashboard, mobilePriority: 1 },
         { id: "agency-deliveries", label: "Livraisons", href: "/agency/deliveries", icon: Package, mobilePriority: 2 },
-        { id: "agency-drivers", label: "Livreurs", href: "/agency/drivers", icon: Users, mobilePriority: 3 },
+        { id: "agency-drivers", label: "Livreurs", href: "/agency/drivers", icon: Users, mobilePriority: 4 },
       ],
     },
     {
@@ -166,7 +168,8 @@ const agency: WorkspaceNavigation = {
       items: [
         // Shown to every agency account: the session carries no capability
         // that tells an owner from a manager. The API decides (403).
-        { id: "agency-earnings", label: "Gains", href: "/agency/earnings", icon: HandCoins, mobilePriority: 4 },
+        // Third tab of a phone, as its mock-up draws it (V5).
+        { id: "agency-earnings", label: "Finances", href: "/agency/earnings", icon: HandCoins, mobilePriority: 3 },
         { id: "agency-statistics", label: "Statistiques", href: "/agency/statistics", icon: ChartColumn },
         { id: "agency-messages", label: "Messages", href: "/agency/messages", icon: MessagesSquare },
       ],
@@ -187,9 +190,9 @@ const courier: WorkspaceNavigation = {
   fallbackName: "Mon espace",
   home: "/driver/dashboard",
   immersiveRoutes: [/^\/driver\/messages\/[^/]+$/],
-  // The entries and their order are those of the courier mock-ups (V4):
-  // Accueil, Missions, Historique and Profil are the four tabs of a phone.
-  // Gains and Messages are not drawn there; they are kept, in the menu.
+  // The entries are those of the courier mock-ups. The four tabs of a phone
+  // are those of the money mock-ups (V5), the later ones: Accueil, Missions,
+  // Gains and Profil. Historique and Messages are kept, in the menu.
   groups: [
     {
       id: "courier-activity",
@@ -199,7 +202,8 @@ const courier: WorkspaceNavigation = {
         { id: "courier-dashboard", label: "Accueil", href: "/driver/dashboard", icon: House, mobilePriority: 1, visible: courierCanWork },
         { id: "courier-deliveries", label: "Missions", href: "/driver/deliveries", icon: ClipboardList, mobilePriority: 2, visible: courierCanWork },
         { id: "courier-file", label: "Mon dossier", shortLabel: "Dossier", href: COURIER_FILE_PATH, icon: FileText, mobilePriority: 1, visible: (user) => !courierCanWork(user) },
-        { id: "courier-history", label: "Historique", href: "/driver/history", icon: History, mobilePriority: 3 },
+        { id: "courier-earnings", label: "Gains", href: "/driver/earnings", icon: HandCoins, mobilePriority: 3 },
+        { id: "courier-history", label: "Historique", href: "/driver/history", icon: History },
         { id: "courier-profile", label: "Profil", href: "/driver/profile", icon: UserRound, mobilePriority: 4, inUserMenu: true },
       ],
     },
@@ -208,7 +212,6 @@ const courier: WorkspaceNavigation = {
       label: "Compte",
       items: [
         { id: "courier-documents", label: "Documents", href: COURIER_FILE_PATH, icon: FileText, visible: courierCanWork },
-        { id: "courier-earnings", label: "Gains", href: "/driver/earnings", icon: HandCoins },
         { id: "courier-messages", label: "Messages", href: "/driver/messages", icon: MessagesSquare },
         { id: "courier-settings", label: "Paramètres", href: "/driver/settings", icon: Settings, inUserMenu: true },
         { id: "courier-help", label: "Aide et support", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true },

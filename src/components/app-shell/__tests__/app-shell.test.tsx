@@ -83,7 +83,7 @@ describe("AppShell — one frame, three roles", () => {
     signIn("vendor", "/vendor/sugubox/stock");
     render(<AppShell role="vendor">contenu</AppShell>);
 
-    for (const label of ["Commandes", "Portefeuille", "Mon stock", "Mouvements", "Paramètres", "Support", "Aide et FAQ"]) {
+    for (const label of ["Commandes", "Finances", "Mon stock", "Mouvements", "Paramètres", "Support", "Aide et FAQ"]) {
       expect(sidebar().getByRole("link", { name: label })).toBeInTheDocument();
     }
     const current = sidebar()
@@ -98,7 +98,7 @@ describe("AppShell — one frame, three roles", () => {
     signIn("agency", "/agency/deliveries/12");
     const { unmount } = render(<AppShell role="agency">x</AppShell>);
     expect(sidebar().getByRole("link", { name: "Livraisons" })).toHaveAttribute("aria-current", "page");
-    expect(sidebar().getByRole("link", { name: "Gains" })).toHaveAttribute("href", "/agency/earnings");
+    expect(sidebar().getByRole("link", { name: "Finances" })).toHaveAttribute("href", "/agency/earnings");
     expect(sidebar().queryByRole("link", { name: "Commandes" })).toBeNull();
     unmount();
 
@@ -109,10 +109,10 @@ describe("AppShell — one frame, three roles", () => {
       "/driver/dashboard",
       "/driver/dashboard",
       "/driver/deliveries",
+      "/driver/earnings",
       "/driver/history",
       "/driver/profile",
       "/driver/documents",
-      "/driver/earnings",
       "/driver/messages",
       "/driver/settings",
       "/faq",
@@ -170,7 +170,7 @@ describe("AppShell — phone tab bar and menus", () => {
     signIn("vendor", "/vendor/orders/42");
     render(<AppShell role="vendor">x</AppShell>);
     const links = tabBar().getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["Accueil", "Commandes", "Produits", "Messages"]);
+    expect(links.map((link) => link.textContent)).toEqual(["Accueil", "Commandes", "Finances", "Catalogue"]);
     expect(tabBar().getByRole("link", { name: "Commandes" })).toHaveAttribute("aria-current", "page");
     expect(tabBar().getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
   });
@@ -189,8 +189,8 @@ describe("AppShell — phone tab bar and menus", () => {
       "Clients",
       "Inventaire",
       "Statistiques",
-      "Portefeuille",
       "Marketing",
+      "Messages",
       "Vue d'ensemble",
       "Mon stock",
       "Réceptions",
@@ -220,7 +220,7 @@ describe("AppShell — phone tab bar and menus", () => {
   });
 
   it("highlights Menu when the current page lives in the menu", () => {
-    signIn("vendor", "/vendor/wallet");
+    signIn("vendor", "/vendor/statistics");
     render(<AppShell role="vendor">x</AppShell>);
     expect(tabBar().getAllByRole("link").filter((link) => link.getAttribute("aria-current"))).toEqual([]);
     expect(tabBar().getByRole("button", { name: "Menu" }).className).toContain("font-medium");
@@ -235,10 +235,10 @@ describe("AppShell — phone tab bar and menus", () => {
     expect(within(drawer).getAllByRole("link").map((link) => link.textContent)).toEqual([
       "Accueil",
       "Missions",
+      "Gains",
       "Historique",
       "Profil",
       "Documents",
-      "Gains",
       "Messages",
       "Paramètres",
       "Aide et support",
@@ -323,7 +323,7 @@ describe("WorkspaceShell — guards are preserved", () => {
       expect(sidebar().getByRole("link", { name: "Mon dossier" })).toHaveAttribute("aria-current", "page");
       expect(sidebar().queryByRole("link", { name: "Missions" })).toBeNull();
       expect(sidebar().queryByRole("link", { name: "Accueil" })).toBeNull();
-      expect(tabBar().getAllByRole("link").map((link) => link.textContent)).toEqual(["Dossier", "Historique", "Profil"]);
+      expect(tabBar().getAllByRole("link").map((link) => link.textContent)).toEqual(["Dossier", "Gains", "Profil"]);
       unmount();
     }
   });

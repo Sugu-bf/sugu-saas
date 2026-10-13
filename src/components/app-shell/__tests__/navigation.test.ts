@@ -165,7 +165,7 @@ describe("active entry", () => {
   });
 
   it("describes the location for the topbar", () => {
-    expect(shellContextFor(groups, "/vendor/wallet")).toEqual({ group: "Activité", page: "Portefeuille", parentHref: null });
+    expect(shellContextFor(groups, "/vendor/wallet")).toEqual({ group: "Activité", page: "Finances", parentHref: null });
     expect(shellContextFor(groups, "/vendor/orders/42")).toEqual({ group: null, page: "Commandes", parentHref: "/vendor/orders" });
     expect(shellContextFor(groups, "/vendor/unknown")).toEqual({ group: null, page: null, parentHref: null });
   });
@@ -202,13 +202,13 @@ describe("visibility and identity", () => {
     const seen = (extra: Partial<User>) => flattenItems(visibleGroups(WORKSPACES.courier, user("courier", extra))).map((item) => item.id);
     expect(seen({ courier_status: 1, courier_operational: true })).toEqual(expect.arrayContaining(["courier-dashboard", "courier-deliveries", "courier-documents"]));
     expect(seen({ courier_status: 1, courier_operational: true })).not.toContain("courier-file");
-    expect(seen({ courier_status: 4, courier_operational: false })).toEqual(["courier-file", "courier-history", "courier-profile", "courier-earnings", "courier-messages", "courier-settings", "courier-help"]);
+    expect(seen({ courier_status: 4, courier_operational: false })).toEqual(["courier-file", "courier-earnings", "courier-history", "courier-profile", "courier-messages", "courier-settings", "courier-help"]);
   });
 
   it("gives the courier the four tabs of their mock-ups", () => {
     const tabs = (extra: Partial<User>) => mobileTabs(visibleGroups(WORKSPACES.courier, user("courier", extra))).map((item) => item.shortLabel ?? item.label);
-    expect(tabs({ courier_status: 1, courier_operational: true })).toEqual(["Accueil", "Missions", "Historique", "Profil"]);
-    expect(tabs({ courier_status: 4, courier_operational: false })).toEqual(["Dossier", "Historique", "Profil"]);
+    expect(tabs({ courier_status: 1, courier_operational: true })).toEqual(["Accueil", "Missions", "Gains", "Profil"]);
+    expect(tabs({ courier_status: 4, courier_operational: false })).toEqual(["Dossier", "Gains", "Profil"]);
   });
 
   it("offers real destinations in the user menu", () => {
