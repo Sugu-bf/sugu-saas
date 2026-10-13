@@ -121,7 +121,7 @@ export function AgencyStatisticsScreen() {
             <EmptyState icon={Truck} title="Aucune livraison sur cette période" description="Les livraisons confiées à votre agence apparaissent ici. Essayez une période plus longue." />
           </Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3fr)]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,4fr)]">
             <Panel title="Livraisons par jour" hint={`Livraisons créées chaque jour · ${span}`}>
               <DayChart
                 form="bars"

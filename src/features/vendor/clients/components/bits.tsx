@@ -79,6 +79,18 @@ export function ClientCell({ client }: { client: Pick<Client, "name" | "phone" |
 
 // ── Key figures ─────────────────────────────────────────────
 
+/**
+ * An amount as a key figure: the number is never cut, and in a narrow card
+ * its unit goes under it whole, never "F" on one line and "CFA" on the next.
+ */
+export function Amount({ francs }: { francs: number }) {
+  return (
+    <>
+      <span className="whitespace-nowrap">{formatMoneyFromFrancs(asFrancs(francs), { currency: false })}</span> <span className="text-body font-semibold whitespace-nowrap text-foreground-muted">FCFA</span>
+    </>
+  );
+}
+
 /** Row of key figures: two a row on a phone, never a row to scroll sideways. */
 export function KpiGrid({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -97,28 +109,31 @@ export function KpiGrid({ label, children }: { label: string; children: ReactNod
 export function Figure({ icon: Icon, label, value, hint, trend, onSelect, pressed = false, loading = false }: { icon: LucideIcon; label: string; value: ReactNode | undefined; hint?: string; trend?: ReactNode; onSelect?: () => void; pressed?: boolean; loading?: boolean }) {
   const labelClass = "block text-left text-label text-foreground-muted";
   return (
+    // The card measures itself: narrow (a phone, four across on a tablet) its icon goes above the figure, which then has the whole width.
     <div
       data-pressed={pressed || undefined}
       className={cn(
-        "relative flex min-w-0 items-center gap-3 rounded-panel border border-border bg-surface p-3 md:gap-4 md:p-4",
+        "@container relative min-w-0 rounded-panel border border-border bg-surface p-3 md:p-4",
         onSelect && "transition-colors duration-100 hover:border-border-strong data-[pressed]:border-primary data-[pressed]:bg-brand-subtle",
         onSelect && "has-[button:focus-visible]:outline-2 has-[button:focus-visible]:outline-offset-2 has-[button:focus-visible]:outline-focus-ring",
       )}
     >
-      <Icon className="size-5 shrink-0 text-foreground md:size-7" strokeWidth={1.75} aria-hidden="true" />
-      <div className="flex min-w-0 flex-1 flex-col-reverse">
-        {trend && !loading && <span className="mt-0.5 block text-meta text-foreground-muted">{trend}</span>}
-        {onSelect ? (
-          <button type="button" aria-pressed={pressed} onClick={onSelect} className={cn(labelClass, "outline-none after:absolute after:inset-0 after:rounded-panel focus-visible:outline-none")}>
-            {label}
-            {hint && <span className="sr-only">, {hint}</span>}
-          </button>
-        ) : (
-          <span className={labelClass}>{label}</span>
-        )}
-        {loading || value === undefined ? <Skeleton className="mb-1 h-7 w-14" /> : <span className="block min-w-0 text-kpi text-foreground tabular-nums [overflow-wrap:anywhere]">{value}</span>}
+      <div className="flex h-full min-w-0 flex-col gap-2 @[13rem]:flex-row @[13rem]:items-center @[13rem]:gap-4">
+        <Icon className="size-5 shrink-0 text-foreground @[13rem]:size-7" strokeWidth={1.75} aria-hidden="true" />
+        <div className="flex min-w-0 flex-1 flex-col-reverse">
+          {trend && !loading && <span className="mt-0.5 block text-meta text-foreground-muted">{trend}</span>}
+          {onSelect ? (
+            <button type="button" aria-pressed={pressed} onClick={onSelect} className={cn(labelClass, "outline-none after:absolute after:inset-0 after:rounded-panel focus-visible:outline-none")}>
+              {label}
+              {hint && <span className="sr-only">, {hint}</span>}
+            </button>
+          ) : (
+            <span className={labelClass}>{label}</span>
+          )}
+          {loading || value === undefined ? <Skeleton className="mb-1 h-7 w-14" /> : <span className="block min-w-0 text-kpi text-foreground tabular-nums">{value}</span>}
+        </div>
+        {onSelect && <ChevronRight className="size-4 shrink-0 text-foreground-subtle max-md:hidden @max-[13rem]:hidden" aria-hidden="true" />}
       </div>
-      {onSelect && <ChevronRight className="size-4 shrink-0 text-foreground-subtle max-md:hidden" aria-hidden="true" />}
     </div>
   );
 }

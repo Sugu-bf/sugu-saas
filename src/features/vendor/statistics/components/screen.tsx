@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BarChart3, ChartNoAxesCombined, ShoppingBag, ShoppingCart, UserPlus, Wallet } from "lucide-react";
 import { Card, EmptyState, ErrorState, PageHeader, Skeleton, asFrancs, formatMoneyFromFrancs } from "@/design-system";
 import { ProductThumb } from "@/features/vendor/catalog/components/product-bits";
-import { Figure, KpiGrid } from "@/features/vendor/clients/components/bits";
+import { Amount, Figure, KpiGrid } from "@/features/vendor/clients/components/bits";
 import { Panel, PeriodControl, RankedBar, Trend } from "@/features/insights/bits";
 import { DayChart, RANKED_SHADES, ShareRing, periodLabel } from "@/features/insights/charts";
 import { PERIODS, type PeriodKey } from "@/features/insights/contract";
@@ -117,9 +117,9 @@ export function StatisticsScreen() {
       <div className={isPlaceholderData ? "flex flex-col gap-4 opacity-60 transition-opacity" : "flex flex-col gap-4"}>
         <KpiGrid label="Chiffres de la période">
           <Figure icon={ShoppingCart} label="Commandes" value={units(kpis.orders.value)} trend={<Trend figure={kpis.orders} before={units(kpis.orders.previous)} />} />
-          <Figure icon={ChartNoAxesCombined} label="Chiffre d'affaires" value={francs(kpis.revenue.value)} trend={<Trend figure={kpis.revenue} before={francs(kpis.revenue.previous)} />} />
+          <Figure icon={ChartNoAxesCombined} label="Chiffre d'affaires" value={<Amount francs={kpis.revenue.value} />} trend={<Trend figure={kpis.revenue} before={francs(kpis.revenue.previous)} />} />
           <Figure icon={UserPlus} label="Nouveaux clients" value={units(kpis.newCustomers.value)} trend={<Trend figure={kpis.newCustomers} before={units(kpis.newCustomers.previous)} />} />
-          <Figure icon={ShoppingBag} label="Panier moyen" value={kpis.deliveredOrders > 0 ? francs(kpis.averageBasket.value) : "—"} trend={<Trend figure={kpis.averageBasket} before={francs(kpis.averageBasket.previous)} />} />
+          <Figure icon={ShoppingBag} label="Panier moyen" value={kpis.deliveredOrders > 0 ? <Amount francs={kpis.averageBasket.value} /> : "—"} trend={<Trend figure={kpis.averageBasket} before={francs(kpis.averageBasket.previous)} />} />
         </KpiGrid>
 
         <p className="text-meta text-foreground-muted">
@@ -134,7 +134,7 @@ export function StatisticsScreen() {
             <EmptyState icon={Wallet} title="Aucune commande sur cette période" description="Les ventes apparaissent ici dès qu'une commande est passée dans votre boutique. Essayez une période plus longue." />
           </Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3fr)]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,4fr)]">
             <Panel title="Ventes" hint={`Chiffre d'affaires livré, par jour de commande · ${span}`} className="xl:col-span-1">
               <DayChart
                 form="area"

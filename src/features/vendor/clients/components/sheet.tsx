@@ -6,7 +6,7 @@ import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, Mail, MapPin, Phone
 import { Avatar, Button, Card, DropdownMenu, DropdownMenuItem, EmptyState, ErrorState, Skeleton, StatusBadge, Tabs, TabsContent, TabsList, TabsTrigger } from "@/design-system";
 import type { ClientOrder, ClientSheet as Sheet } from "../contract";
 import { useClient } from "../hooks";
-import { CLIENTS, ClientsPage, Figure, KpiGrid, describeFailure, formatDay, formatFrancs, formatPhone, formatUnits, isNotFound } from "./bits";
+import { Amount, CLIENTS, ClientsPage, Figure, KpiGrid, describeFailure, formatDay, formatFrancs, formatPhone, formatUnits, isNotFound } from "./bits";
 
 const orderPath = (id: string) => `/vendor/orders/${id}`;
 const ordersOf = (client: Sheet) => `/vendor/orders?q=${encodeURIComponent(client.phone ?? client.name)}`;
@@ -36,6 +36,7 @@ export function ClientSheet({ id }: { id: string }) {
     return (
       <ClientsPage aria-busy>
         {backLink}
+        <h1 className="sr-only">Fiche client</h1>
         <Card className="flex items-center gap-4">
           <Skeleton className="size-16 rounded-pill" />
           <div className="flex flex-1 flex-col gap-2">
@@ -59,6 +60,7 @@ export function ClientSheet({ id }: { id: string }) {
     return (
       <ClientsPage>
         {backLink}
+        <h1 className="text-page-title text-foreground">Fiche client</h1>
         <Card>
           {isNotFound(error) ? (
             <EmptyState
@@ -184,8 +186,8 @@ export function ClientSheet({ id }: { id: string }) {
 
       <KpiGrid label="Chiffres du client">
         <Figure icon={ShoppingBag} label="Commandes" value={formatUnits(client.orders)} />
-        <Figure icon={Wallet} label="Total dépensé" value={formatFrancs(client.spent)} />
-        <Figure icon={ShoppingCart} label="Panier moyen" value={client.deliveredOrders > 0 ? formatFrancs(client.averageBasket) : "—"} />
+        <Figure icon={Wallet} label="Total dépensé" value={<Amount francs={client.spent} />} />
+        <Figure icon={ShoppingCart} label="Panier moyen" value={client.deliveredOrders > 0 ? <Amount francs={client.averageBasket} /> : "—"} />
         <Figure icon={CalendarDays} label="Dernière commande" value={formatDay(client.lastOrderAt)} />
       </KpiGrid>
       <p className="-mt-2 text-meta text-foreground-muted">Commandes hors annulations. Total dépensé et panier moyen : commandes livrées ({formatUnits(client.deliveredOrders)}), dans votre boutique uniquement.</p>
@@ -217,13 +219,14 @@ export function ClientSheet({ id }: { id: string }) {
 
 function Fact({ icon: Icon, label, value, hint }: { icon: typeof Phone; label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-      <Icon className="mt-0.5 size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
-      <div className="min-w-0">
-        <dt className="text-label text-foreground-muted">{label}</dt>
-        <dd className="text-body font-medium text-foreground">{value}</dd>
-        {hint && <dd className="text-meta text-foreground-muted">{hint}</dd>}
-      </div>
+    // A group of a definition list holds its term and its descriptions, nothing between them.
+    <div className="relative min-w-0 py-2.5 pl-7 first:pt-0 last:pb-0">
+      <dt className="text-label text-foreground-muted">
+        <Icon className="absolute left-0 mt-0.5 size-4 text-foreground-subtle" aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className="text-body font-medium text-foreground">{value}</dd>
+      {hint && <dd className="text-meta text-foreground-muted">{hint}</dd>}
     </div>
   );
 }

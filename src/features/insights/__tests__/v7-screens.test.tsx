@@ -160,7 +160,7 @@ describe("Clients", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Awa Traoré" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Retour aux clients" })).toHaveAttribute("href", "/vendor/clients?statut=vip");
     expect(screen.getAllByRole("link", { name: /SU-2099-00123/ })[0]).toHaveAttribute("href", "/vendor/orders/o1");
-    expect(screen.getAllByText("542 000 FCFA").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: "Chiffres du client" })).toHaveTextContent(/542.000.FCFA/);
     expect(screen.getAllByRole("link", { name: "+226 70 12 34 56" })[0]).toHaveAttribute("href", "tel:+22670123456");
     // No messaging of the portal's own, no WhatsApp or SMS button.
     expect(screen.queryByText(/WhatsApp|SMS|Offrir un code/i)).not.toBeInTheDocument();
@@ -306,7 +306,7 @@ describe("Statistiques vendeur", () => {
     render(<StatisticsScreen />);
 
     const figures = within(screen.getByRole("region", { name: "Chiffres de la période" }));
-    expect(figures.getByText("2 450 000 FCFA")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Chiffres de la période" })).toHaveTextContent(/2.450.000.FCFA/);
     expect(figures.getByText("+22,5 %")).toBeInTheDocument();
     expect(figures.getByText("−7 %")).toBeInTheDocument();
     // Orders: the period before was empty, so no rate at all.

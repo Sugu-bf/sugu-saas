@@ -29,7 +29,7 @@ export function Trend({ figure, before, lowerIsBetter = false }: { figure: Compa
         {up ? "+" : flat ? "" : "−"}
         {UNITS.format(Math.abs(figure.change))} %
       </span>{" "}
-      <span className="whitespace-nowrap">avant : {before}</span>
+      <span>avant&nbsp;: {before}</span>
     </>
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Contact, Crown, Download, Eye, Heart, MoreHorizontal, Phone, ShoppingBag, Sparkles, UserPlus, UserSearch, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Button, Card, DataTable, DropdownMenu, DropdownMenuItem, ErrorState, IconButton, PageHeader, StatusBadge, Tabs, TabsList, TabsTrigger, Toolbar, ToolbarFilter, ToolbarSearch, customerSegment, type DataTableColumn, type SortState } from "@/design-system";
+import { Button, Card, DataTable, DropdownMenu, DropdownMenuItem, ErrorState, IconButton, PageHeader, StatusBadge, Toolbar, ToolbarFilter, ToolbarSearch, cn, customerSegment, type DataTableColumn, type SortState } from "@/design-system";
 import { useListAddress } from "@/features/vendor/sugubox/hooks";
 import { CLIENT_PAGE_SIZES, exportClientsCsv, type ClientFilters } from "../api";
 import { CLIENT_SORTS, SEGMENTS, type Client, type ClientSort, type ClientSummary } from "../contract";
@@ -17,6 +18,24 @@ const COLUMN_OF: Record<ClientSort, string> = { name: "client", orders: "orders"
 
 const ordersOf = (client: Client) => `/vendor/orders?q=${encodeURIComponent(client.phone ?? client.name)}`;
 
+/** A status of the phone's filter row: a pill, pressed when it is the one shown, with the count of the whole store. */
+function StatusPill({ label, count, pressed, onSelect }: { label: string; count: number | undefined; pressed: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onSelect}
+      className={cn(
+        "inline-flex h-touch shrink-0 items-center gap-2 rounded-pill border px-3.5 text-body font-medium whitespace-nowrap transition-colors duration-100 focus-visible:-outline-offset-2",
+        pressed ? "border-transparent bg-primary text-primary-foreground" : "border-border bg-surface text-foreground-muted hover:bg-surface-subtle hover:text-foreground",
+      )}
+    >
+      {label}
+      {count !== undefined && <span className={cn("rounded-pill px-2 py-0.5 text-meta font-semibold tabular-nums", pressed ? "bg-black/15" : "bg-surface-subtle")}>{count}</span>}
+    </button>
+  );
+}
+
 /** The rules of the segments, as the server applies them. */
 function rulesText(rules: ClientSummary["rules"]): string {
   return `VIP : ${formatFrancs(rules.vipSpent)} dépensés ou ${rules.vipOrders} commandes. Fidèle : ${rules.loyalOrders} commandes ou plus. Nouveau : client depuis ${rules.newDays} jours au plus. Inactif : aucune commande depuis ${rules.inactiveDays} jours.`;
@@ -25,6 +44,7 @@ function rulesText(rules: ClientSummary["rules"]): string {
 export function ClientList() {
   const router = useRouter();
   const address = useListAddress(CLIENT_PAGE_SIZES);
+  const here = useSearchParams().toString();
   const [creating, setCreating] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -56,7 +76,19 @@ export function ClientList() {
   };
 
   const columns: DataTableColumn<Client>[] = [
-    { id: "client", header: "Client", mobile: "title", sortable: true, cell: (row) => <ClientCell client={row} /> },
+    {
+      id: "client",
+      header: "Client",
+      mobile: "title",
+      sortable: true,
+      cell: (row) => <ClientCell client={row} />,
+      // On a phone the customer is the way into the sheet: no "Voir" button takes the room of the name.
+      mobileCell: (row) => (
+        <Link href={clientPath(row.id, here)} className="block rounded-control outline-offset-2" aria-label={`Voir la fiche de ${row.name}`}>
+          <ClientCell client={row} />
+        </Link>
+      ),
+    },
     { id: "segment", header: "Statut", mobile: "badge", cell: (row) => <StatusBadge domain="customerSegment" code={row.segment} /> },
     {
       id: "orders",
@@ -129,18 +161,12 @@ export function ClientList() {
           </KpiGrid>
 
           {/* On a phone the statuses are a row of pills, each with the count of the whole store. */}
-          <Tabs value={segment || "all"} onValueChange={(value) => address.update({ statut: value === "all" ? null : value })} className="md:hidden">
-            <TabsList label="Filtrer les clients par statut" variant="pills">
-              <TabsTrigger value="all" count={summary.data?.total}>
-                Tous
-              </TabsTrigger>
-              {SEGMENTS.filter((code) => (counts?.[code] ?? 0) > 0 || code === segment).map((code) => (
-                <TabsTrigger key={code} value={code} count={counts?.[code]} tone={customerSegment.resolve(code).tone}>
-                  {customerSegment.resolve(code).label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div role="group" aria-label="Filtrer les clients par statut" className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 md:hidden">
+            <StatusPill label="Tous" count={summary.data?.total} pressed={!segment} onSelect={() => address.update({ statut: null })} />
+            {SEGMENTS.filter((code) => (counts?.[code] ?? 0) > 0 || code === segment).map((code) => (
+              <StatusPill key={code} label={customerSegment.resolve(code).label} count={counts?.[code]} pressed={segment === code} onSelect={() => address.update({ statut: code })} />
+            ))}
+          </div>
 
           <DataTable
             caption="Clients de la boutique"
@@ -154,7 +180,7 @@ export function ClientList() {
             rowActionsLabel="Actions"
             rowActions={(row) => (
               <>
-                <Button size="compact" icon={Eye} onClick={() => open(row)} aria-label={`Voir la fiche de ${row.name}`}>
+                <Button size="compact" icon={Eye} onClick={() => open(row)} aria-label={`Voir la fiche de ${row.name}`} className="max-md:hidden">
                   Voir
                 </Button>
                 <DropdownMenu trigger={<IconButton icon={MoreHorizontal} label={`Autres actions pour ${row.name}`} />}>
