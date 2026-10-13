@@ -255,6 +255,22 @@ export const payoutStatus = defineStatusRegistry({
   aliases: { cancelled: "canceled" },
 });
 
+/**
+ * A payout method (`StorePayoutSetting`), as `features/finance/contract.ts`
+ * reads it from `is_payable` and `status`. Only `verified` can receive a
+ * withdrawal, and only an operator makes a method so: the portal never
+ * turns one into it.
+ */
+export const payoutMethodStatus = defineStatusRegistry({
+  domain: "payout-method",
+  statuses: {
+    pending: { label: "En vérification", tone: "warning", icon: FileSearch, description: "Un opérateur SUGU doit vérifier ce compte avant tout retrait." },
+    verified: { label: "Vérifiée", tone: "success", icon: ShieldCheck },
+    paused: { label: "Suspendue", tone: "neutral", icon: CircleDashed },
+    disabled: { label: "Désactivée", tone: "danger", icon: Ban },
+  },
+});
+
 /** `App\Enums\KycDocumentStatus` (integer-backed: 0–2) — one uploaded document. */
 export const kycDocumentStatus = defineStatusRegistry({
   domain: "kyc-document",
@@ -350,6 +366,7 @@ export const statusRegistries = {
   product: productStatus,
   stock: stockStatus,
   payout: payoutStatus,
+  payoutMethod: payoutMethodStatus,
   kycDocument: kycDocumentStatus,
   kycRequest: kycRequestStatus,
   courier: courierStatus,

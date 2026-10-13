@@ -86,6 +86,7 @@ export {
   orderPaymentStatus,
   orderStatus,
   paymentStatus,
+  payoutMethodStatus,
   payoutStatus,
   productStatus,
   statusRegistries,
