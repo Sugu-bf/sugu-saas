@@ -28,6 +28,12 @@ export interface FinanceSpace {
   historyTitle: string;
   /** The kinds of entry this profile can have, in the order of the filter. */
   kinds: EntryKind[];
+  /**
+   * When money reaches the wallet. Funds still within the guarantee period
+   * are in no wallet and have no figure: this sentence stands in their place,
+   * rather than an estimate that a return or a dispute could prove wrong.
+   */
+  settlementNote: string;
   /** Whether cash is collected for others (`cash_held` of the summary). */
   holdsCash: boolean;
   /** Title of the tab of the browser, after the name of the screen. */
@@ -53,6 +59,7 @@ export const FINANCE_SPACES: Record<FinanceProfile, FinanceSpace> = {
     monthLabel: "Ventes du mois",
     chartTitle: "Ventes encaissées",
     earningNoun: "vente",
+    settlementNote: "Le montant d'une vente rejoint votre solde 72 heures après la livraison confirmée de la commande. D'ici là, il n'apparaît pas ici.",
     recentTitle: "Dernières opérations",
     historyTitle: "Historique",
     kinds: ["sale", "withdrawal", "withdrawal_released", "dispute", "adjustment"],
@@ -69,6 +76,7 @@ export const FINANCE_SPACES: Record<FinanceProfile, FinanceSpace> = {
     monthLabel: "Revenus de livraison",
     chartTitle: "Revenus de livraison",
     earningNoun: "livraison",
+    settlementNote: "La part de l'agence rejoint son solde 72 heures après la remise du colis. D'ici là, elle n'apparaît pas ici.",
     recentTitle: "Activité récente",
     historyTitle: "Historique financier",
     kinds: ["delivery", "withdrawal", "withdrawal_released", "dispute", "adjustment"],
@@ -85,6 +93,7 @@ export const FINANCE_SPACES: Record<FinanceProfile, FinanceSpace> = {
     monthLabel: "Gains du mois",
     chartTitle: "Évolution des gains",
     earningNoun: "mission",
+    settlementNote: "Votre part d'une mission rejoint vos gains 72 heures après la remise du colis. D'ici là, elle n'apparaît pas ici.",
     recentTitle: "Dernières opérations",
     historyTitle: "Historique des gains",
     kinds: ["delivery", "withdrawal", "withdrawal_released", "dispute", "adjustment"],

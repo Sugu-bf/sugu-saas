@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpFromLine, Banknote, ChevronRight, Coins, CreditCard, Hourglass, ListChecks, PiggyBank, Receipt, ShieldAlert, Wallet } from "lucide-react";
+import { ArrowUpFromLine, Banknote, ChevronRight, Clock, Coins, CreditCard, Hourglass, ListChecks, PiggyBank, Receipt, ShieldAlert, Wallet } from "lucide-react";
 import { Alert, Button, ErrorState, Select, Skeleton, Stat, cn, formatMoneyFromCents } from "@/design-system";
 import type { FinanceProfile } from "../api";
 import type { WalletEntry, WalletSummary } from "../contract";
@@ -102,6 +102,11 @@ export function FinanceOverview({ profile }: { profile: FinanceProfile }) {
       <Figures space={space} data={data} historyHref={paths.history} refreshing={summary.isFetching} />
 
       <WithdrawAction data={data} href={paths.withdraw} />
+
+      <p className="flex items-start gap-2 text-label font-normal text-foreground-muted">
+        <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {space.settlementNote}
+      </p>
 
       {/* On a phone the last operations come first, as on its mock-up; these two rows follow them. */}
       <div className="grid gap-3 max-md:order-last md:grid-cols-2">
