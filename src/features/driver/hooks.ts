@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { queryKeys } from "@/lib/query";
-import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 import * as driverService from "./service";
 import type { DriverDeliveryFilters, DriverHistoryFilters } from "./service";
 import type { DriverProfile, DriverVehicle, DriverNotifications } from "./schema";
@@ -355,56 +355,6 @@ export function useDeleteDriverAccount() {
       driverService.deleteDriverAccount(data),
     onError: (err) => {
       toast.error(_settingsErrorMessage(err, "Erreur lors de la suppression du compte"));
-    },
-  });
-}
-
-// ============================================================
-// Driver Earnings — Hooks
-// ============================================================
-
-import { toast } from "sonner";
-
-/** Hook: Fetch driver earnings data */
-export function useDriverEarnings() {
-  return useQuery({
-    queryKey: queryKeys.driver.earnings(),
-    queryFn: () => driverService.getDriverEarnings(),
-    staleTime: 30_000,
-  });
-}
-
-/** Hook: Fetch driver payout settings */
-export function useDriverPayoutSettings() {
-  return useQuery({
-    queryKey: queryKeys.driver.payoutSettings(),
-    queryFn: () => driverService.getDriverPayoutSettings(),
-    staleTime: 60_000,
-  });
-}
-
-/**
- * Mutation: Submit withdrawal.
- *
- * The idempotency key is minted ONCE per mounted wizard, so a retry after a
- * timeout replays the same request instead of creating a second real payout.
- */
-export function useSubmitDriverWithdrawal() {
-  const qc = useQueryClient();
-  const idempotencyKey = useIdempotencyKey();
-
-  return useMutation({
-    mutationFn: (data: { amount: number; payoutSettingId: string }) =>
-      driverService.submitDriverWithdrawal({
-        ...data,
-        idempotencyKey: idempotencyKey(),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.driver.earnings() });
-      toast.success("Demande de retrait envoyée avec succès !");
-    },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Erreur lors du retrait");
     },
   });
 }

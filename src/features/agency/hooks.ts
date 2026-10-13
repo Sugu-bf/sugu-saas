@@ -6,7 +6,6 @@ import { useSession } from "@/features/auth/hooks";
 import * as agencyService from "./service";
 import type { UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./service";
 import type { AgencySettingsResponse } from "./schema";
-import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 
 // ============================================================
 // Statistics Hook
@@ -167,63 +166,6 @@ export function useRegenerateInvitationCode() {
     mutationFn: () => agencyService.getInvitationCode(true),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.agency.invitationCode(), data);
-    },
-  });
-}
-
-// ============================================================
-// Earnings Hook
-// ============================================================
-
-/**
- * Hook: Fetch agency earnings/wallet data.
- */
-export function useAgencyEarnings() {
-  const { data: user } = useSession();
-  const agencyId = user?.delivery_partner_id ?? undefined;
-
-  return useQuery({
-    queryKey: queryKeys.agency.earnings(),
-    queryFn: () => agencyService.getAgencyEarnings(agencyId!),
-    staleTime: 60 * 1000,
-    enabled: !!agencyId,
-  });
-}
-
-/**
- * Hook: Fetch agency payout settings (payment methods).
- */
-export function useAgencyPayoutSettings() {
-  const { data: user } = useSession();
-  const agencyId = user?.delivery_partner_id ?? undefined;
-
-  return useQuery({
-    queryKey: queryKeys.agency.payoutSettings(),
-    queryFn: () => agencyService.getAgencyPayoutSettings(agencyId!),
-    staleTime: 60 * 1000,
-    enabled: !!agencyId,
-  });
-}
-
-/**
- * Mutation: Submit agency withdrawal request.
- */
-export function useSubmitAgencyWithdrawal() {
-  const queryClient = useQueryClient();
-  const { data: user } = useSession();
-  const agencyId = user?.delivery_partner_id ?? undefined;
-
-  // Stable across retries of the same submission — see finance.service.
-  const idempotencyKey = useIdempotencyKey();
-
-  return useMutation({
-    mutationFn: (data: { amount: number; payoutSettingId: string; note?: string }) =>
-      agencyService.submitAgencyWithdrawal(agencyId!, {
-        ...data,
-        idempotencyKey: idempotencyKey(),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agency.earnings() });
     },
   });
 }

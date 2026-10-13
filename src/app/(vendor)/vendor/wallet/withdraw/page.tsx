@@ -1,12 +1,18 @@
-import { Metadata } from "next";
-import { WithdrawForm } from "./withdraw-form";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { FinanceWithdraw } from "@/features/finance/components/withdraw";
+import { FinanceLoading } from "@/features/finance/components/loading";
 
 export const metadata: Metadata = {
   title: "Demander un retrait | SUGUPro Vendeur",
-  description:
-    "Transférez vos fonds vers votre compte mobile ou bancaire.",
+  description: "Retirez vos fonds vers un compte mobile money ou bancaire.",
 };
 
-export default function WithdrawPage() {
-  return <WithdrawForm />;
+export default function VendorWithdrawPage() {
+  // The screen reads its filters and its page from the address.
+  return (
+    <Suspense fallback={<FinanceLoading />}>
+      <FinanceWithdraw profile="vendor" />
+    </Suspense>
+  );
 }

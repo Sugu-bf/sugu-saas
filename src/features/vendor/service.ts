@@ -99,11 +99,6 @@ export {
   createTicket,
   sendTicketMessage,
   closeTicket,
-  // Wallet
-  getVendorWallet,
-  requestPayout,
-  getPayoutSettings,
-  submitWithdrawal,
   // Messaging
   getSellerConversations,
   getSellerConversation,

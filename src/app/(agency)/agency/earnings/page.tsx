@@ -1,22 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { FinanceOverview } from "@/features/finance/components/overview";
+import { FinanceLoading } from "@/features/finance/components/loading";
 
-import { useAgencyEarnings } from "@/features/agency/hooks";
-import { WalletPageLayout } from "@/components/shared/wallet";
-import {
-  AGENCY_EARNINGS_CONFIG,
-  mapAgencyEarningsToWalletData,
-} from "@/features/agency/earnings-wallet-config";
-import AgencyEarningsLoading from "./loading";
+export const metadata: Metadata = {
+  title: "Finances de l'agence | SUGUPro Agence",
+  description: "Solde disponible, retraits en cours et dernières opérations.",
+};
 
-export default function AgencyEarningsPage() {
-  const query = useAgencyEarnings();
-
+export default function AgencyOverviewPage() {
+  // The screen reads its filters and its page from the address.
   return (
-    <WalletPageLayout
-      config={AGENCY_EARNINGS_CONFIG}
-      query={query}
-      mapData={mapAgencyEarningsToWalletData}
-      LoadingComponent={AgencyEarningsLoading}
-    />
+    <Suspense fallback={<FinanceLoading />}>
+      <FinanceOverview profile="agency" />
+    </Suspense>
   );
 }

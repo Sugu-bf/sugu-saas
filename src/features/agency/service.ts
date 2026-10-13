@@ -3,7 +3,6 @@
 // dashboard have their own modules: ./deliveries, ./couriers, ./dashboard.
 export * from "./services/stats.service";
 export * from "./services/settings.service";
-export * from "./services/finance.service";
 export * from "./services/zones.service";
 export * from "./services/invitation.service";
 

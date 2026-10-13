@@ -5,7 +5,6 @@ import { queryKeys } from "@/lib/query";
 import * as vendorService from "./service";
 import { useSession } from "@/features/auth/hooks";
 import { useRouter } from "next/navigation";
-import { useIdempotencyKey } from "@/lib/utils/use-idempotency-key";
 import type { ProductMutationFormData } from "./services/product-mutation-contract";
 
 // ────────────────────────────────────────────────────────────
@@ -1311,73 +1310,6 @@ export function useCloseTicket() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vendor.ticketMessages(ticketId),
       });
-    },
-  });
-}
-
-// ────────────────────────────────────────────────────────────
-// Wallet
-// ────────────────────────────────────────────────────────────
-
-/**
- * Hook: Vendor wallet data (KPIs, chart, transactions, payout info).
- * staleTime 30s for near-realtime balance display.
- */
-export function useVendorWallet() {
-  return useQuery({
-    queryKey: queryKeys.vendor.wallet(),
-    queryFn: () => vendorService.getVendorWallet(),
-    staleTime: 30_000,
-  });
-}
-
-/**
- * Hook: Request a payout withdrawal.
- * Invalidates wallet cache on success so balance refreshes.
- */
-export function useRequestPayout() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: (amount: number) => vendorService.requestPayout(amount),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.vendor.wallet() });
-    },
-  });
-}
-
-// ────────────────────────────────────────────────────────────
-// Wallet — Payout Settings & Withdrawal
-// ────────────────────────────────────────────────────────────
-
-/** Hook: Fetch payout settings (payment methods). */
-export function usePayoutSettings() {
-  return useQuery({
-    queryKey: queryKeys.vendor.payoutSettings(),
-    queryFn: () => vendorService.getPayoutSettings(),
-  });
-}
-
-/**
- * Hook: Submit withdrawal request. Invalidates wallet cache on success.
- *
- * The idempotency key is minted ONCE per mounted wizard, not per call. Minting
- * it inside the request function (as the driver and agency services did) gives
- * every retry a fresh key, which makes the whole mechanism decorative: a
- * double-submit or a retry after a timeout would create a second real payout.
- */
-export function useSubmitWithdrawal() {
-  const qc = useQueryClient();
-  const idempotencyKey = useIdempotencyKey();
-
-  return useMutation({
-    mutationFn: (data: { amount: number; payoutSettingId: string }) =>
-      vendorService.submitWithdrawal({
-        ...data,
-        idempotencyKey: idempotencyKey(),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.vendor.wallet() });
     },
   });
 }

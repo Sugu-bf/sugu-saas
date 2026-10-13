@@ -118,13 +118,6 @@ export {
   closeTicket,
 } from "./tickets.service";
 
-// Wallet
-export {
-  getVendorWallet,
-  requestPayout,
-  getPayoutSettings,
-  submitWithdrawal,
-} from "./wallet.service";
 
 // Messaging
 export {

@@ -1,22 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { FinanceOverview } from "@/features/finance/components/overview";
+import { FinanceLoading } from "@/features/finance/components/loading";
 
-import { useVendorWallet } from "@/features/vendor/hooks";
-import {
-  VENDOR_WALLET_CONFIG,
-  mapVendorWalletToWalletData,
-} from "@/features/vendor/vendor-wallet-config";
-import { WalletPageLayout } from "@/components/shared/wallet";
-import VendorWalletLoading from "./loading";
+export const metadata: Metadata = {
+  title: "Portefeuille | SUGUPro Vendeur",
+  description: "Solde disponible, retraits en cours et dernières opérations.",
+};
 
-export default function VendorWalletPage() {
-  const query = useVendorWallet();
-
+export default function VendorOverviewPage() {
+  // The screen reads its filters and its page from the address.
   return (
-    <WalletPageLayout
-      config={VENDOR_WALLET_CONFIG}
-      query={query}
-      mapData={mapVendorWalletToWalletData}
-      LoadingComponent={VendorWalletLoading}
-    />
+    <Suspense fallback={<FinanceLoading />}>
+      <FinanceOverview profile="vendor" />
+    </Suspense>
   );
 }
