@@ -93,6 +93,7 @@ export {
   stockStatus,
   suguBoxInboundStatus,
   suguBoxListingStatus,
+  suguBoxMovementType,
   suguBoxOutboundStatus,
 } from "./status/domains";
 export type { StatusDomain } from "./status/domains";

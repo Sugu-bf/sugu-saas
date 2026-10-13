@@ -118,6 +118,7 @@ const STATUS_DOMAINS: Array<{ domain: StatusDomain; title: string }> = [
   { domain: "suguBoxInbound", title: "Sugu Box · réception" },
   { domain: "suguBoxOutbound", title: "Sugu Box · expédition" },
   { domain: "suguBoxListing", title: "Sugu Box · annonce" },
+  { domain: "suguBoxMovement", title: "Sugu Box · mouvement" },
 ];
 
 const NAV = [

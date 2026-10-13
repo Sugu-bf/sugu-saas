@@ -1,6 +1,9 @@
 import {
   AlertTriangle,
   Archive,
+  ArrowDownToLine,
+  ArrowLeftRight,
+  ArrowUpFromLine,
   Ban,
   Banknote,
   CheckCircle2,
@@ -9,6 +12,7 @@ import {
   CircleDot,
   Clock,
   Coffee,
+  Equal,
   EyeOff,
   FileSearch,
   Globe,
@@ -326,9 +330,9 @@ export const suguBoxInboundStatus = defineStatusRegistry({
   domain: "sugu-box-inbound",
   statuses: {
     pending: { label: "En attente", tone: "warning", icon: Clock },
-    in_progress: { label: "Réception en cours", tone: "info", icon: ScanLine },
-    completed: { label: "Réceptionné", tone: "success", icon: PackageCheck },
-    cancelled: { label: "Annulé", tone: "neutral", icon: Ban },
+    in_progress: { label: "En cours de contrôle", tone: "info", icon: ScanLine },
+    completed: { label: "Terminée", tone: "success", icon: PackageCheck },
+    cancelled: { label: "Annulée", tone: "neutral", icon: Ban },
   },
 });
 
@@ -336,11 +340,22 @@ export const suguBoxInboundStatus = defineStatusRegistry({
 export const suguBoxOutboundStatus = defineStatusRegistry({
   domain: "sugu-box-outbound",
   statuses: {
-    pending: { label: "En attente", tone: "warning", icon: Clock },
-    picking: { label: "Prélèvement", tone: "info", icon: ScanLine },
-    packed: { label: "Emballé", tone: "info", icon: Package },
-    shipped: { label: "Expédié", tone: "success", icon: Truck },
-    cancelled: { label: "Annulé", tone: "neutral", icon: Ban },
+    pending: { label: "À préparer", tone: "warning", icon: Clock },
+    picking: { label: "En préparation", tone: "info", icon: ScanLine },
+    packed: { label: "Prête à expédier", tone: "success", icon: Package },
+    shipped: { label: "Expédiée", tone: "info", icon: Truck },
+    cancelled: { label: "Annulée", tone: "neutral", icon: Ban },
+  },
+});
+
+/** `App\Domain\SuguBox\Enums\MovementType` — why a quantity changed in a bin of the warehouse. */
+export const suguBoxMovementType = defineStatusRegistry({
+  domain: "sugu-box-movement",
+  statuses: {
+    inbound: { label: "Entrée", tone: "success", icon: ArrowDownToLine },
+    outbound: { label: "Sortie", tone: "danger", icon: ArrowUpFromLine },
+    transfer: { label: "Transfert", tone: "warning", icon: ArrowLeftRight },
+    adjustment: { label: "Ajustement", tone: "neutral", icon: Equal },
   },
 });
 
@@ -374,6 +389,7 @@ export const statusRegistries = {
   suguBoxInbound: suguBoxInboundStatus,
   suguBoxOutbound: suguBoxOutboundStatus,
   suguBoxListing: suguBoxListingStatus,
+  suguBoxMovement: suguBoxMovementType,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistries;

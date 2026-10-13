@@ -15,6 +15,7 @@ import {
   statusRegistries,
   suguBoxInboundStatus,
   suguBoxListingStatus,
+  suguBoxMovementType,
   suguBoxOutboundStatus,
 } from "../status/domains";
 
@@ -35,6 +36,7 @@ const BACKEND_ENUMS = [
   ["SuguBox InboundStatus", suguBoxInboundStatus, ["pending", "in_progress", "completed", "cancelled"]],
   ["SuguBox OutboundStatus", suguBoxOutboundStatus, ["pending", "picking", "packed", "shipped", "cancelled"]],
   ["SuguBox ListingStatus", suguBoxListingStatus, ["draft", "published", "unpublished", "out_of_stock"]],
+  ["SuguBox MovementType", suguBoxMovementType, ["inbound", "outbound", "transfer", "adjustment"]],
 ] as const;
 
 describe("status registries — parity with backend enums", () => {

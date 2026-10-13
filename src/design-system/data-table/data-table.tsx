@@ -104,6 +104,12 @@ export interface DataTableProps<Row> {
   /** Narrow containers (under 672px): declarative cards (default) or the table itself, scrolling sideways. */
   mobileLayout?: "cards" | "scroll";
   /**
+   * Width of the table's own container from which it is a table and no longer
+   * cards: 672 px by default, 512 px (`narrow`) for a short table of a panel
+   * that shares a row with another.
+   */
+  tableFrom?: "default" | "narrow";
+  /**
    * Where `rowActions` go in a phone card. `header` (default): next to the
    * status, for a menu or an icon button. `footer`: a row of its own, each
    * action as wide as the card allows, for a labelled button.
@@ -142,6 +148,7 @@ export function DataTable<Row>({
   header,
   pagination,
   mobileLayout = "cards",
+  tableFrom = "default",
   mobileRowActions = "header",
   density = "default",
   loadingRowCount = 8,
@@ -218,7 +225,8 @@ export function DataTable<Row>({
 
   // Container query, not viewport: the table adapts to the room it really has
   // (a 768px tablet without sidebar gets the table; a narrow panel gets cards).
-  const tableVisibility = mobileLayout === "cards" ? "hidden @2xl:block" : "block";
+  const narrowTable = tableFrom === "narrow";
+  const tableVisibility = mobileLayout === "cards" ? (narrowTable ? "hidden @lg:block" : "hidden @2xl:block") : "block";
   const titleColumn = columns.find((column) => column.mobile === "title") ?? columns[0];
   const subtitleColumns = columns.filter((column) => column.mobile === "subtitle");
   const badgeColumns = columns.filter((column) => column.mobile === "badge");
@@ -397,7 +405,7 @@ export function DataTable<Row>({
 
       {/* ── Phone cards ───────────────────────────────────── */}
       {mobileLayout === "cards" && (
-        <ul className={cn("divide-y divide-border @2xl:hidden", refreshing && "opacity-60")} aria-label={caption}>
+        <ul className={cn("divide-y divide-border", narrowTable ? "@lg:hidden" : "@2xl:hidden", refreshing && "opacity-60")} aria-label={caption}>
           {loading
             ? Array.from({ length: Math.min(loadingRowCount, 4) }, (_, index) => (
                 <li key={index} className="flex flex-col gap-2 p-3">
