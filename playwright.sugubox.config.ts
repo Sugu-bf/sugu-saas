@@ -22,6 +22,8 @@ export default defineConfig({
   workers: 4,
   reporter: [["list"]],
   timeout: 60_000,
+  // A list keeps its previous rows while the next answer loads: an assertion on its content waits for it.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: `http://localhost:${APP_PORT}`,
     browserName: "chromium",

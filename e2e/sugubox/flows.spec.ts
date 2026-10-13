@@ -83,6 +83,7 @@ test.describe("stock", () => {
     const sorted = page.waitForRequest((request) => new URL(request.url()).searchParams.get("sort") === "-available");
     await filter(page, "Trier par").selectOption({ label: "Disponible décroissant" });
     await sorted;
+    await settled(page);
     await expect(list().first()).toContainText("Mug Sugu");
 
     await filter(page, "Entrepôt").selectOption({ label: "Sugu Bobo Nord" });
@@ -211,9 +212,16 @@ test.describe("expeditions", () => {
     await expect(list().locator('[data-status="picking"]')).toHaveCount(1);
     await figure(page, /À préparer/).click();
 
+    const narrowed = page.waitForResponse((response) => new URL(response.url()).searchParams.get("city") === "Koudougou");
     await filter(page, "Destination").selectOption({ label: "Koudougou" });
-    await expect(list()).not.toHaveCount(10);
-    for (const row of await list().all()) await expect(row).toContainText("Koudougou");
+    await narrowed;
+    await settled(page);
+    // Read again until the list is the filtered one: the rows of the previous answer stay on screen while it loads.
+    await expect(async () => {
+      const cities = await list().allInnerTexts();
+      expect(cities.length).toBeGreaterThan(0);
+      expect(cities.every((text) => text.includes("Koudougou"))).toBe(true);
+    }).toPass();
     await filter(page, "Destination").selectOption({ label: "Toutes les destinations" });
 
     await searchFor(page, "outbound", "SU-2026-004585");
@@ -286,7 +294,11 @@ test.describe("movements", () => {
     await filter(page, "Utilisateur").selectOption({ label: "Aminata S." });
     await asked;
     await settled(page);
-    for (const row of await list().all()) await expect(row).toContainText("Aminata S.");
+    await expect(async () => {
+      const rows = await list().allInnerTexts();
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.every((text) => text.includes("Aminata S."))).toBe(true);
+    }).toPass();
 
     await list().first().getByRole("link", { name: "REC-2026-00124" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Réception REC-2026-00124");
