@@ -360,3 +360,20 @@ Les sept écrans Sugu Box du vendeur suivent leurs maquettes (`docs/captures/ref
 - **Ce qui n'est pas dessiné** : aucune action de l'entrepôt (nouvelle réception, validation, ajustement, marquer comme expédiée), ni ce que le produit ne contient pas (fournisseur, transporteur, documents joints).
 
 Code : `src/features/vendor/sugubox/{contract,api,hooks}.ts`, `components/`, `src/app/(vendor)/vendor/sugubox/*`. Tests : `npx vitest run src/features/vendor/sugubox`, puis `npx next build --webpack && npx playwright test -c playwright.sugubox.config.ts`. Captures : `CAPTURE=1 npx playwright test -c playwright.sugubox.config.ts e2e/sugubox/captures.spec.ts` vers `docs/captures/v6-sugu-box/apres/`.
+
+## 13. Clients, Marketing et Statistiques (V7)
+
+Les écrans du vendeur (`/vendor/clients`, `/vendor/marketing`, `/vendor/statistics`) et les statistiques de l'agence (`/agency/statistics`) suivent la planche 1 de `docs/captures/references/v7-clients-marketing-stats-planche-*.png`.
+
+- **Chiffre d'une page** (`Figure`, `src/features/vendor/clients/components/bits.tsx`) : l'icône à gauche, le chiffre, son libellé, et au besoin une ligne de comparaison. L'icône reste en encre, sans tuile. La carte se mesure elle-même : étroite (téléphone, quatre de front sur tablette), l'icône passe au-dessus et le chiffre prend toute la largeur. Avec `onSelect`, elle filtre la liste qu'elle compte (`aria-pressed`).
+- **Montant en chiffre clé** (`Amount`) : le nombre n'est jamais coupé ; dans une carte étroite l'unité passe dessous, entière.
+- **Comparaison** (`Trend`, `src/features/insights/bits.tsx`) : le taux que le serveur a calculé, son sens en mots pour un lecteur d'écran, et « avant : … ». Vert quand le chiffre va dans le bon sens (`lowerIsBetter` pour les échecs). Quand la période précédente est vide, le serveur ne donne pas de taux et l'écran n'en montre pas : jamais de « +100 % ».
+- **Période** (`PeriodControl`) : les trois durées que le serveur connaît, en bouton segmenté, et deux dates quand la page le permet. Une rangée, au-dessus de tout ce qu'elle délimite ; choisir relance une requête, et les chiffres précédents restent affichés, atténués, pendant qu'elle répond.
+- **Graphiques** (`src/features/insights/charts.tsx`) : `DayChart` (aire sous une courbe pour un montant, barres pour un comptage) et `ShareRing` (un total et ses parts, six au plus). Une seule échelle, depuis zéro ; le jour pointé se lit au survol, au doigt et au clavier (flèches, Début, Fin) ; les mêmes chiffres sont dans une table pour qui ne voit pas le dessin. Les parts d'un total classé prennent une seule teinte, de pleine à pâle (`RANKED_SHADES`), nommées à côté ; les couleurs de statut restent aux statuts.
+- **Statuts** : `customerSegment` (les six segments d'un client, calculés par le serveur) et `discount` (l'état calculé d'un code ou d'une promotion).
+- **Listes** : comme partout, recherche, filtres, tri et page vivent dans l'adresse et sont appliqués par le serveur. Sur téléphone, les statuts des clients sont une rangée de pastilles pressées, chacune avec le compteur de toute la boutique.
+- **Fiche client** : même route que la liste (`?client=`), avec retour à la liste telle qu'elle était filtrée.
+- **Montants des formulaires** : saisis en francs, envoyés en centimes en un seul endroit (`toCentimes`, `src/features/vendor/marketing/contract.ts`).
+- **Ce qui n'est pas dessiné** : ni WhatsApp ni SMS depuis une fiche, ni livraison gratuite (le paiement ne l'applique pas), ni note, entonnoir ou taux de conversion (rien ne les mesure), ni montant sur les statistiques de l'agence.
+
+Code : `src/features/vendor/{clients,marketing,statistics}`, `src/features/agency/statistics`, `src/features/insights`. Tests : `npx vitest run src/features/insights`, puis `npx next build --webpack && npx playwright test -c playwright.commerce.config.ts`. Captures : `CAPTURE=1 npx playwright test -c playwright.commerce.config.ts e2e/commerce/captures.spec.ts` vers `docs/captures/v7-clients-marketing-statistics/`.
