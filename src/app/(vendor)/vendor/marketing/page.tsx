@@ -1,20 +1,17 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import MarketingPage from "./marketing-page";
-
-// ============================================================
-// SEO Metadata
-// ============================================================
+import { MarketingLoading, MarketingScreen } from "@/features/vendor/marketing/components/screen";
 
 export const metadata: Metadata = {
   title: "Marketing | SUGUPro Vendeur",
-  description:
-    "Gérez vos promotions, codes promo et produits mis en avant pour booster vos ventes sur SUGUPro.",
+  description: "Les codes promotionnels et les promotions produits de votre boutique.",
 };
 
-// ============================================================
-// Page — Server Component (renders the client wrapper)
-// ============================================================
-
-export default function VendorMarketingPage() {
-  return <MarketingPage />;
+export default function Page() {
+  // The screen reads its tab from the address.
+  return (
+    <Suspense fallback={<MarketingLoading />}>
+      <MarketingScreen />
+    </Suspense>
+  );
 }
