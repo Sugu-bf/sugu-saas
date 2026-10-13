@@ -1,26 +1,17 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { ClientsLoading, ClientsScreen } from "@/features/vendor/clients/components/screen";
 
-import { useVendorClients } from "@/features/vendor/hooks";
-import { ClientsContent } from "./clients-content";
-import ClientsLoading from "./loading";
-import { ErrorState } from "@/components/feedback";
+export const metadata: Metadata = {
+  title: "Mes clients | SUGUPro Vendeur",
+  description: "Les clients de votre boutique : recherche, statuts, commandes et montants dépensés.",
+};
 
-export default function VendorClientsPage() {
-  const { data, isLoading, isError, error, refetch } = useVendorClients();
-
-  if (isLoading) return <ClientsLoading />;
-  if (isError) {
-    return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center py-24">
-        <ErrorState
-          title="Erreur de chargement"
-          description={error?.message || "Impossible de charger les clients."}
-          onRetry={() => refetch()}
-        />
-      </div>
-    );
-  }
-  if (!data) return null;
-
-  return <ClientsContent initialData={data} />;
+export default function Page() {
+  // The screen reads its filters, its page and the open sheet from the address.
+  return (
+    <Suspense fallback={<ClientsLoading />}>
+      <ClientsScreen />
+    </Suspense>
+  );
 }
