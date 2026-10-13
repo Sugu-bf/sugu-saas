@@ -212,7 +212,8 @@ for (const profile of PROFILES) {
       await expect(page).toHaveURL(/type=retraits/);
       await expect(list.getByRole("listitem")).toHaveCount(Math.min(20, counts.withdrawal));
 
-      // A row opens what the server knows of it.
+      // A row opens what the server knows of it. Without a withdrawal there is none to open: the money of the seeder is missing.
+      test.skip(counts.withdrawal === 0, "this account has no withdrawal: run QaFinanceSeeder on the server");
       await list.getByRole("button").first().click();
       const sheet = page.getByRole("dialog", { name: "Détail de l'opération" });
       await expect(sheet).toContainText("Demande de retrait");
@@ -223,6 +224,11 @@ for (const profile of PROFILES) {
       const { page, me } = await as(profile);
       const { body } = await get(page, space.withdrawals(me));
       await page.goto(`${space.base}/withdrawals`);
+      if (body.meta.total === 0) {
+        // No request yet: the screen says so, and is not a failure.
+        await expect(page.locator("main").getByText("Aucune demande de retrait")).toBeVisible();
+        test.skip(true, "this account has no withdrawal request: run QaFinanceSeeder on the server");
+      }
       await expect(page.getByRole("tab", { name: /Toutes/ })).toContainText(String(body.meta.counts.all));
       await expect(page.getByRole("tab", { name: /En cours/ })).toContainText(String(body.meta.counts.in_progress));
       const rows = page.getByRole("list", { name: "Demandes de retrait" }).getByRole("listitem");
