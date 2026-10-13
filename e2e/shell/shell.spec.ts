@@ -435,7 +435,6 @@ const LEGACY_ROUTES: Array<[Role, string]> = [
   ["vendor", "/vendor/dashboard"],
   ["vendor", "/vendor/orders"],
   ["vendor", "/vendor/products"],
-  ["vendor", "/vendor/sugubox"],
   ["agency", "/agency/dashboard"],
   ["agency", "/agency/deliveries"],
   ["courier", "/driver/dashboard"],
@@ -467,21 +466,19 @@ for (const width of [375, 1280] as const) {
   });
 }
 
-test("a page that crashes keeps the shell and offers a retry", async ({ page, baseURL }) => {
-  // The legacy Sugu Box overview does not validate its payload: an unexpected
-  // shape throws while rendering. The frame must survive it.
-  await page.route("**/api/proxy/sellers/sugubox/overview", (route) =>
+test("a page whose data is not what was agreed keeps the shell and offers a retry", async ({ page, baseURL }) => {
+  // The Sugu Box overview used to read its payload without checking it, and
+  // an unexpected shape threw while rendering. Since V6 it validates what it
+  // reads: the page says the loading failed, inside the frame, and retries.
+  await page.route("**/api/proxy/sellers/sugubox/board/summary", (route) =>
     route.fulfill({ json: { success: true, data: [] } }),
   );
   await openSpace(page, "vendor", 1280, baseURL, "/vendor/sugubox");
-  await expect(page.getByText("Cette page a rencontré un problème")).toBeVisible();
+  await expect(page.locator("main").getByText("Chargement impossible")).toBeVisible();
+  await expect(page.getByText("Cette page a rencontré un problème")).toHaveCount(0);
   await expect(sidebar(page).getByRole("link", { name: "Commandes", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Menu du compte/ })).toBeVisible();
   expect(await blockingViolations(page, ["main"])).toEqual([]);
   await shot(page, "page-error-1280");
-
-  await page.unroute("**/api/proxy/sellers/sugubox/overview");
-  await page.getByRole("button", { name: "Réessayer" }).click();
-  await expect(page.getByText("Cette page a rencontré un problème")).toBeHidden();
-  await expect(page.locator("main")).toContainText("Sugu Box");
+  await expect(page.locator("main").getByRole("button", { name: "Réessayer" })).toBeVisible();
 });
