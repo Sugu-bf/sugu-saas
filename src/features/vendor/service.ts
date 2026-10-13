@@ -9,10 +9,7 @@
  *   ├── _shared.ts              — Shared utilities
  *   ├── dashboard.service.ts    — Dashboard data
  *   ├── products.service.ts     — Products CRUD + creation
- *   ├── clients.service.ts      — Clients list/detail + export
  *   ├── inventory.service.ts    — Inventory + stock management
- *   ├── statistics.service.ts   — Analytics/statistics
- *   ├── marketing.service.ts    — Coupons + promotions
  *   ├── sales.service.ts        — Product list for pickers
  *   ├── settings.service.ts     — Settings (real API + Fortify 2FA)
  *   └── tickets.service.ts      — Tickets (mock)
@@ -37,24 +34,10 @@ export {
   cancelProductBackgroundRemoval,
   createVendorProduct,
   updateVendorProduct,
-  // Clients
-  getVendorClients,
-  getVendorClientDetail,
-  createClientFromClientsPage,
-  exportVendorClients,
   // Inventory
   getVendorInventory,
   addInventoryStock,
   exportInventoryCSV,
-  // Statistics
-  getVendorStats,
-  // Marketing
-  getVendorMarketing,
-  toggleCouponStatus,
-  createCoupon,
-  createPromotion,
-  updatePromotion,
-  deletePromotion,
   // Sales
   getAllVendorProducts,
   // Settings
@@ -115,9 +98,6 @@ export {
 } from "./services";
 
 export type {
-  CreateCouponRequest,
-  CreatePromotionRequest,
-  UpdatePromotionRequest,
   UpdateProfileRequest,
   UpdateBusinessHoursRequest,
   TwoFactorEnableResponse,

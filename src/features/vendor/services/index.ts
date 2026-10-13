@@ -23,34 +23,12 @@ export {
   updateVendorProduct,
 } from "./products.service";
 
-// Clients
-export {
-  getVendorClients,
-  getVendorClientDetail,
-  createClientFromClientsPage,
-  exportVendorClients,
-} from "./clients.service";
-
 // Inventory
 export {
   getVendorInventory,
   addInventoryStock,
   exportInventoryCSV,
 } from "./inventory.service";
-
-// Statistics
-export { getVendorStats } from "./statistics.service";
-
-// Marketing
-export {
-  getVendorMarketing,
-  toggleCouponStatus,
-  createCoupon,
-  createPromotion,
-  updatePromotion,
-  deletePromotion,
-} from "./marketing.service";
-export type { CreateCouponRequest, CreatePromotionRequest, UpdatePromotionRequest } from "./marketing.service";
 
 // Sales (search + order creation)
 export {
