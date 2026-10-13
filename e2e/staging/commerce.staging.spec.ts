@@ -317,25 +317,34 @@ test("C2 changing the period on the screen asks the server again", async ({ as }
 
 test("D1 the agency reads its own activity per period, with no money", async ({ as }) => {
   const page = await as("agency");
-  const me = (await page.request.get("/api/auth/session")).ok() ? await (await page.request.get("/api/auth/session")).json() : {};
-  const agencyId = me?.user?.delivery_partner_id ?? me?.data?.user?.delivery_partner_id ?? me?.delivery_partner_id;
-  await open(page, "/agency/statistics", "Statistiques");
-  await expect(page.locator("[data-period='30j']")).toBeVisible();
+  // The screen asks for its agency itself: the address of that request says which one.
+  const first = page.waitForRequest((request) => /agencies\/[^/]+\/statistics/.test(request.url()));
+  await page.goto("/agency/statistics");
+  const agencyId = /agencies\/([^/]+)\/statistics/.exec((await first).url())![1];
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Statistiques", { timeout: 30_000 });
+  await expect(page.locator("[data-period='30j']")).toBeVisible({ timeout: 30_000 });
+  await settled(page);
 
-  if (agencyId) {
-    const report = (await get(page, `agencies/${agencyId}/statistics?period=30j`)).body.data.report;
+  const shown = async (period: string) => {
+    const report = (await get(page, `agencies/${agencyId}/statistics?period=${period}`)).body.data.report;
     const figures = await region(page, "Chiffres de la période");
-    for (const value of [report.kpis.created.value, report.kpis.delivered.value, report.kpis.inProgress, report.kpis.failed.value]) expect(figures).toContain(units(value));
+    for (const value of [report.kpis.created.value, report.kpis.delivered.value, report.kpis.inProgress, report.kpis.failed.value]) expect(figures, period).toContain(units(value));
+    // The states add up to what was created, and the days to the total.
     expect((report.statuses as Json[]).reduce((sum, status) => sum + status.count, 0)).toBe(report.kpis.created.value);
-  }
+    expect((report.series as Json[]).reduce((sum, day) => sum + day.created, 0)).toBe(report.kpis.created.value);
+    expect(report.series).toHaveLength(report.period.days);
+    return report;
+  };
+  const month = await shown("30j");
 
-  const before = await region(page, "Chiffres de la période");
   const asked = page.waitForRequest((request) => /agencies\/[^/]+\/statistics/.test(request.url()) && new URL(request.url()).searchParams.get("period") === "90j");
   await page.getByRole("button", { name: "90 jours" }).first().click();
   await asked;
   await expect(page.locator("[data-period='90j']")).toBeVisible({ timeout: 30_000 });
   await settled(page);
-  expect(await region(page, "Chiffres de la période")).not.toBe(before);
+  const quarter = await shown("90j");
+  // 90 days hold the 30: never fewer deliveries.
+  expect(quarter.kpis.created.value).toBeGreaterThanOrEqual(month.kpis.created.value);
 
   expect(plain(await page.locator("main").innerText())).not.toMatch(/FCFA|Livreur du mois|Féliciter/);
   expect(await serious(page)).toEqual([]);
