@@ -9,18 +9,23 @@ import {
   CheckCircle2,
   CircleAlert,
   CircleDashed,
+  CalendarClock,
   CircleDot,
+  CircleSlash,
   Clock,
   Coffee,
+  Crown,
   Equal,
   EyeOff,
   FileSearch,
   Globe,
+  Heart,
   Hourglass,
   Inbox,
   Loader,
   MapPin,
   MessageSquareWarning,
+  Moon,
   Package,
   PackageCheck,
   PackageOpen,
@@ -29,6 +34,7 @@ import {
   ScanLine,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Truck,
   Undo2,
   UserCheck,
@@ -370,6 +376,34 @@ export const suguBoxListingStatus = defineStatusRegistry({
   },
 });
 
+/**
+ * `App\Services\Sellers\Insights\StoreCustomerDirectory::SEGMENTS`: where a
+ * customer of a store stands, one segment each. The rules are the server's.
+ */
+export const customerSegment = defineStatusRegistry({
+  domain: "customer-segment",
+  statuses: {
+    vip: { label: "VIP", tone: "warning", icon: Crown, description: "Parmi vos meilleurs clients, par le montant ou le nombre de commandes." },
+    loyal: { label: "Fidèle", tone: "success", icon: Heart, description: "A commandé plusieurs fois dans votre boutique." },
+    new: { label: "Nouveau", tone: "info", icon: Sparkles, description: "Client de votre boutique depuis peu." },
+    active: { label: "Actif", tone: "success", icon: CircleDot, description: "A commandé récemment." },
+    inactive: { label: "Inactif", tone: "neutral", icon: Moon, description: "N'a pas commandé depuis longtemps." },
+    prospect: { label: "Sans commande", tone: "neutral", icon: UserPlus, description: "Enregistré par vos soins, n'a pas encore commandé." },
+  },
+});
+
+/** Computed state of a coupon or a promotion: `Coupon::getStatusAttribute`, `Promotion::getStatusAttribute`. */
+export const discountStatus = defineStatusRegistry({
+  domain: "discount",
+  statuses: {
+    active: { label: "Actif", tone: "success", icon: CheckCircle2, description: "Appliqué en ce moment." },
+    scheduled: { label: "À venir", tone: "info", icon: CalendarClock, description: "Commencera à sa date de début." },
+    expired: { label: "Expiré", tone: "neutral", icon: Clock, description: "Sa date de fin est passée." },
+    disabled: { label: "Désactivé", tone: "neutral", icon: CircleSlash, description: "Arrêté par vos soins." },
+    exhausted: { label: "Épuisé", tone: "warning", icon: Ban, description: "Sa limite d'utilisations est atteinte." },
+  },
+});
+
 export const statusRegistries = {
   order: orderStatus,
   payment: paymentStatus,
@@ -390,6 +424,8 @@ export const statusRegistries = {
   suguBoxOutbound: suguBoxOutboundStatus,
   suguBoxListing: suguBoxListingStatus,
   suguBoxMovement: suguBoxMovementType,
+  customerSegment,
+  discount: discountStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistries;
