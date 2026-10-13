@@ -1,28 +1,17 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { StatisticsLoading, StatisticsScreen } from "@/features/vendor/statistics/components/screen";
 
-import { useVendorStats } from "@/features/vendor/hooks";
-import { StatsContent } from "./stats-content";
-import StatsLoading from "./loading";
-import { ErrorState } from "@/components/feedback";
+export const metadata: Metadata = {
+  title: "Statistiques | SUGUPro Vendeur",
+  description: "Les ventes de votre boutique sur la période de votre choix.",
+};
 
-export default function VendorStatisticsPage() {
-  const { data, isLoading, isError, error, refetch } = useVendorStats();
-
-  if (isLoading) return <StatsLoading />;
-
-  if (isError) {
-    return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center py-24">
-        <ErrorState
-          title="Erreur"
-          description={error?.message || "Impossible de charger les statistiques."}
-          onRetry={() => refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  return <StatsContent data={data} />;
+export default function Page() {
+  // The screen reads its period from the address.
+  return (
+    <Suspense fallback={<StatisticsLoading />}>
+      <StatisticsScreen />
+    </Suspense>
+  );
 }
