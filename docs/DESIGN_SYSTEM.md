@@ -344,3 +344,19 @@ Les écrans du coursier suivent leurs maquettes (`docs/captures/references/v4-co
 - **Navigation** : Accueil, Missions, Historique, Profil sont les quatre onglets du téléphone ; Documents, Gains, Messages, Paramètres et Aide sont dans le menu. Un coursier qui ne peut pas encore livrer voit « Mon dossier » à la place d'Accueil et de Missions (`courierCanWork`, confort de navigation : le serveur refuse les missions de lui-même).
 
 Code de l'espace : `src/features/driver/{missions,history,kyc}` (contrats Zod, appels, états), `src/features/driver/components`, `src/app/(driver)/driver/*`. Tests : `npx vitest run src/features/driver`, puis `npx next build --webpack && npx playwright test -c playwright.driver.config.ts`. Captures : `CAPTURE=1 npx playwright test -c playwright.driver.config.ts e2e/driver/captures.spec.ts` vers `docs/captures/v4-courier/`.
+
+## 12. Sugu Box (V6)
+
+Les sept écrans Sugu Box du vendeur suivent leurs maquettes (`docs/captures/references/v6-sugubox-*.png`). Tout y est en lecture : l'entrepôt reçoit, prépare et expédie ; le vendeur suit.
+
+- **Cadre** : `BoxPage`, et les pièces partagées dans `src/features/vendor/sugubox/components/bits.tsx`.
+- **Chiffres de la Vue d'ensemble** (`FigureCard`) : l'icône seule, le libellé, le chiffre, ce qu'il compte, et le lien vers la liste qu'il résume.
+- **Compteurs d'une liste** (`FilterFigure`) : l'icône à gauche, sans tuile ni teinte ; le libellé, le chiffre, et un chevron quand la carte filtre la liste qu'elle compte (`aria-pressed`). Deux par rangée sur téléphone (`KpiGrid`). Les maquettes dessinent des tuiles colorées : la règle des indicateurs sobres (section 10) passe avant.
+- **Parcours** (`Journey`) : les étapes d'une réception ou d'une expédition, lues comme une liste (« Contrôle : en cours »). Une étape n'a de date que si le serveur en a une.
+- **Statuts** : `suguBoxInbound`, `suguBoxOutbound`, `stock`, et `suguBoxMovement` pour le type d'un mouvement. L'état d'une ligne (« Conforme », « Écart (−2) », « Préparé ») se déduit de ses deux quantités : c'est un `Badge`, pas un statut du serveur.
+- **Quantités** : « Disponible », « Réservé », « Total », « Avant » et « Après » sont lus tels que Laravel les calcule. L'écran n'additionne rien.
+- **Listes** : recherche, filtres, tri et pages vivent dans l'adresse (`useListAddress`) et sont appliqués par le serveur. Une plage de dates inversée est dite, pas envoyée.
+- **`DataTable tableFrom="narrow"`** : une table courte dans un panneau qui partage sa rangée reste une table dès 512 px de conteneur (672 px par défaut).
+- **Ce qui n'est pas dessiné** : aucune action de l'entrepôt (nouvelle réception, validation, ajustement, marquer comme expédiée), ni ce que le produit ne contient pas (fournisseur, transporteur, documents joints).
+
+Code : `src/features/vendor/sugubox/{contract,api,hooks}.ts`, `components/`, `src/app/(vendor)/vendor/sugubox/*`. Tests : `npx vitest run src/features/vendor/sugubox`, puis `npx next build --webpack && npx playwright test -c playwright.sugubox.config.ts`. Captures : `CAPTURE=1 npx playwright test -c playwright.sugubox.config.ts e2e/sugubox/captures.spec.ts` vers `docs/captures/v6-sugu-box/apres/`.
