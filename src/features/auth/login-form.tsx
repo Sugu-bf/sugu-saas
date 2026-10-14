@@ -20,12 +20,14 @@ export function LoginForm() {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginPayload, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [accountClosed, setAccountClosed] = useState(false);
 
-  // Arriving from an expired session (see lib/auth/session-expiry).
+  // Arriving from an expired session (see lib/auth/session-expiry), or from
+  // closing the account in the settings.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("reason") === "expired") {
-      setSessionExpired(true);
-    }
+    const reason = new URLSearchParams(window.location.search).get("reason");
+    if (reason === "expired") setSessionExpired(true);
+    if (reason === "account_closed") setAccountClosed(true);
   }, []);
 
   // 2FA state
@@ -114,7 +116,12 @@ export function LoginForm() {
         <Alert tone="info" title="Vérification en deux étapes">
           Un code à 6 chiffres a été envoyé à <strong className="break-all">{identifier}</strong>.
         </Alert>
-        {serverError && <Alert tone="danger" title={serverError} />}
+        {accountClosed && !serverError && (
+        <Alert tone="info" title="Votre compte a été fermé">
+          Vous avez été déconnecté. Votre historique reste conservé par SUGU.
+        </Alert>
+      )}
+      {serverError && <Alert tone="danger" title={serverError} />}
         <FormField label="Code de vérification" id="otp" required>
           <OtpInput value={otpCode} onChange={setOtpCode} name="otp" autoFocus />
         </FormField>
