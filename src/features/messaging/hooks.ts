@@ -36,7 +36,8 @@ export const messagingKeys = {
   all: (scope: MessagingScope) => ["messaging", scopeKey(scope)] as const,
   lists: (scope: MessagingScope) => ["messaging", scopeKey(scope), "list"] as const,
   list: (scope: MessagingScope, filters: ConversationFilters) => ["messaging", scopeKey(scope), "list", filters] as const,
-  counts: (scope: MessagingScope) => ["messaging", scopeKey(scope), "list", "counts"] as const,
+  // Not under `lists`: a list that is read again brings its own counts.
+  counts: (scope: MessagingScope) => ["messaging", scopeKey(scope), "counts"] as const,
   conversation: (scope: MessagingScope, id: string) => ["messaging", scopeKey(scope), "conversation", id] as const,
   messages: (scope: MessagingScope, id: string) => ["messaging", scopeKey(scope), "messages", id] as const,
   presence: (scope: MessagingScope, id: string) => ["messaging", scopeKey(scope), "presence", id] as const,
@@ -56,6 +57,26 @@ export const describeMessagingFailure = (error: unknown): Failure => describeFai
 
 /** True once the scope names who is reading (an agency account whose agency is not known yet reads nothing). */
 export const scopeReady = (scope: MessagingScope): boolean => basePath(scope) !== null;
+
+/**
+ * Ask the lists of a reader again, once. A message that is sent makes
+ * several things say "the list changed" within a moment (the answer to the
+ * send, its echo on the socket, the read mark): they become one request,
+ * shortly after the last of them.
+ */
+const listRefreshes = new Map<string, ReturnType<typeof setTimeout>>();
+function refreshLists(queryClient: QueryClient, scope: MessagingScope) {
+  const key = scopeKey(scope);
+  const waiting = listRefreshes.get(key);
+  if (waiting) clearTimeout(waiting);
+  listRefreshes.set(
+    key,
+    setTimeout(() => {
+      listRefreshes.delete(key);
+      void queryClient.invalidateQueries({ queryKey: messagingKeys.lists(scope) });
+    }, 250),
+  );
+}
 
 // ── The list ────────────────────────────────────────────────
 
@@ -91,8 +112,16 @@ export function useConversations(scope: MessagingScope, filters: ConversationFil
     return all;
   }, [query.data]);
 
+  // The list answers the counts of the whole list with its rows: the menu
+  // reads them from here instead of asking again.
+  const queryClient = useQueryClient();
   const first = query.data?.pages[0];
-  return { ...query, rows, counts: first?.counts ?? null, total: first?.total ?? null };
+  const counts = first?.counts ?? null;
+  useEffect(() => {
+    if (counts) queryClient.setQueryData(messagingKeys.counts(scope), counts);
+  }, [queryClient, scope, counts]);
+
+  return { ...query, rows, counts, total: first?.total ?? null };
 }
 
 /** Counts of the whole list (all, unread), for the tabs and the menu. Null for an agency. */
@@ -111,7 +140,7 @@ export function useConversationCounts(scope: MessagingScope, options: { enabled?
 /** The list follows what happens on the reader's channel. */
 export function useListRealtime(scope: MessagingScope) {
   const queryClient = useQueryClient();
-  const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey: messagingKeys.lists(scope) }), [queryClient, scope]);
+  const refresh = useCallback(() => refreshLists(queryClient, scope), [queryClient, scope]);
   useMessagingChannel(channelOf(scope), { onCreated: refresh, onResume: refresh });
 }
 
@@ -302,10 +331,14 @@ export function useThread(scope: MessagingScope, conversationId: string, viewerI
   useMessagingChannel(channelOf(scope), {
     onCreated: (event) => {
       if (event.conversationId !== conversationId) return;
-      if (event.senderId !== viewerId) setTypingName(null);
+      // The reader's own message is already on screen: the answer to the send put it there.
+      if (event.clientId && inFlight.has(event.clientId)) return;
       refresh();
-      // A message may have reopened the conversation: what the reader may do is asked again.
-      queryClient.invalidateQueries({ queryKey: messagingKeys.conversation(scope, conversationId) });
+      if (event.senderId !== viewerId) {
+        setTypingName(null);
+        // The other side wrote: it may have reopened the conversation. What the reader may do is asked again.
+        void queryClient.invalidateQueries({ queryKey: messagingKeys.conversation(scope, conversationId) });
+      }
     },
     onRead: (event) => {
       if (event.conversationId !== conversationId || event.userId === viewerId) return;
@@ -335,7 +368,7 @@ export function useThread(scope: MessagingScope, conversationId: string, viewerI
 
         insertMessage(queryClient, scope, conversationId, sent);
         writeOutbox(key, (current) => current.filter((waitingMessage) => waitingMessage.clientId !== message.clientId));
-        queryClient.invalidateQueries({ queryKey: messagingKeys.lists(scope) });
+        refreshLists(queryClient, scope);
       } catch (error) {
         const failure = describeMessagingFailure(error);
         writeOutbox(key, (current) =>
@@ -421,7 +454,7 @@ export function useThread(scope: MessagingScope, conversationId: string, viewerI
               ? { ...cache, pages: cache.pages.map((page) => ({ ...page, rows: page.rows.map((row) => (row.id === conversationId ? { ...row, unread: 0 } : row)) })) }
               : cache,
           );
-          queryClient.invalidateQueries({ queryKey: messagingKeys.lists(scope) });
+          refreshLists(queryClient, scope);
         })
         .catch(() => {
           // Not marked: the next message, or the next visit, tries again.

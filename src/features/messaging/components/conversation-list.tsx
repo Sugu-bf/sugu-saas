@@ -7,7 +7,7 @@ import { Avatar, Button, EmptyState, ErrorState, IconButton, Input, Select, Skel
 import { routeOf, type ConversationFilters, type MessagingScope } from "../api";
 import type { Conversation, Profile } from "../contract";
 import { agencyRowDetail, formatListDate, previewOf, titleOf } from "../format";
-import { useConversationCounts, useConversations, useListRealtime } from "../hooks";
+import { useConversations, useListRealtime } from "../hooks";
 import { UnreadCount } from "./bits";
 
 // ============================================================
@@ -57,13 +57,13 @@ export function ConversationList({ scope, activeId, couriers = [], className }: 
 
   const filters: ConversationFilters = { search, unreadOnly: profile !== "agency" && unreadOnly, courierId: profile === "agency" && courierId ? courierId : null };
   const list = useConversations(scope, filters);
-  const counts = useConversationCounts(scope);
   useListRealtime(scope);
 
   const heading = HEADINGS[profile];
   const filtered = search.trim() !== "" || filters.unreadOnly || filters.courierId !== null;
-  const all = counts.data?.all;
-  const unread = counts.data?.unread;
+  // Counts of the whole list, whatever the search or the filter: the server answers them with each page.
+  const all = list.counts?.all;
+  const unread = list.counts?.unread;
 
   return (
     <section aria-label={heading.title} className={cn("flex min-h-0 flex-col bg-surface", className)}>

@@ -186,7 +186,7 @@ function TicketList({ className, activeId, filter, onFilter, typed, onTyped, sea
           <div className="min-w-0 flex-1">
             <Input type="search" leadingIcon={Search} value={typed} onChange={(event) => onTyped(event.target.value)} placeholder="Rechercher…" aria-label="Rechercher un ticket" maxLength={80} />
           </div>
-          <div className="hidden w-44 shrink-0 md:block">
+          <div className="hidden w-40 shrink-0 md:block">
             <Select aria-label="Statut" value={filter} onChange={(event) => onFilter(event.target.value as TicketFilter)}>
               {TICKET_FILTERS.map((option) => (
                 <option key={option.value} value={option.value}>
