@@ -89,10 +89,11 @@ function toValues(model: VendorSettingsModel): ProfileValues {
   };
 }
 
-function validate(values: ProfileValues): Record<string, string> {
+function validate(values: ProfileValues, categoriesOffered: boolean): Record<string, string> {
   const errors: Record<string, string> = {};
   if (values.name.trim().length < 2) errors.name = "Indiquez le nom de la boutique.";
-  if (!values.category) errors.category = "Choisissez la catégorie de la boutique.";
+  // Asked only when there is one to choose: the server does not require it.
+  if (!values.category && categoriesOffered) errors.category = "Choisissez la catégorie de la boutique.";
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(values.slug)) errors.slug = "Lettres minuscules, chiffres et tirets seulement (ex. boutique-tech).";
   if (!values.phone.trim()) errors.phone = "Indiquez le téléphone de la boutique.";
   else if (!/^\+?[0-9 ().-]{6,30}$/.test(values.phone.trim())) errors.phone = "Ce numéro n'est pas valide.";
@@ -117,7 +118,7 @@ export function ProfileSection({ model }: { model: VendorSettingsModel }) {
 
   const submit = async () => {
     if (lock.current) return;
-    const local = validate(values);
+    const local = validate(values, (categories.data ?? []).length > 0);
     draft.setErrors(local);
     setNotice(null);
     if (Object.keys(local).length > 0) {
@@ -234,7 +235,7 @@ export function ProfileSection({ model }: { model: VendorSettingsModel }) {
           <FormField label="Nom de la boutique" required error={errors.name}>
             <Input value={values.name} onChange={(event) => set("name", event.target.value)} maxLength={255} autoComplete="organization" />
           </FormField>
-          <FormField label="Catégorie" required error={errors.category} hint={categories.isError ? "La liste des catégories n'a pas pu être chargée." : undefined}>
+          <FormField label="Catégorie" required={(categories.data ?? []).length > 0} error={errors.category} hint={categories.isError ? "La liste des catégories n'a pas pu être chargée." : undefined}>
             <Select
               value={values.category}
               onChange={(event) => set("category", event.target.value)}

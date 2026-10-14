@@ -133,7 +133,7 @@ export function AgencyIdentitySection({ agencyId, model, onOpenZones }: { agency
             <ImageField
               label="Logo de l'agence"
               url={model.logoUrl}
-              placeholder={<span className="flex size-full items-center justify-center bg-brand text-section-title font-bold text-white">{initials}</span>}
+              placeholder={<span className="flex size-full items-center justify-center bg-primary text-section-title font-bold text-white">{initials}</span>}
               maxBytes={2 * 1024 * 1024}
               hint="PNG, JPG (max. 2 Mo)"
               buttonLabel="Changer le logo"

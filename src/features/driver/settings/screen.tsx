@@ -259,8 +259,8 @@ function DriverVehicleSection({ model }: { model: DriverSettingsModel }) {
             <Input value={values.plate} onChange={(event) => set("plate", event.target.value.toUpperCase())} maxLength={30} spellCheck={false} autoCapitalize="characters" className="tabular-nums" />
           </FormField>
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex aspect-[16/10] w-full flex-col items-center justify-center gap-2 rounded-panel border border-border bg-surface-subtle">
+        <div className="order-first flex min-w-0 flex-col gap-4 xl:order-none">
+          <div className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-panel border border-border bg-surface-subtle xl:aspect-[16/10]">
             <Icon className="size-12 text-foreground-subtle" aria-hidden="true" />
             <span className="text-label text-foreground-muted">{[values.brand, values.model].filter(Boolean).join(" ") || "Votre véhicule"}</span>
           </div>

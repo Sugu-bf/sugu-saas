@@ -134,7 +134,7 @@ export function SettingsFrame<K extends string>({ description, sections, render 
                         "group flex min-h-touch items-center gap-3 rounded-control px-3 text-body transition-colors duration-100 lg:min-h-10",
                         section.danger ? "text-danger-fg hover:bg-danger-bg" : "text-foreground hover:bg-surface-subtle",
                         // The open section, on a wide screen only: a phone's list leads somewhere.
-                        selected && !section.danger && "lg:bg-brand-subtle lg:font-medium lg:text-primary",
+                        selected && !section.danger && "lg:bg-brand-subtle lg:font-medium lg:text-primary-hover",
                         selected && section.danger && "lg:bg-danger-bg lg:font-medium",
                       )}
                     >
