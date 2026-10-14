@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { CreditCard, MoreHorizontal, Pencil, Plus, ShieldCheck, Star, Trash2 } from "lucide-react";
 import { Alert, Badge, Button, Checkbox, ConfirmDialog, Dialog, DialogContent, DropdownMenu, DropdownMenuItem, EmptyState, ErrorState, FormField, IconButton, Input, Radio, RadioGroup, Select, Skeleton, StatusBadge } from "@/design-system";
@@ -42,6 +43,20 @@ export function FinanceMethods({ profile }: { profile: FinanceProfile }) {
   };
   const editable = scope ? canEditMethods(scope) : false;
   const back = { label: `Retour : ${space.title}`, href: paths.overview };
+
+  // `?ajouter=1` (from the settings): open the form once the list is there.
+  const router = useRouter();
+  const pathname = usePathname();
+  const wantsNew = useSearchParams().get("ajouter") === "1";
+  const [newHandled, setNewHandled] = useState(false);
+  if (wantsNew && methods.data && !newHandled) {
+    setNewHandled(true);
+    if (editable) setForm({ mode: "create" });
+  }
+  useEffect(() => {
+    // The form is open: the address forgets the request, so that a reload does not reopen it.
+    if (wantsNew && newHandled) router.replace(pathname, { scroll: false });
+  }, [wantsNew, newHandled, router, pathname]);
 
   const makeDefault = useOneAtATime(async (method: PayoutMethod) => {
     try {
