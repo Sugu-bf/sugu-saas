@@ -176,7 +176,8 @@ createServer(async (req, res) => {
 
   if (path === "/__log") return send(res, 200, { requests: log });
 
-  if (extension && !path.startsWith("/web-auth/") && url.pathname.startsWith("/api/v1/")) {
+  // A domain smoke may also decide who joins a private channel, as routes/channels.php does.
+  if (extension && !path.startsWith("/web-auth/") && (url.pathname.startsWith("/api/v1/") || url.pathname === "/api/broadcasting/auth")) {
     const profile = sessions.get(token);
     if (!profile) return send(res, 401, { message: "Unauthenticated." });
     const handled = await extension({ req, res, url, path, method: req.method, profile, token, send, readJson });
