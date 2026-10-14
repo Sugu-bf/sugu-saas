@@ -11,7 +11,6 @@
  *   ├── products.service.ts     — Products CRUD + creation
  *   ├── inventory.service.ts    — Inventory + stock management
  *   ├── sales.service.ts        — Product list for pickers
- *   ├── settings.service.ts     — Settings (real API + Fortify 2FA)
  *   └── tickets.service.ts      — Tickets (mock)
  *
  * All existing imports from "./service" continue to work unchanged.
@@ -40,51 +39,6 @@ export {
   exportInventoryCSV,
   // Sales
   getAllVendorProducts,
-  // Settings
-  getVendorSettings,
-  updateSettingsIdentity,
-  updateSettingsContact,
-  buildContactRequest,
-  buildIdentityRequest,
-  updateSettingsProfile,
-  buildProfileRequest,
-  updateSettingsBusinessHours,
-  updateSettingsLegal,
-  updateSettingsOperations,
-  updateSettingsNotifications,
-  updateSettingsPassword,
-  toggleSettings2FA,
-  revokeSettingsSession,
-  revokeOtherSettingsSessions,
-  deactivateSettingsAccount,
-  deleteSettingsAccount,
-  // Settings — 2FA Fortify endpoints
-  enable2FA,
-  disable2FA,
-  get2FAQrCode,
-  confirm2FA,
-  get2FARecoveryCodes,
-  regenerate2FARecoveryCodes,
-  // Settings — Sessions & Security
-  getActiveSessions,
-  updateSecurityAlerts,
-  getLoginHistory,
-  // Settings — Invoices
-  getInvoices,
-  // Settings — Media uploads & categories
-  uploadLogo,
-  uploadCover,
-  getStoreCategories,
 } from "./services";
 
-export type {
-  UpdateProfileRequest,
-  UpdateBusinessHoursRequest,
-  TwoFactorEnableResponse,
-  TwoFactorQrCodeResponse,
-  TwoFactorConfirmRequest,
-  TwoFactorRecoveryCodesResponse,
-  ActiveSession,
-  LoginHistoryEntry,
-  Invoice,
-} from "./services";
+

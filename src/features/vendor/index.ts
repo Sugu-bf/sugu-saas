@@ -1,4 +1,4 @@
-export { getVendorDashboard, getVendorProducts, getVendorProductDetail, getVendorInventory, addInventoryStock, exportInventoryCSV, getVendorSettings, updateSettingsIdentity, updateSettingsContact, buildContactRequest, buildIdentityRequest, updateSettingsLegal, updateSettingsOperations, updateSettingsNotifications, updateSettingsPassword, toggleSettings2FA, revokeSettingsSession, revokeOtherSettingsSessions, deactivateSettingsAccount, deleteSettingsAccount, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, getAllVendorProducts } from "./service";
+export { getVendorDashboard, getVendorProducts, getVendorProductDetail, getVendorInventory, addInventoryStock, exportInventoryCSV, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, getAllVendorProducts } from "./service";
 export type {
   VendorDashboardData,
   KpiCard,

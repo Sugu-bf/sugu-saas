@@ -36,53 +36,5 @@ export {
 } from "./sales.service";
 
 // Settings
-export {
-  getVendorSettings,
-  updateSettingsIdentity,
-  updateSettingsContact,
-  buildContactRequest,
-  buildIdentityRequest,
-  updateSettingsProfile,
-  buildProfileRequest,
-  updateSettingsBusinessHours,
-  updateSettingsLegal,
-  updateSettingsOperations,
-  updateSettingsNotifications,
-  updateSettingsPassword,
-  toggleSettings2FA,
-  revokeSettingsSession,
-  revokeOtherSettingsSessions,
-  deactivateSettingsAccount,
-  deleteSettingsAccount,
-  // 2FA Fortify endpoints
-  enable2FA,
-  disable2FA,
-  get2FAQrCode,
-  confirm2FA,
-  get2FARecoveryCodes,
-  regenerate2FARecoveryCodes,
-  // Sessions & Security
-  getActiveSessions,
-  updateSecurityAlerts,
-  getLoginHistory,
-  // Invoices
-  getInvoices,
-  // Media uploads & categories
-  uploadLogo,
-  uploadCover,
-  getStoreCategories,
-} from "./settings.service";
 
-export type {
-  UpdateProfileRequest,
-  UpdateBusinessHoursRequest,
-  TwoFactorEnableResponse,
-  TwoFactorQrCodeResponse,
-  TwoFactorConfirmRequest,
-  TwoFactorRecoveryCodesResponse,
-  ActiveSession,
-  LoginHistoryEntry,
-  Invoice,
-  StoreCategory,
-} from "./settings.service";
 

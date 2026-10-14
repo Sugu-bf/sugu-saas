@@ -1,12 +1,18 @@
-import { Metadata } from "next";
-import { SettingsPageClient } from "./settings-content";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { SettingsPageLoading } from "@/features/settings/loading";
+import { VendorSettingsScreen } from "@/features/vendor/settings/screen";
 
 export const metadata: Metadata = {
   title: "Paramètres | SUGUPro Vendeur",
-  description:
-    "Gérez votre profil, boutique, réseaux sociaux, horaires d'ouverture et préférences de votre espace vendeur.",
+  description: "Le profil, les paiements, la livraison, les notifications et la sécurité de votre boutique.",
 };
 
 export default function VendorSettingsPage() {
-  return <SettingsPageClient />;
+  // The open section is read from the address (?section=…).
+  return (
+    <Suspense fallback={<SettingsPageLoading sections={10} />}>
+      <VendorSettingsScreen />
+    </Suspense>
+  );
 }
