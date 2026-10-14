@@ -5,7 +5,7 @@
 export const MAP_TILE_ZOOM = 15;
 
 /** A town and the communes around it: the zoom of the delivery zones of an agency. */
-export const MAP_AREA_ZOOM = 11;
+export const MAP_AREA_ZOOM = 10;
 
 /** The only zooms the portal draws, and the only ones its route relays. */
 export const MAP_TILE_ZOOMS: readonly number[] = [MAP_AREA_ZOOM, MAP_TILE_ZOOM];
