@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
@@ -7,10 +7,16 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { SUGU_PRO_NAME, SUGU_PRO_OG_IMAGE, SUGU_PRO_URL } from "@/lib/seo";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+// Served by the portal, not fetched from Google at build: Google may answer
+// the build server `/l/font?kit=…&skey=…` addresses that Turbopack (Next
+// 16.1) refuses, and the whole build fails (seen on the marketplace).
+// Google's latin subset, variable from 300 to 800 (SIL Open Font License).
+const plusJakartaSans = localFont({
+  src: "./fonts/plus-jakarta-sans-latin-300-800.woff2",
   variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: "300 800",
+  style: "normal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
