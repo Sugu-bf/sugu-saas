@@ -86,31 +86,3 @@ export type {
   StoreCategory,
 } from "./settings.service";
 
-// Tickets
-export {
-  getVendorTickets,
-  getTicketDetail,
-  getTicketMessages,
-  createTicket,
-  sendTicketMessage,
-  closeTicket,
-} from "./tickets.service";
-
-
-// Messaging
-export {
-  getSellerConversations,
-  getSellerConversation,
-  getSellerMessages,
-  sendSellerMessage,
-  sendSellerProductCard,
-  markSellerRead,
-  sendSellerTyping,
-  getSellerPresence,
-  reportSellerMessage,
-  closeConversation,
-  blockConversation,
-  getRecommendedProducts,
-} from "./messaging.service";
-export type { RecommendedProduct } from "./messaging.service";
-

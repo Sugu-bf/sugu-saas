@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { MessagesContent } from "./messages-content";
 
 export const metadata: Metadata = {
   title: "Messages | SUGUPro Vendeur",
-  description:
-    "Gérez vos conversations clients — messagerie en temps réel avec support produit.",
+  description: "Vos conversations avec les clients de votre boutique.",
 };
 
+/** The screen is drawn by the layout of this segment. */
 export default function VendorMessagesPage() {
-  return <MessagesContent />;
+  return null;
 }

@@ -75,26 +75,6 @@ export {
   uploadLogo,
   uploadCover,
   getStoreCategories,
-  // Tickets
-  getVendorTickets,
-  getTicketDetail,
-  getTicketMessages,
-  createTicket,
-  sendTicketMessage,
-  closeTicket,
-  // Messaging
-  getSellerConversations,
-  getSellerConversation,
-  getSellerMessages,
-  sendSellerMessage,
-  sendSellerProductCard,
-  markSellerRead,
-  sendSellerTyping,
-  getSellerPresence,
-  reportSellerMessage,
-  closeConversation,
-  blockConversation,
-  getRecommendedProducts,
 } from "./services";
 
 export type {
@@ -107,5 +87,4 @@ export type {
   ActiveSession,
   LoginHistoryEntry,
   Invoice,
-  RecommendedProduct,
 } from "./services";

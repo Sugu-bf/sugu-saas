@@ -1,12 +1,17 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { TicketsContent } from "./tickets-content";
+import { SupportLoading, SupportScreen } from "@/features/vendor/support/components/screen";
 
 export const metadata: Metadata = {
   title: "Support | SUGUPro Vendeur",
-  description:
-    "Gérez vos tickets de support — suivi des demandes, conversations avec l'équipe SUGU.",
+  description: "Vos demandes d'assistance auprès de l'équipe SUGU : suivi, réponses et pièces jointes.",
 };
 
 export default function VendorTicketsPage() {
-  return <TicketsContent />;
+  // The screen reads the open ticket and the form of a new one from the address.
+  return (
+    <Suspense fallback={<SupportLoading />}>
+      <SupportScreen />
+    </Suspense>
+  );
 }

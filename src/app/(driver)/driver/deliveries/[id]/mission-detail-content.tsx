@@ -12,7 +12,7 @@ import { useMissionActions } from "@/features/driver/components/mission-actions"
 import { MissionJourney, MissionStatus, Place, addressLine } from "@/features/driver/components/mission-bits";
 import { MissionMap, directionsHref, nextStopOf } from "@/features/driver/components/mission-map";
 import { describeDriverFailure } from "@/features/driver/errors";
-import { useStartCourierConversation } from "@/features/driver/messaging/hooks";
+import { useStartCourierConversation } from "@/features/messaging/hooks";
 import { can, collectionOf, missionLabel, type MissionAction, type MissionDetail } from "@/features/driver/missions/contract";
 import { useMission } from "@/features/driver/missions/hooks";
 import { ACTION_LABEL, blockedReason, failureLabel } from "@/features/driver/missions/wording";

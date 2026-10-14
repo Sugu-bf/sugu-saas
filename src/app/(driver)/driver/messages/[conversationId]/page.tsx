@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import { MobileChatContent } from "./mobile-chat-content";
 
 export const metadata: Metadata = {
-  title: "Chat | SUGUPro Livreur",
-  description: "Conversation en temps réel avec votre client.",
+  title: "Conversation | SUGUPro Coursier",
+  description: "Conversation avec le client ou la boutique d'une mission.",
 };
 
-interface PageProps {
-  params: Promise<{ conversationId: string }>;
-}
-
-export default async function DriverMobileChatPage({ params }: PageProps) {
-  const { conversationId } = await params;
-  return <MobileChatContent conversationId={conversationId} />;
+/** The screen is drawn by the layout of the segment, from the address. */
+export default function CourierConversationPage() {
+  return null;
 }
