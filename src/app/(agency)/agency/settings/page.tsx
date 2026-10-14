@@ -1,42 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { SettingsPageLoading } from "@/features/settings/loading";
+import { AgencySettingsScreen } from "@/features/agency/settings/screen";
 
-import { useAgencySettings } from "@/features/agency/hooks";
-import { SettingsContent } from "./settings-content";
-import SettingsLoading from "./loading";
-import { AlertTriangle } from "lucide-react";
+export const metadata: Metadata = {
+  title: "Paramètres | SUGUPro Agence",
+  description: "L'agence, votre compte, la flotte, les zones et tarifs, les paiements et la sécurité.",
+};
 
 export default function AgencySettingsPage() {
-  const { data, isLoading, isError, error, refetch } = useAgencySettings();
-
-  if (isLoading) return <SettingsLoading />;
-
-  if (isError) {
-    // Re-use the existing error boundary component shape
-    const err = error as Error & { digest?: string };
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/30">
-          <AlertTriangle className="h-8 w-8 text-red-500" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            Impossible de charger les paramètres
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {err.message || "Une erreur est survenue lors du chargement des paramètres."}
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 rounded-xl bg-sugu-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sugu-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sugu-500"
-        >
-          Réessayer
-        </button>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  return <SettingsContent data={data} />;
+  // The open section is read from the address (?section=…).
+  return (
+    <Suspense fallback={<SettingsPageLoading sections={8} />}>
+      <AgencySettingsScreen />
+    </Suspense>
+  );
 }

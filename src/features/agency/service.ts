@@ -2,8 +2,5 @@
 // earnings, zones) and the invitation code. Deliveries, couriers and the
 // dashboard have their own modules: ./deliveries, ./couriers, ./dashboard.
 export * from "./services/stats.service";
-export * from "./services/settings.service";
-export * from "./services/zones.service";
 export * from "./services/invitation.service";
 
-export type { UpdateAgencySettingsPayload, UpdatePasswordPayload } from "./services/settings.service";
