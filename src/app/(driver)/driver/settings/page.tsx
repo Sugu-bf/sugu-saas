@@ -1,13 +1,18 @@
 import { Suspense } from "react";
-import { SettingsPageClient } from "./settings-content";
+import type { Metadata } from "next";
+import { SettingsPageLoading } from "@/features/settings/loading";
+import { DriverSettingsScreen } from "@/features/driver/settings/screen";
 
-export const metadata = { title: "Paramètres — Coursier SUGU" };
+export const metadata: Metadata = {
+  title: "Paramètres | SUGUPro Coursier",
+  description: "Votre profil, votre véhicule, vos notifications et la sécurité de votre compte.",
+};
 
 export default function DriverSettingsPage() {
-  // The screen reads the section asked for from the address (`?tab=`).
+  // The open section is read from the address (?section=…).
   return (
-    <Suspense fallback={null}>
-      <SettingsPageClient />
+    <Suspense fallback={<SettingsPageLoading sections={5} />}>
+      <DriverSettingsScreen />
     </Suspense>
   );
 }
