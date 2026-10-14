@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { Tooltip, cn } from "@/design-system";
+import { UnreadMessagesBadge } from "@/features/messaging/components/nav-badge";
 import type { NavGroup, NavItem } from "./navigation";
 
 export interface NavListProps {
@@ -101,6 +102,7 @@ function NavLink({ item, active, collapsed, touch, onNavigate }: NavLinkProps) {
     >
       <Icon className={cn("size-4 shrink-0", active ? "text-primary" : "text-foreground-subtle")} aria-hidden="true" />
       {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && item.badge === "messages" && <UnreadMessagesBadge />}
     </Link>
   );
   return collapsed ? (

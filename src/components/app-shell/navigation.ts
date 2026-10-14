@@ -56,6 +56,8 @@ export interface NavItem {
   inUserMenu?: boolean;
   /** Leaves the workspace (public help pages): no active state. */
   external?: boolean;
+  /** A count beside the label, asked to the server: unread conversations. */
+  badge?: "messages";
   /**
    * Hide the entry for this user. Must only read facts the session really
    * carries — never infer a permission from the role name.
@@ -119,7 +121,7 @@ const vendor: WorkspaceNavigation = {
         // Commandes, Finances, Catalogue. Messages are kept, in the menu.
         { id: "vendor-wallet", label: "Finances", href: "/vendor/wallet", icon: Wallet, mobilePriority: 3 },
         { id: "vendor-marketing", label: "Marketing", href: "/vendor/marketing", icon: BadgePercent },
-        { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare },
+        { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare, badge: "messages" },
       ],
     },
     {
@@ -212,7 +214,7 @@ const courier: WorkspaceNavigation = {
       label: "Compte",
       items: [
         { id: "courier-documents", label: "Documents", href: COURIER_FILE_PATH, icon: FileText, visible: courierCanWork },
-        { id: "courier-messages", label: "Messages", href: "/driver/messages", icon: MessagesSquare },
+        { id: "courier-messages", label: "Messages", href: "/driver/messages", icon: MessagesSquare, badge: "messages" },
         { id: "courier-settings", label: "Paramètres", href: "/driver/settings", icon: Settings, inUserMenu: true },
         { id: "courier-help", label: "Aide et support", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true },
       ],

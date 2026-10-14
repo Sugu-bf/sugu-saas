@@ -42,6 +42,9 @@ vi.mock("@/features/auth", () => {
   };
 });
 
+// The count beside « Messages » asks the server: it has its own tests (e2e/messaging).
+vi.mock("@/features/messaging/components/nav-badge", () => ({ UnreadMessagesBadge: () => null }));
+
 const { AppShell } = await import("../app-shell");
 const { WorkspaceShell, isLegacyShellEnabled } = await import("../workspace-shell");
 const { SessionError } = (await import("@/features/auth")) as unknown as {
