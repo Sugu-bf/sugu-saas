@@ -87,8 +87,9 @@ export function ConversationList({ scope, activeId, couriers = [], className }: 
             />
           </div>
           {profile !== "agency" && (
-            // From tablet up: a select. A phone gets the two tabs below.
-            <div className="hidden w-28 shrink-0 md:block">
+            // From 1280px up: a select. Narrower, the list column leaves too little
+            // room beside the search, which gets the two tabs below instead.
+            <div className="hidden w-28 shrink-0 xl:block">
               <Select aria-label="Filtrer les conversations" value={unreadOnly ? "unread" : "all"} onChange={(event) => setUnreadOnly(event.target.value === "unread")}>
                 <option value="all">Toutes</option>
                 <option value="unread">Non lues</option>
@@ -110,7 +111,7 @@ export function ConversationList({ scope, activeId, couriers = [], className }: 
         )}
 
         {profile !== "agency" && (
-          <div role="group" aria-label="Filtrer les conversations" className="grid grid-cols-2 gap-1 rounded-pill bg-surface-subtle p-1 md:hidden">
+          <div role="group" aria-label="Filtrer les conversations" className="grid grid-cols-2 gap-1 rounded-pill bg-surface-subtle p-1 xl:hidden">
             {[
               { value: false, label: "Toutes", count: all },
               { value: true, label: "Non lus", count: unread },

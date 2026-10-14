@@ -125,6 +125,19 @@ test("from tablet up: the list and the conversation stand side by side, each scr
   }
 });
 
+test("the search of the list is wide enough to read its placeholder, at every width", async ({ page, baseURL }) => {
+  for (const width of WIDTHS) {
+    await openScreen(page, baseURL, "vendorList", { width });
+    await settled(page);
+
+    const search = (await page.getByRole("searchbox", { name: "Rechercher une conversation" }).boundingBox())!;
+    expect(search.width, `search wide enough at ${width}px`).toBeGreaterThanOrEqual(140);
+    // One way to filter at a time: the select or the two tabs.
+    const filters = page.getByRole("combobox", { name: "Filtrer les conversations" }).or(page.getByRole("group", { name: "Filtrer les conversations" }));
+    await expect(filters.filter({ visible: true })).toHaveCount(1);
+  }
+});
+
 test("keyboard: the list, the thread and the field are reached and used without a mouse", async ({ page, baseURL }) => {
   await openScreen(page, baseURL, "vendorList", { width: 1280 });
   await settled(page);
