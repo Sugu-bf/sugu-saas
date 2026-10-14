@@ -48,6 +48,8 @@ export interface StaticMapProps {
   /** Laid over a corner of the map (when the position was recorded…). */
   children?: ReactNode;
   className?: string;
+  /** One of the zooms the portal relays (`MAP_TILE_ZOOMS`): 15 by default. */
+  zoom?: number;
 }
 
 /** What became of the tiles of one view: how many are drawn, which ones could not be. */
@@ -57,16 +59,16 @@ interface Tiles {
   failed: ReadonlySet<number>;
 }
 
-export function StaticMap({ lat, lng, label, marker, others = [], children, className }: StaticMapProps) {
-  const point = tilePosition(lat, lng);
+export function StaticMap({ lat, lng, label, marker, others = [], children, className, zoom = ZOOM }: StaticMapProps) {
+  const point = tilePosition(lat, lng, zoom);
   const [tileX, tileY] = [Math.floor(point.x), Math.floor(point.y)];
-  const limit = 2 ** ZOOM;
+  const limit = 2 ** zoom;
   // How far the grid is pulled left and up so that the point sits in the middle of the frame.
   const offsetX = (Math.floor(COLUMNS / 2) + (point.x - tileX)) * TILE;
   const offsetY = (Math.floor(ROWS / 2) + (point.y - tileY)) * TILE;
 
   // Kept per view: another point draws other tiles, and starts from nothing.
-  const view = `${tileX}/${tileY}`;
+  const view = `${zoom}/${tileX}/${tileY}`;
   const [kept, setKept] = useState<Tiles>({ view, loaded: 0, failed: new Set() });
   const tiles = kept.view === view ? kept : { view, loaded: 0, failed: new Set<number>() };
   const settle = (change: (current: Tiles) => Tiles) => setKept((previous) => change(previous.view === view ? previous : { view, loaded: 0, failed: new Set() }));
@@ -96,7 +98,7 @@ export function StaticMap({ lat, lng, label, marker, others = [], children, clas
                 // eslint-disable-next-line @next/next/no-img-element -- map tiles: fixed 256px pictures relayed as they are, nothing for the image optimiser to do.
                 <img
                   key={`${view}/${index}`}
-                  src={mapTileUrl(((x % limit) + limit) % limit, y)}
+                  src={mapTileUrl(((x % limit) + limit) % limit, y, zoom)}
                   alt=""
                   width={TILE}
                   height={TILE}
@@ -113,7 +115,7 @@ export function StaticMap({ lat, lng, label, marker, others = [], children, clas
           </div>
 
           {others.map((other, index) => {
-            const position = tilePosition(other.lat, other.lng);
+            const position = tilePosition(other.lat, other.lng, zoom);
             return (
               <div
                 key={index}

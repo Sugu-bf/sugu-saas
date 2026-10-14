@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/session-user";
-import { MAP_TILE_ZOOM } from "@/lib/map-tiles";
+import { MAP_TILE_ZOOMS } from "@/lib/map-tiles";
 
 // ============================================================
 // The tiles of the small maps of the portal (the last position
@@ -17,8 +17,9 @@ import { MAP_TILE_ZOOM } from "@/lib/map-tiles";
 // Kept within the tile usage policy of OpenStreetMap
 // (operations.osmfoundation.org/policies/tiles): an identified
 // User-Agent, two downloads at a time at most, tiles kept a
-// week. One zoom level, for who is signed in: this relays the
-// fifteen tiles of a map, it is not a tile service.
+// week. Two zoom levels (a position, a town and its communes), for
+// who is signed in: this relays the fifteen tiles of a map, it is
+// not a tile service.
 // ============================================================
 
 const TILE_SERVER = "https://tile.openstreetmap.org";
@@ -61,13 +62,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!request.cookies.get(SESSION_COOKIE)?.value) return refused(401);
 
   const { z, x, y } = await params;
-  const limit = 2 ** MAP_TILE_ZOOM;
+  const zoom = MAP_TILE_ZOOMS.find((level) => String(level) === z);
+  if (zoom === undefined) return refused(404);
+  const limit = 2 ** zoom;
   const [column, row] = [coordinate(x, limit), coordinate(y, limit)];
-  if (z !== String(MAP_TILE_ZOOM) || column === null || row === null) return refused(404);
+  if (column === null || row === null) return refused(404);
 
   try {
     const tile = await inTurn(async () => {
-      const upstream = await fetch(`${TILE_SERVER}/${MAP_TILE_ZOOM}/${column}/${row}.png`, {
+      const upstream = await fetch(`${TILE_SERVER}/${zoom}/${column}/${row}.png`, {
         headers: { "User-Agent": USER_AGENT, Accept: "image/png" },
         signal: AbortSignal.timeout(TIMEOUT_MS),
         // Kept a week by the server too: the same tile is asked of the tile server once.

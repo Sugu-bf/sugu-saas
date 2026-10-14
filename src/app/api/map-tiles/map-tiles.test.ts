@@ -63,11 +63,17 @@ describe("map tiles", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("relays the one zoom the portal draws, and whole coordinates within it only", async () => {
-    for (const path of ["14/8122/7624", "16/32490/30498", "15/abc/15249", "15/16245/-1", "15/16245/1.5", "15/32768/15249", "15/16245/99999999", "15/..%2F/15249"]) {
+  it("relays the two zooms the portal draws, and whole coordinates within each only", async () => {
+    for (const path of ["14/8122/7624", "12/2030/1906", "16/32490/30498", "15/abc/15249", "15/16245/-1", "15/16245/1.5", "15/32768/15249", "15/16245/99999999", "15/..%2F/15249", "11/2048/951", "11/1015/2048"]) {
       expect((await ask(path)).status, path).toBe(404);
     }
     expect(calls).toHaveLength(0);
+  });
+
+  it("relays the zoom of a town and its communes (the delivery zones of an agency)", async () => {
+    const response = await ask("11/1015/951");
+    expect(response.status).toBe(200);
+    expect(calls[0].url).toBe("https://tile.openstreetmap.org/11/1015/951.png");
   });
 
   it("answers a failure of the tile server as one, never as a picture", async () => {
