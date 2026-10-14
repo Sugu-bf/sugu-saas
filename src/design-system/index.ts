@@ -97,6 +97,7 @@ export {
   suguBoxListingStatus,
   suguBoxMovementType,
   suguBoxOutboundStatus,
+  ticketStatus,
 } from "./status/domains";
 export type { StatusDomain } from "./status/domains";
 

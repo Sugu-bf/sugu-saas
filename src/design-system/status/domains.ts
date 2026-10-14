@@ -404,6 +404,24 @@ export const discountStatus = defineStatusRegistry({
   },
 });
 
+/**
+ * `App\Enums\Support\TicketStatus`, as a seller reads it. How the support
+ * team handles a ticket inside (waiting on a colleague, escalated) is one
+ * state for the seller: it is being worked on. Resolved and closed are two:
+ * a resolved ticket still takes a reply, a closed one takes nothing.
+ */
+export const ticketStatus = defineStatusRegistry({
+  domain: "ticket",
+  statuses: {
+    open: { label: "Ouvert", tone: "warning", icon: CircleDot, description: "Votre demande est enregistrée auprès de l'équipe SUGU." },
+    pending_customer: { label: "Réponse attendue", tone: "warning", icon: MessageSquareWarning, description: "L'équipe SUGU attend votre réponse." },
+    pending_internal: { label: "En cours", tone: "info", icon: Loader, description: "L'équipe SUGU traite votre demande." },
+    escalated: { label: "En cours", tone: "info", icon: Loader, description: "L'équipe SUGU traite votre demande." },
+    resolved: { label: "Résolu", tone: "success", icon: CheckCircle2, description: "Demande traitée. Une réponse de votre part la rouvre." },
+    closed: { label: "Fermé", tone: "neutral", icon: Archive, description: "Ce ticket ne reçoit plus de réponse." },
+  },
+});
+
 export const statusRegistries = {
   order: orderStatus,
   payment: paymentStatus,
@@ -426,6 +444,7 @@ export const statusRegistries = {
   suguBoxMovement: suguBoxMovementType,
   customerSegment,
   discount: discountStatus,
+  ticket: ticketStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistries;
