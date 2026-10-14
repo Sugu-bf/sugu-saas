@@ -87,6 +87,17 @@ test("phone: an open conversation covers the screen and its field stays on it, a
   }
 });
 
+test("phone: a courier reads the whole number of the mission in the header, beside the call button", async ({ page, baseURL }) => {
+  for (const width of [375, 390]) {
+    await openScreen(page, baseURL, "courierThread", { width });
+    await settled(page);
+    const title = thread(page).getByRole("heading", { level: 2, name: "Client – SU-2026-000205" });
+    await expect(thread(page).getByRole("link", { name: "Appeler Fatoumata Compaoré" })).toBeVisible();
+    // Not cut: what is drawn is as wide as the text.
+    expect(await title.evaluate((node) => node.scrollWidth - node.clientWidth), `title cut at ${width}px`).toBeLessThanOrEqual(0);
+  }
+});
+
 test("phone: the field of a ticket sits above the tab bar, not under it", async ({ page, baseURL }) => {
   await openScreen(page, baseURL, "ticket", { width: 390 });
   await settled(page);

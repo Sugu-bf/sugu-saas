@@ -63,7 +63,8 @@ export function ThreadView({ scope, conversation, viewerId, links, phone, subtit
 
   return (
     <section aria-label={`Conversation : ${title}`} className="flex h-full min-h-0 flex-col bg-surface" data-thread={conversation.id}>
-      <header className="flex items-center gap-2 border-b border-border px-2 py-2 md:px-4">
+      {/* On a phone every pixel of the row goes to the title: for a courier it is the number of the mission. */}
+      <header className="flex items-center gap-1 border-b border-border px-1 py-2 md:gap-2 md:px-4">
         <Link
           href={routeOf(profile)}
           aria-label="Retour aux conversations"
@@ -73,11 +74,11 @@ export function ThreadView({ scope, conversation, viewerId, links, phone, subtit
         </Link>
 
         <span className="relative shrink-0">
-          <Avatar name={conversation.peer.name} src={conversation.peer.avatarUrl} size="lg" />
+          <Avatar name={conversation.peer.name} src={conversation.peer.avatarUrl} size="lg" className="size-8 text-meta md:size-10 md:text-body" />
           {state?.online && <span className="absolute right-0 bottom-0 size-2.5 rounded-pill border-2 border-surface bg-success-icon" aria-hidden="true" />}
         </span>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pl-1 md:pl-0">
           <h2 className="truncate text-body font-semibold text-foreground md:text-section-title">{title}</h2>
           <p className="truncate text-meta text-foreground-muted">
             {subtitle ?? (
