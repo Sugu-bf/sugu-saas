@@ -18,7 +18,10 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="light" storageKey="sugu-theme" disableTransitionOnChange>
+      {/* Light mode only. `forcedTheme`: a theme kept by the browser from an
+          earlier portal ("dark", or "system" on a dark system) put `.dark` on
+          <html> and turned the leftover `dark:` styles back on. */}
+      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" storageKey="sugu-theme" disableTransitionOnChange>
         {children}
       </ThemeProvider>
     </QueryClientProvider>
