@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDashboardBoard, type BoardTasks, type DashboardBoard } from "../contract";
-import { boardState, chartDay, currentStep, formatFrancs, orderPill, priorities, productsColumn, stockLeft, storefrontUrl, timeAgo } from "../model";
+import { boardState, chartDay, chartDayCompact, currentStep, formatFrancs, orderPill, priorities, productsColumn, stockLeft, storefrontUrl, timeAgo } from "../model";
 
 const NOW = new Date("2026-10-12T16:00:00Z");
 
@@ -145,6 +145,8 @@ describe("words and numbers", () => {
   it("names the days of the chart", () => {
     expect(chartDay("2026-10-12", 7)).toBe("Lun 12");
     expect(chartDay("2026-10-12", 30)).toMatch(/^12 oct/);
+    expect(chartDayCompact("2026-10-12", 7)).toBe("Lun");
+    expect(chartDayCompact("2026-10-12", 30)).toBe("12/10");
   });
 });
 

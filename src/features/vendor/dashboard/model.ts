@@ -179,6 +179,15 @@ export function chartDay(day: string, days: number): string {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${date.getUTCDate()}`;
 }
 
+/** "Lun" for a week on a phone, "12/10" beyond. */
+export function chartDayCompact(day: string, days: number): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return day;
+  if (days > 7) return `${date.getUTCDate()}/${date.getUTCMonth() + 1}`;
+  const weekday = WEEKDAY.format(date).replace(".", "");
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`;
+}
+
 // ── First steps ─────────────────────────────────────────────
 
 export interface StepDefinition {

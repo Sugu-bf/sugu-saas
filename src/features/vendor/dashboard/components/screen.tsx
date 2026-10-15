@@ -38,6 +38,7 @@ import {
   SUBTITLES,
   boardState,
   chartDay,
+  chartDayCompact,
   currentStep,
   formatFrancs,
   formatUnits,
@@ -367,6 +368,7 @@ function SalesChart({ board, period }: { board: DashboardBoard; period: ReturnTy
         summary={`${name} du ${board.period.from} au ${board.period.to} : ${total}.`}
         formatTick={(value) => formatUnits(value)}
         formatDay={(day) => chartDay(day, days)}
+        formatDayCompact={(day) => chartDayCompact(day, days)}
         points={board.series.map((day) => ({
           date: day.date,
           value: metric === "revenue" ? day.revenue : day.orders,

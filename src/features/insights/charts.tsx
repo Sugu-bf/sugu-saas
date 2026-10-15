@@ -62,6 +62,8 @@ interface DayChartProps {
   formatTick?: (value: number) => string;
   /** The day under the plot; "12 oct." by default. */
   formatDay?: (day: string) => string;
+  /** A shorter day ("Lun") for a phone: given, a week names all its days there instead of its two ends. */
+  formatDayCompact?: (day: string) => string;
   /** The colour of the mark: the brand, or `danger` for a figure going down. */
   tone?: "brand" | "danger";
   className?: string;
@@ -71,7 +73,7 @@ interface DayChartProps {
  * A figure day by day over a period: an area under a line for money that
  * accumulates, bars for things that are counted. One scale, starting at zero.
  */
-export function DayChart({ label, summary, points, form, formatTick = tickLabel, formatDay = shortDay, tone = "brand", className }: DayChartProps) {
+export function DayChart({ label, summary, points, form, formatTick = tickLabel, formatDay = shortDay, formatDayCompact, tone = "brand", className }: DayChartProps) {
   const [active, setActive] = useState<number | null>(null);
   const readoutId = useId();
   const count = points.length;
@@ -207,10 +209,23 @@ export function DayChart({ label, summary, points, form, formatTick = tickLabel,
           {named.map((index, position) => (
             <span
               key={index}
-              className={cn("absolute whitespace-nowrap", position === 0 ? "left-0" : position === named.length - 1 ? "right-0" : "-translate-x-1/2", count <= 7 && position > 0 && position < named.length - 1 && "max-md:hidden")}
+              className={cn(
+                "absolute whitespace-nowrap",
+                position === 0 ? "left-0" : position === named.length - 1 ? "right-0" : "-translate-x-1/2",
+                count <= 7 && !formatDayCompact && position > 0 && position < named.length - 1 && "max-md:hidden",
+              )}
               style={position === 0 || position === named.length - 1 ? undefined : { left: `${x(index)}%` }}
             >
-              {points[index] ? formatDay(points[index].date) : ""}
+              {points[index] && formatDayCompact ? (
+                <>
+                  <span className="max-md:hidden">{formatDay(points[index].date)}</span>
+                  <span className="md:hidden">{formatDayCompact(points[index].date)}</span>
+                </>
+              ) : points[index] ? (
+                formatDay(points[index].date)
+              ) : (
+                ""
+              )}
             </span>
           ))}
         </div>
