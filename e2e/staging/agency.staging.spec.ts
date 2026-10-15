@@ -671,8 +671,11 @@ test.describe(`V3.1 agency acceptance — ${TARGET}`, () => {
       await expect(pagination).toContainText(`Affichage de 11 à ${Math.min(20, total)} sur ${total} livraison`);
       await expect(rows(agency, "Livraisons")).toHaveCount(Math.min(10, total - 10));
       await expect(agency).toHaveURL(/page=2/);
+      // The rows of page 1 stay on screen, dimmed (aria-busy), while page 2
+      // loads: read them once the table has its new page.
+      await expect(agency.locator('main [aria-busy="true"]')).toHaveCount(0);
       // No delivery of the first page is listed again on the second.
-      const second = (await rows(agency, "Livraisons").locator("td:nth-child(2)").allTextContents()).map((text) => text.trim());
+      const second =(await rows(agency, "Livraisons").locator("td:nth-child(2)").allTextContents()).map((text) => text.trim());
       expect(second.filter((number) => all.slice(0, 10).map(numberOf).includes(number))).toEqual([]);
     }
     await pagination.getByLabel("Nombre de lignes par page").selectOption("25");
