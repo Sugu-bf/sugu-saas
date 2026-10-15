@@ -221,7 +221,7 @@ describe("asking for a withdrawal", () => {
 
   async function toReview(profile: FinanceProfile = "vendor") {
     render(<FinanceWithdraw profile={profile} />);
-    await userEvent.type(amountField(), "1234567");
+    await userEvent.type(amountField(), "1234567", { delay: null });
     await waitFor(() => expect(next()).toBeEnabled());
     await userEvent.click(next());
     await userEvent.click(next());
@@ -231,7 +231,7 @@ describe("asking for a withdrawal", () => {
   it("shows the fee and the net the server quoted, not the rate times the amount", async () => {
     render(<FinanceWithdraw profile="agency" />);
     expect(next()).toBeDisabled();
-    await userEvent.type(amountField(), "1234567");
+    await userEvent.type(amountField(), "1234567", { delay: null });
 
     const recap = screen.getByRole("region", { name: "Récapitulatif" });
     // 1 % of 1 234 567 F would be 12 345,67 F: the server rounds the fee up so that the net is whole francs.
@@ -244,7 +244,7 @@ describe("asking for a withdrawal", () => {
   it("does not go on while the fee of the amount on screen is not known", async () => {
     server.quote = () => loading();
     render(<FinanceWithdraw profile="vendor" />);
-    await userEvent.type(amountField(), "50000");
+    await userEvent.type(amountField(), "50000", { delay: null });
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(next()).toBeDisabled();
     expect(text(screen.getByRole("region", { name: "Récapitulatif" }))).not.toMatch(/\d FCFA/);
@@ -253,7 +253,7 @@ describe("asking for a withdrawal", () => {
   it("says the fee could not be computed, instead of guessing it", async () => {
     server.quote = (amount) => (amount ? failed(new ApiError({ message: "HTTP 503", status: 503 })) : loading());
     render(<FinanceWithdraw profile="courier" />);
-    await userEvent.type(amountField(), "50000");
+    await userEvent.type(amountField(), "50000", { delay: null });
     expect(await screen.findByText("Les frais n'ont pas pu être calculés.")).toBeInTheDocument();
     expect(next()).toBeDisabled();
   });
@@ -261,7 +261,7 @@ describe("asking for a withdrawal", () => {
   it("shows the refusal of the server under the field, and stops there", async () => {
     server.quote = (amount) => (amount ? ok(quoteOf(amount, { acceptable: false, refusal: "Solde insuffisant. Disponible : 856 200 FCFA." })) : loading());
     render(<FinanceWithdraw profile="vendor" />);
-    await userEvent.type(amountField(), "9000000");
+    await userEvent.type(amountField(), "9000000", { delay: null });
     expect(await screen.findByText("Solde insuffisant. Disponible : 856 200 FCFA.")).toBeInTheDocument();
     expect(amountField()).toHaveAttribute("aria-invalid", "true");
     expect(next()).toBeDisabled();
@@ -276,13 +276,13 @@ describe("asking for a withdrawal", () => {
     render(<FinanceWithdraw profile="vendor" />);
     for (const typed of ["12,5", "-500", "abc", "1e6"]) {
       await userEvent.clear(amountField());
-      await userEvent.type(amountField(), typed);
+      await userEvent.type(amountField(), typed, { delay: null });
       await new Promise((resolve) => setTimeout(resolve, 350));
       expect(next()).toBeDisabled();
       expect(screen.getByText("Saisissez un montant en francs CFA, sans décimales.")).toBeInTheDocument();
     }
     await userEvent.clear(amountField());
-    await userEvent.type(amountField(), "0");
+    await userEvent.type(amountField(), "0", { delay: null });
     await new Promise((resolve) => setTimeout(resolve, 350));
     expect(next()).toBeDisabled();
     // Nothing but null was ever asked of the server.
@@ -292,7 +292,7 @@ describe("asking for a withdrawal", () => {
   it("offers only the methods the server says can be paid", async () => {
     server.methods = ok([method(), method({ id: "m2", label: "Moov Money", account: "+226******33", isDefault: false, payable: false, state: "pending" })]);
     render(<FinanceWithdraw profile="vendor" />);
-    await userEvent.type(amountField(), "50000");
+    await userEvent.type(amountField(), "50000", { delay: null });
     await waitFor(() => expect(next()).toBeEnabled());
     await userEvent.click(next());
 
@@ -306,7 +306,7 @@ describe("asking for a withdrawal", () => {
   it("leads to the methods when none can be paid, and tells an outage from an absence", async () => {
     server.methods = ok([]);
     const first = render(<FinanceWithdraw profile="courier" />);
-    await userEvent.type(amountField(), "50000");
+    await userEvent.type(amountField(), "50000", { delay: null });
     await waitFor(() => expect(next()).toBeEnabled());
     await userEvent.click(next());
     expect(screen.getByText("Aucune méthode de paiement")).toBeInTheDocument();
@@ -316,7 +316,7 @@ describe("asking for a withdrawal", () => {
 
     server.methods = failed(new ApiError({ message: "HTTP 500", status: 500 }));
     render(<FinanceWithdraw profile="courier" />);
-    await userEvent.type(amountField(), "50000");
+    await userEvent.type(amountField(), "50000", { delay: null });
     await waitFor(() => expect(next()).toBeEnabled());
     await userEvent.click(next());
     expect(screen.getByText("Méthodes de paiement indisponibles")).toBeInTheDocument();
@@ -509,8 +509,8 @@ describe("payout methods", () => {
     await userEvent.selectOptions(operator, "moov_money");
     const phone = within(dialog).getByLabelText(/Numéro mobile money/);
     await userEvent.clear(phone);
-    await userEvent.type(phone, "+226 60 11 22 33");
-    await userEvent.type(within(dialog).getByLabelText(/Titulaire du compte/), "Moussa Kaboré");
+    await userEvent.type(phone, "+226 60 11 22 33", { delay: null });
+    await userEvent.type(within(dialog).getByLabelText(/Titulaire du compte/), "Moussa Kaboré", { delay: null });
     await userEvent.click(within(dialog).getByRole("button", { name: "Ajouter la méthode" }));
 
     await waitFor(() => expect(server.command.mutateAsync).toHaveBeenCalledTimes(1));
@@ -524,8 +524,8 @@ describe("payout methods", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ajouter une méthode" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.selectOptions(within(dialog).getByLabelText(/Opérateur/), "orange_money");
-    await userEvent.type(within(dialog).getByLabelText(/Numéro mobile money/), "70123456");
-    await userEvent.type(within(dialog).getByLabelText(/Titulaire du compte/), "Agence Ouaga");
+    await userEvent.type(within(dialog).getByLabelText(/Numéro mobile money/), "70123456", { delay: null });
+    await userEvent.type(within(dialog).getByLabelText(/Titulaire du compte/), "Agence Ouaga", { delay: null });
     await userEvent.click(within(dialog).getByRole("button", { name: "Ajouter la méthode" }));
 
     expect(await within(dialog).findByText("Le numéro Mobile Money doit être au format international (ex : +22670000000).")).toBeInTheDocument();

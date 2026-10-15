@@ -83,8 +83,8 @@ const sessionUser = (role: string, extra: Record<string, unknown> = {}) => ({
 });
 
 async function fillLogin(email = "awa@example.com", password = "secret123") {
-  await userEvent.type(screen.getByLabelText(/Adresse e-mail/), email);
-  await userEvent.type(screen.getByLabelText(/^Mot de passe/), password);
+  await userEvent.type(screen.getByLabelText(/Adresse e-mail/), email, { delay: null });
+  await userEvent.type(screen.getByLabelText(/^Mot de passe/), password, { delay: null });
   await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
 }
 
@@ -216,7 +216,7 @@ describe("login — one-time code", () => {
     expect(code).toHaveAttribute("autocomplete", "one-time-code");
     expect(code).toHaveAttribute("inputmode", "numeric");
 
-    await userEvent.type(code, "12a34 56789");
+    await userEvent.type(code, "12a34 56789", { delay: null });
     expect(code).toHaveValue("123456");
     await userEvent.click(screen.getByRole("button", { name: "Vérifier et se connecter" }));
 
@@ -233,12 +233,12 @@ describe("login — one-time code", () => {
     await fillLogin();
     const code = await screen.findByLabelText(/Code de vérification/);
 
-    await userEvent.type(code, "123");
+    await userEvent.type(code, "123", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Vérifier et se connecter" }));
     expect(await screen.findByText("Le code doit contenir 6 chiffres.")).toBeInTheDocument();
     expect(callsTo("/api/auth/verify-otp")).toEqual([]);
 
-    await userEvent.type(code, "456");
+    await userEvent.type(code, "456", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Vérifier et se connecter" }));
     expect(await screen.findByText("Code invalide ou expiré.")).toBeInTheDocument();
     expect(nav.push).not.toHaveBeenCalled();
@@ -276,26 +276,26 @@ describe("password recovery", () => {
     });
     renderWithClient(<ForgotPasswordForm />);
 
-    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), "pas-un-email");
+    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), "pas-un-email", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Envoyer le code" }));
     expect(await screen.findByText("L'adresse email n'est pas valide.")).toBeInTheDocument();
     expect(calls).toEqual([]);
 
     await userEvent.clear(screen.getByLabelText(/Adresse e-mail/));
-    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), " awa@example.com ");
+    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), " awa@example.com ", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Envoyer le code" }));
     expect(await screen.findByText("Code envoyé")).toBeInTheDocument();
     expect(callsTo("/api/auth/forgot-password")[0].body).toEqual({ email: "awa@example.com" });
 
-    await userEvent.type(screen.getByLabelText(/Code de vérification/), "654321");
-    await userEvent.type(screen.getByLabelText(/^Nouveau mot de passe/), "motdepasse1");
-    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "different");
+    await userEvent.type(screen.getByLabelText(/Code de vérification/), "654321", { delay: null });
+    await userEvent.type(screen.getByLabelText(/^Nouveau mot de passe/), "motdepasse1", { delay: null });
+    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "different", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Réinitialiser le mot de passe" }));
     expect(await screen.findByText("Les mots de passe ne correspondent pas.")).toBeInTheDocument();
     expect(callsTo("/api/auth/reset-password")).toEqual([]);
 
     await userEvent.clear(screen.getByLabelText(/^Confirmer le mot de passe/));
-    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1");
+    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Réinitialiser le mot de passe" }));
 
     expect(await screen.findByText("Mot de passe modifié")).toBeInTheDocument();
@@ -313,11 +313,11 @@ describe("password recovery", () => {
       "/api/auth/reset-password": () => ({ status: 422, json: { errors: { code: ["Code expiré."] } } }),
     });
     renderWithClient(<ForgotPasswordForm />);
-    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), "awa@example.com");
+    await userEvent.type(screen.getByLabelText(/Adresse e-mail/), "awa@example.com", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Envoyer le code" }));
-    await userEvent.type(await screen.findByLabelText(/Code de vérification/), "654321");
-    await userEvent.type(screen.getByLabelText(/^Nouveau mot de passe/), "motdepasse1");
-    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1");
+    await userEvent.type(await screen.findByLabelText(/Code de vérification/), "654321", { delay: null });
+    await userEvent.type(screen.getByLabelText(/^Nouveau mot de passe/), "motdepasse1", { delay: null });
+    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Réinitialiser le mot de passe" }));
     expect(await screen.findByText("Code expiré.")).toBeInTheDocument();
   });
@@ -327,8 +327,8 @@ describe("first access by e-mail link", () => {
   const valid = () => ({ json: { data: { valid: true } } });
 
   async function choosePassword(password = "motdepasse1", confirmation = password) {
-    await userEvent.type(await screen.findByLabelText(/^Nouveau mot de passe/), password);
-    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), confirmation);
+    await userEvent.type(await screen.findByLabelText(/^Nouveau mot de passe/), password, { delay: null });
+    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), confirmation, { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Définir mon mot de passe" }));
   }
 
@@ -409,7 +409,7 @@ describe("first access by e-mail link", () => {
     expect(callsTo("/api/auth/set-password")).toEqual([]);
 
     await userEvent.clear(screen.getByLabelText(/^Confirmer le mot de passe/));
-    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1");
+    await userEvent.type(screen.getByLabelText(/^Confirmer le mot de passe/), "motdepasse1", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Définir mon mot de passe" }));
     expect(await screen.findByText("Ce compte n'a pas accès à l'espace professionnel.")).toBeInTheDocument();
     expect(nav.replace).not.toHaveBeenCalled();
@@ -436,7 +436,7 @@ describe("courier signup", () => {
       "/api/auth/courier-validate-code": () => ({ json: { data: { agency_name: "Faso Express", partner_id: 9 } } }),
     });
     renderWithClient(<DriverSignupWizard />);
-    await userEvent.type(screen.getByLabelText(/Code de recrutement/), "faso2026");
+    await userEvent.type(screen.getByLabelText(/Code de recrutement/), "faso2026", { delay: null });
     await userEvent.click(screen.getByRole("button", { name: "Vérifier le code" }));
     expect(await screen.findByText("Agence : Faso Express")).toBeInTheDocument();
     expect(callsTo("/api/auth/courier-validate-code")[0].body).toEqual({ code: "FASO2026" });

@@ -115,7 +115,7 @@ function Dirty() {
 
 describe("SettingsFrame", () => {
   it("asks before leaving a section with changes not saved", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     nav.params = new URLSearchParams("section=profile");
     wrap(
       <SettingsFrame
@@ -139,17 +139,20 @@ describe("SettingsFrame", () => {
 
 describe("ProfileSection", () => {
   it("sends only the parts that changed, and says exactly which one was not saved", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     http.put.mockImplementation(async (path: string) => {
       if (path === "sellers/settings/contact") throw refusal(422, { email: ["L'adresse e-mail est invalide."] });
       return { success: true };
     });
     wrap(<ProfileSection model={parseVendorSettings(VENDOR_RAW)} />);
 
+    // Pasted, not typed: what is tested is which parts are sent. Typed key by
+    // key, this large form re-rendered at each key and the test came within
+    // a few hundred milliseconds of the 5 s limit, over it in the full suite.
     await user.clear(screen.getByLabelText(/Nom de la boutique/));
-    await user.type(screen.getByLabelText(/Nom de la boutique/), "Boutique Tech Ouaga");
+    await user.paste("Boutique Tech Ouaga");
     await user.clear(screen.getByLabelText(/^Téléphone/));
-    await user.type(screen.getByLabelText(/^Téléphone/), "+22670999999");
+    await user.paste("+22670999999");
     await user.click(screen.getAllByRole("button", { name: /Enregistrer/ })[0]);
 
     await waitFor(() => expect(http.put).toHaveBeenCalledTimes(2));
@@ -163,7 +166,7 @@ describe("ProfileSection", () => {
   });
 
   it("checks the form before sending anything", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     wrap(<ProfileSection model={parseVendorSettings(VENDOR_RAW)} />);
     await user.clear(screen.getByLabelText(/^Email/));
     await user.type(screen.getByLabelText(/^Email/), "pas-une-adresse");
@@ -177,7 +180,7 @@ describe("ProfileSection", () => {
 
 describe("NotificationsSection", () => {
   it("sends the whole matrix of the events that exist, never SMS", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     http.put.mockResolvedValue({ success: true });
     wrap(<NotificationsSection model={parseVendorSettings(VENDOR_RAW)} />);
     await user.click(screen.getByRole("switch", { name: "Nouvelle commande par E-mail" }));
@@ -207,7 +210,7 @@ describe("ZonesSection", () => {
   });
 
   it("refuses a price of 0, with centimes or above the ceiling before asking the server", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     wrap(<ZonesSection agencyId="a1" />);
     await screen.findByRole("table");
     await user.click(screen.getByRole("button", { name: "Ajouter une zone" }));
@@ -228,7 +231,7 @@ describe("ZonesSection", () => {
   });
 
   it("sends a whole number of francs, and says when the zone is already served", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     http.post.mockRejectedValueOnce(refusal(409, {}, "Votre agence dessert déjà la zone « Saaba »."));
     wrap(<ZonesSection agencyId="a1" />);
     await screen.findByRole("table");
@@ -247,7 +250,7 @@ describe("ZonesSection", () => {
 
 describe("PasswordCard", () => {
   it("checks the confirmation first, then puts the server's refusal under its field", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const submit = vi.fn().mockRejectedValue(refusal(422, { currentPassword: ["Le mot de passe actuel est incorrect."] }));
     wrap(<PasswordCard changedAt={null} submit={submit} fieldMap={{ currentPassword: "current", newPassword: "next" }} />);
 
@@ -278,7 +281,7 @@ describe("ClosingPanel", () => {
   });
 
   it("asks for the password, the word, then a last confirmation", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     http.get.mockResolvedValue({ data: { blockers: [] } });
     const submit = vi.fn().mockResolvedValue(undefined);
     wrap(<ClosingPanel checkPath="courier/settings/account/deletion-check" submit={submit} consequences={["Fin."]} />);
