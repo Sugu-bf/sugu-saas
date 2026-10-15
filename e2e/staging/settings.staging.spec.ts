@@ -212,6 +212,16 @@ test.describe("[write]", () => {
     const { page } = await as("vendor");
     await page.goto("/vendor/settings?section=profile");
     await settle(page);
+    // A shop without a category, on a server that has some: the form asks
+    // for one before saving anything (the "Catégorie *" of the mock-up).
+    // The QA shop then takes the first one; it is not put back (the server
+    // keeps a category once it has one).
+    const category = page.getByRole("combobox", { name: /Catégorie/ });
+    await expect(category.locator("option").nth(1)).toBeAttached({ timeout: 30_000 }).catch(() => undefined);
+    if ((await category.inputValue()) === "" && (await category.locator("option").count()) > 1) {
+      const first = await category.locator("option").nth(1).getAttribute("value");
+      await category.selectOption(first ?? "");
+    }
     const field = page.getByLabel(/^Description/);
     const before = await field.inputValue();
     const marked = `${before.replace(/ \[QA V9 [^\]]*\]$/, "")} [QA V9 ${STAMP}]`;
