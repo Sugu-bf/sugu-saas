@@ -266,6 +266,28 @@ describe("/api/proxy — authenticated relay", () => {
     expect(calls[0].body).toContain('filename="cni.png"');
   });
 
+  // Turning off the login verification and deleting a courier account are
+  // DELETEs that carry the password: dropped here, Laravel answered 422.
+  it("relays the body of a DELETE that carries one", async () => {
+    const res = await proxy("account/security/login-verification", {
+      method: "DELETE",
+      cookie: "sugu_session=T1",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "secret-pass" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(calls[0].method).toBe("DELETE");
+    expect(calls[0].headers.get("content-type")).toBe("application/json");
+    expect(JSON.parse(calls[0].body ?? "null")).toEqual({ password: "secret-pass" });
+  });
+
+  it("sends a DELETE without a body as before", async () => {
+    await proxy("sellers/products/p1", { method: "DELETE", cookie: "sugu_session=T1" });
+    expect(calls[0].method).toBe("DELETE");
+    expect(calls[0].body).toBeNull();
+  });
+
   it("relays a binary download with its type and filename", async () => {
     const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]);
     respond = () => new Response(pdf, { headers: { "content-type": "application/pdf", "content-disposition": 'inline; filename="bon.pdf"' } });

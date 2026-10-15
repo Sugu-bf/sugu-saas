@@ -36,7 +36,9 @@ async function relay(request: NextRequest, context: { params: Promise<{ path?: s
 
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? null;
   const url = `${apiBase()}/${checked.path}${request.nextUrl.search}`;
-  const hasBody = request.method !== "GET" && request.method !== "DELETE" && request.body !== null;
+  // A DELETE may carry a body: turning off the login verification and
+  // deleting an account send the password in it. Dropped, Laravel saw none.
+  const hasBody = request.method !== "GET" && request.method !== "HEAD" && request.body !== null;
 
   let upstream: Response;
   try {
