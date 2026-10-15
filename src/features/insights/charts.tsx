@@ -56,10 +56,14 @@ interface DayChartProps {
   /** The sentence a screen reader gets in place of the drawing. */
   summary: string;
   points: DayPoint[];
-  /** Headings of the table: the day, then one per readout line. */
-  form: "area" | "bars";
+  /** An area for money that accumulates, bars for counts, a line with its days marked (the dashboard). */
+  form: "area" | "bars" | "line";
   /** Ticks of the scale as text (amounts are shortened, counts are not). */
   formatTick?: (value: number) => string;
+  /** The day under the plot; "12 oct." by default. */
+  formatDay?: (day: string) => string;
+  /** The colour of the mark: the brand, or `danger` for a figure going down. */
+  tone?: "brand" | "danger";
   className?: string;
 }
 
@@ -67,7 +71,7 @@ interface DayChartProps {
  * A figure day by day over a period: an area under a line for money that
  * accumulates, bars for things that are counted. One scale, starting at zero.
  */
-export function DayChart({ label, summary, points, form, formatTick = tickLabel, className }: DayChartProps) {
+export function DayChart({ label, summary, points, form, formatTick = tickLabel, formatDay = shortDay, tone = "brand", className }: DayChartProps) {
   const [active, setActive] = useState<number | null>(null);
   const readoutId = useId();
   const count = points.length;
@@ -97,7 +101,16 @@ export function DayChart({ label, summary, points, form, formatTick = tickLabel,
   // The middle of each day's column, as a share of the width.
   const x = (index: number) => ((index + 0.5) / count) * 100;
   const y = (value: number) => 100 - (value / top) * 100;
-  const line = points.map((point, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(3)},${y(point.value).toFixed(3)}`).join(" ");
+  // A line is drawn smooth: each day joins the next by a curve whose handles stay level, so it never dips under zero nor above a day's figure.
+  const line = points
+    .map((point, index) => {
+      const here = `${x(index).toFixed(3)},${y(point.value).toFixed(3)}`;
+      if (index === 0) return `M${here}`;
+      if (form !== "line") return `L${here}`;
+      const middle = ((x(index - 1) + x(index)) / 2).toFixed(3);
+      return `C${middle},${y(points[index - 1].value).toFixed(3)} ${middle},${y(point.value).toFixed(3)} ${here}`;
+    })
+    .join(" ");
 
   return (
     <figure className={cn("relative flex flex-col", className)}>
@@ -128,11 +141,24 @@ export function DayChart({ label, summary, points, form, formatTick = tickLabel,
             ))}
           </div>
 
-          {form === "area" ? (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
-              {count > 1 && <path d={`${line} L${x(count - 1)},100 L${x(0)},100 Z`} className="fill-brand/10" />}
-              {count > 1 && <path d={line} fill="none" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="stroke-brand" />}
-            </svg>
+          {form !== "bars" ? (
+            <>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
+                {count > 1 && <path d={`${line} L${x(count - 1)},100 L${x(0)},100 Z`} className={form === "area" ? "fill-brand/10" : tone === "danger" ? "fill-danger-solid/5" : "fill-brand/5"} />}
+                {count > 1 && <path d={line} fill="none" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className={tone === "danger" ? "stroke-danger-solid" : "stroke-brand"} />}
+              </svg>
+              {/* A line marks its days while they are few enough to tell apart. */}
+              {form === "line" &&
+                count <= 31 &&
+                points.map((point, index) => (
+                  <span
+                    key={point.date}
+                    aria-hidden="true"
+                    className={cn("pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-pill border-2 bg-surface", tone === "danger" ? "border-danger-solid" : "border-brand")}
+                    style={{ left: `${x(index)}%`, top: `${y(point.value)}%` }}
+                  />
+                ))}
+            </>
           ) : (
             <div className="absolute inset-0 flex items-end" aria-hidden="true">
               {points.map((point, index) => (
@@ -150,9 +176,13 @@ export function DayChart({ label, summary, points, form, formatTick = tickLabel,
           {/* The day pointed at: a hairline, and on a line its point, ringed by the surface. */}
           {current && active !== null && (
             <>
-              {form === "area" && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 w-px bg-border-strong" style={{ left: `${x(active)}%` }} />}
-              {form === "area" && (
-                <span aria-hidden="true" className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-pill bg-brand ring-2 ring-surface" style={{ left: `${x(active)}%`, top: `${y(current.value)}%` }} />
+              {form !== "bars" && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 w-px bg-border-strong" style={{ left: `${x(active)}%` }} />}
+              {form !== "bars" && (
+                <span
+                  aria-hidden="true"
+                  className={cn("pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-pill ring-2 ring-surface", tone === "danger" ? "bg-danger-solid" : "bg-brand")}
+                  style={{ left: `${x(active)}%`, top: `${y(current.value)}%` }}
+                />
               )}
               <div
                 id={readoutId}
@@ -180,7 +210,7 @@ export function DayChart({ label, summary, points, form, formatTick = tickLabel,
               className={cn("absolute whitespace-nowrap", position === 0 ? "left-0" : position === named.length - 1 ? "right-0" : "-translate-x-1/2", count <= 7 && position > 0 && position < named.length - 1 && "max-md:hidden")}
               style={position === 0 || position === named.length - 1 ? undefined : { left: `${x(index)}%` }}
             >
-              {points[index] ? shortDay(points[index].date) : ""}
+              {points[index] ? formatDay(points[index].date) : ""}
             </span>
           ))}
         </div>
