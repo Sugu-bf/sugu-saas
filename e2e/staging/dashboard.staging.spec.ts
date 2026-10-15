@@ -100,7 +100,17 @@ async function board(page: Page, query = "period=7j"): Promise<Json> {
 /** "245 000 F" whatever the space between thousands. */
 const amount = (value: number) => new RegExp(`${new Intl.NumberFormat("fr-FR").format(value).replace(/\s/g, "\\s?")}\\s?F`);
 
-const STATE: Record<Seller, string> = { active: "active", alerts: "alerts", new: "new" };
+/**
+ * The state the page must show, by the rule of the page (model.ts): new
+ * while the store never had an order; alerts when a product is out of stock
+ * or an order waits for its confirmation for a day; active otherwise. Read
+ * from the server's answer: a QA store can hold an alert left by another run.
+ */
+function expectedState(data: Json): "new" | "alerts" | "active" {
+  if (!data.hasOrders) return "new";
+  const late = data.tasks.toConfirm > 0 && data.tasks.oldestPendingAt && Date.now() - new Date(data.tasks.oldestPendingAt).getTime() >= 24 * 3_600_000;
+  return data.tasks.outOfStock > 0 || late ? "alerts" : "active";
+}
 
 // ── The three states ────────────────────────────────────────
 
@@ -112,7 +122,10 @@ for (const seller of Object.keys(SELLERS) as Seller[]) {
     await settle(page);
     const data = await board(page);
 
-    await expect(page.locator("main header[data-state]")).toHaveAttribute("data-state", STATE[seller]);
+    const state = expectedState(data);
+    if (seller === "new") expect(state, "seller C is a new store (QaDashboardSeeder)").toBe("new");
+    if (seller === "alerts") expect(state, "store B has a product out of stock (QaDashboardSeeder)").toBe("alerts");
+    await expect(page.locator("main header[data-state]")).toHaveAttribute("data-state", state);
     const figures = page.getByRole("region", { name: "Chiffres de la période" });
     await expect(figures).toContainText(amount(data.kpis.revenue.value));
     await expect(figures.getByRole("link", { name: /Commandes/ })).toContainText(String(data.kpis.orders.value));
@@ -128,7 +141,7 @@ for (const seller of Object.keys(SELLERS) as Seller[]) {
       await expect(page.getByRole("heading", { level: 1 })).toContainText(`Bonjour, ${data.store.name}`);
       await expect(page.getByRole("heading", { name: "Commandes récentes" })).toBeVisible();
       for (const order of data.recentOrders as Json[]) await expect(page.getByRole("link", { name: new RegExp(`#${order.number}`) })).toBeVisible();
-      if (seller === "alerts") {
+      if (state === "alerts") {
         await expect(page.getByText("Plusieurs éléments nécessitent votre attention.")).toBeVisible();
         await expect(page.getByRole("heading", { name: "Produits en alerte" })).toBeVisible();
         await expect(page.getByText("Rupture de stock").first()).toBeVisible();
