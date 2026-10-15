@@ -16,9 +16,10 @@ import { defineConfig } from "@playwright/test";
  *   npx next build --webpack
  *   npx playwright test -c playwright.messaging.config.ts
  */
-const APP_PORT = 3300;
+// Overridable: Windows reserves port ranges that move from one boot to the next.
+const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3300);
 // Not 4190: `fetch` refuses that port. Not 4054 to 4153 nor 4232 to 4431: Windows reserves them once Docker runs.
-const API_PORT = 4210;
+const API_PORT = Number(process.env.E2E_API_PORT ?? 4210);
 const SOCKET_PORT = Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 8080);
 
 export default defineConfig({

@@ -6,7 +6,8 @@ import { defineConfig } from "@playwright/test";
  *
  *   npx playwright test -c playwright.gallery.config.ts
  */
-const PORT = 3100;
+// Overridable: Windows reserves port ranges that move from one boot to the next.
+const PORT = Number(process.env.E2E_APP_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "./e2e/gallery",

@@ -8,8 +8,9 @@ import { defineConfig } from "@playwright/test";
  *   npx next build --webpack
  *   npx playwright test -c playwright.agency.config.ts
  */
-const APP_PORT = 3230;
-const API_PORT = 4040;
+// Overridable: Windows reserves port ranges that move from one boot to the next.
+const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3230);
+const API_PORT = Number(process.env.E2E_API_PORT ?? 4040);
 
 export default defineConfig({
   testDir: "./e2e/agency",

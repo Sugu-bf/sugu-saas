@@ -11,9 +11,10 @@ import { defineConfig } from "@playwright/test";
  *   npx next build --webpack
  *   npx playwright test -c playwright.commerce.config.ts
  */
-const APP_PORT = 3290;
+// Overridable: Windows reserves port ranges that move from one boot to the next.
+const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3290);
 // Not 4190: `fetch` refuses that port. Not 4054 to 4153 either: Windows reserves them once Docker runs.
-const API_PORT = 4180;
+const API_PORT = Number(process.env.E2E_API_PORT ?? 4180);
 
 export default defineConfig({
   testDir: "./e2e/commerce",

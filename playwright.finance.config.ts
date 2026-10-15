@@ -10,8 +10,9 @@ import { defineConfig } from "@playwright/test";
  *   npx next build --webpack
  *   npx playwright test -c playwright.finance.config.ts
  */
-const APP_PORT = 3270;
-const API_PORT = 4080;
+// Overridable: Windows reserves port ranges that move from one boot to the next.
+const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3270);
+const API_PORT = Number(process.env.E2E_API_PORT ?? 4080);
 
 export default defineConfig({
   testDir: "./e2e/finance",
