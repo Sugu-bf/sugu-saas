@@ -35,13 +35,20 @@ if (/^https:\/\/pro\.sugu\.pro/.test(url)) throw new Error("These checks are not
 // restarts after a failure still finds what the run created before it.
 process.env.STAGING_RUN_STAMP ??= new Date().toISOString().replace(/\D/g, "").slice(2, 12);
 
+// A local stack answers through `php -S`, one request at a time (1.5 to 2 s
+// each on Windows): a screen that asks ten things outlasts a 5 s assertion.
+// Measured in V10: of 17 checks that failed at 5 s, 14 passed unchanged at 30 s.
+// The deployed environments keep the default.
+const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(url);
+
 export default defineConfig({
   testDir: "./e2e/staging",
   testMatch: /.*\.staging\.spec\.ts/,
   workers: 1,
   retries: 0,
   reporter: [["list"]],
-  timeout: 60_000,
+  timeout: LOCAL ? 180_000 : 60_000,
+  ...(LOCAL ? { expect: { timeout: 30_000 } } : {}),
   // No trace, no video: a recording would keep what was typed in the sign-in form.
   use: { baseURL: url, browserName: "chromium", viewport: { width: 1440, height: 900 }, trace: "off", video: "off" },
 });
