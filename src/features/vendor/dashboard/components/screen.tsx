@@ -228,7 +228,7 @@ function Priorities({ items }: { items: Priority[] }) {
                 >
                   <Icon className={cn("size-5 shrink-0", priorityIconClass(item))} aria-hidden="true" />
                   <span className="min-w-0 flex-1 text-label font-semibold text-foreground md:text-body">{item.title}</span>
-                  <span className={cn("text-meta font-medium group-hover:underline max-md:sr-only", item.tone === "danger" ? "text-danger-fg" : "text-primary")}>{item.action}</span>
+                  <span className={cn("text-meta font-medium group-hover:underline max-md:sr-only", item.tone === "danger" ? "text-danger-fg" : "text-primary-hover")}>{item.action}</span>
                   <ChevronRight className="size-4 shrink-0 text-foreground-muted md:hidden" aria-hidden="true" />
                 </Link>
               </li>
