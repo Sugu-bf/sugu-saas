@@ -8,8 +8,7 @@ import { cn } from "../cn";
 
    - seller orders, items, totals → whole francs
      (`SellerOrderService::centsToUnits` divides before responding);
-   - COD Mixte fees → centimes (see `lib/utils/format-cents.ts`), as are
-     the agency amounts read by `features/agency/services/utils.ts`.
+   - COD Mixte fees → centimes (see `lib/utils/format-cents.ts`).
 
    So the unit is part of every call: there is no `formatMoney(n)`.
    Pick the function that names the unit the endpoint really returns.

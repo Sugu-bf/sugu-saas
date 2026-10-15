@@ -3,9 +3,7 @@
  *
  * The backend exposes COD / fee amounts in raw centimes (e.g. 450000 = 4 500 XOF).
  * The existing `formatCurrency` in this folder does NOT divide — it formats a
- * value already in XOF. The agency-scoped `formatCurrency(centimes)` in
- * `features/agency/services/utils.ts` divides but rounds to whole XOF (lossy)
- * and is not shared. This helper is the single transversal entry point: the
+ * value already in XOF. This helper is the single transversal entry point: the
  * "Cents" in its name makes the expected input unit explicit at every call site.
  */
 
