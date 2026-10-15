@@ -7,7 +7,6 @@
  *
  *   services/
  *   ├── _shared.ts              — Shared utilities
- *   ├── dashboard.service.ts    — Dashboard data
  *   ├── products.service.ts     — Products CRUD + creation
  *   ├── inventory.service.ts    — Inventory + stock management
  *   ├── sales.service.ts        — Product list for pickers
@@ -17,8 +16,6 @@
  */
 
 export {
-  // Dashboard
-  getVendorDashboard,
   // Products
   getVendorProducts,
   getVendorProductDetail,

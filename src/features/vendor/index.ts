@@ -1,11 +1,5 @@
-export { getVendorDashboard, getVendorProducts, getVendorProductDetail, getVendorInventory, addInventoryStock, exportInventoryCSV, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, getAllVendorProducts } from "./service";
+export { getVendorProducts, getVendorProductDetail, getVendorInventory, addInventoryStock, exportInventoryCSV, getProductCategories, getProductBrands, getVariantOptions, createVendorProduct, previewProductImage, getAllVendorProducts } from "./service";
 export type {
-  VendorDashboardData,
-  KpiCard,
-  RevenuePoint,
-  RecentOrder,
-  TopProduct,
-  StockAlert,
   OrderStatus,
   VendorOrdersResponse,
   VendorOrder,

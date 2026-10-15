@@ -3,28 +3,8 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import * as vendorService from "./service";
-import { useSession } from "@/features/auth/hooks";
 import { useRouter } from "next/navigation";
 import type { ProductMutationFormData } from "./services/product-mutation-contract";
-
-// ────────────────────────────────────────────────────────────
-// Dashboard
-// ────────────────────────────────────────────────────────────
-
-/**
- * Hook: Vendor dashboard stats.
- * Automatically injects the vendor name from the current session.
- */
-export function useVendorDashboard() {
-  const { data: user } = useSession();
-  const vendorName = user?.name?.split(" ")[0] ?? undefined;
-
-  return useQuery({
-    queryKey: queryKeys.vendor.dashboard(),
-    queryFn: () => vendorService.getVendorDashboard(vendorName),
-    staleTime: 2 * 60 * 1000,
-  });
-}
 
 // ────────────────────────────────────────────────────────────
 // Products List

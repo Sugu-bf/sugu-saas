@@ -3,9 +3,6 @@
  * Re-exports all domain services from a single entry point.
  */
 
-// Dashboard
-export { getVendorDashboard } from "./dashboard.service";
-
 // Products
 export {
   getVendorProducts,
