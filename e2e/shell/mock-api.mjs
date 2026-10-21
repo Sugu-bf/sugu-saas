@@ -66,6 +66,21 @@ const PROFILES = {
   },
   // A marketplace buyer: authenticated by the API, no place on the pro portal.
   "acheteur@qa.test": { id: 105, name: "Client", email: "acheteur@qa.test", user_type: "buyer" },
+  // SUGU Lanaya (Lot 1): an ordinary account whose status is its Lanabaga profile (e2e/lanaya).
+  "lanabaga@qa.test": {
+    id: 120,
+    name: "Aïssata Kaboré",
+    email: "lanabaga@qa.test",
+    user_type: "buyer",
+    lanaya: { profile_id: "profile-admitted", public_code: "LNB-AB12CD", application_status: "approved", account_status: "active", can_work: true },
+  },
+  "candidat@qa.test": {
+    id: 121,
+    name: "Issa Ouédraogo",
+    email: "candidat@qa.test",
+    user_type: "buyer",
+    lanaya: { profile_id: "profile-candidate", public_code: "LNB-CD34EF", application_status: "draft", account_status: "none", can_work: false },
+  },
   "otp@qa.test": {
     id: 106,
     name: "Fatou Diallo",

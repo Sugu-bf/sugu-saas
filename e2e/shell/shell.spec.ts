@@ -33,6 +33,8 @@ const NAVIGATION: Record<Role, Entry[]> = {
     { label: "Finances", href: "/vendor/wallet", tab: "Finances" },
     { label: "Marketing", href: "/vendor/marketing" },
     { label: "Messages", href: "/vendor/messages" },
+    // SUGU Lanaya (Lot 1): the seller's side of the programme.
+    { label: "Lanaya", href: "/vendor/lanaya" },
     { label: "Vue d'ensemble", href: "/vendor/sugubox" },
     { label: "Mon stock", href: "/vendor/sugubox/stock" },
     { label: "Réceptions", href: "/vendor/sugubox/inbound" },
