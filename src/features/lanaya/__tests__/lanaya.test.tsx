@@ -47,6 +47,11 @@ const server = vi.hoisted(() => ({
   preview: null as unknown,
   accept: { mutateAsync: vi.fn(), isPending: false },
   decline: { mutateAsync: vi.fn(), isPending: false },
+  assignment: {
+    accept: { mutateAsync: vi.fn(), isPending: false },
+    decline: { mutateAsync: vi.fn(), isPending: false },
+    end: { mutateAsync: vi.fn(), isPending: false },
+  },
 }));
 
 vi.mock("../hooks", async (importOriginal) => {
@@ -56,6 +61,7 @@ vi.mock("../hooks", async (importOriginal) => {
     useSellerLanaya: () => server.seller,
     useInvitationPreview: () => server.preview,
     useAnswerInvitation: () => ({ accept: server.accept, decline: server.decline }),
+    useAssignmentAnswer: () => server.assignment,
   };
 });
 
@@ -77,7 +83,7 @@ const preview = (patch: Partial<InvitationPreview> = {}): InvitationPreview => (
   consent: { key: "seller_introduction", version: "pilote-2026-10-provisoire", text: "J'accepte que ce Lanabaga soit enregistré comme m'ayant présenté SUGU." },
   ...patch,
 });
-const noStores: SellerLanaya = { stores: [{ id: "s1", name: "Boutique Diallo", city: "Ouagadougou", introduced_by: null, assignment: null }] };
+const noStores: SellerLanaya = { stores: [{ id: "s1", name: "Boutique Diallo", city: "Ouagadougou", introduced_by: null, assignment: null, proposal: null }] };
 
 beforeEach(() => {
   nav.params = new URLSearchParams();
@@ -86,7 +92,27 @@ beforeEach(() => {
   server.preview = ok(undefined);
   server.accept = { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
   server.decline = { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
+  server.assignment = {
+    accept: { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false },
+    decline: { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false },
+    end: { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false },
+  };
 });
+
+const store = { id: "01HSTORE0000000000000000AA", name: "Boutique Diallo", slug: "boutique-diallo", city: "Ouagadougou", active: true };
+const assignmentOf = (id: string, value: "proposed" | "active", lanabaga = card) => ({
+  id,
+  status: { value, label: value === "active" ? "Active" : "En attente de l'accord du vendeur" },
+  scope: "store",
+  store,
+  lanabaga,
+  proposed_at: "2026-10-21T09:00:00Z",
+  accepted_at: value === "active" ? "2026-10-21T10:00:00Z" : null,
+  declined_at: null,
+  cancelled_at: null,
+  ended_at: null,
+});
+const consent = { key: "seller_assignment", version: "pilote-2026-10-provisoire", text: "J'accepte que ce Lanabaga devienne le Lanabaga principal de ma boutique." };
 
 describe("contract", () => {
   it("keeps the server's labels and refuses a badge before it exists", () => {
@@ -180,7 +206,7 @@ describe("Programme Lanaya — the seller's side", () => {
   });
 
   it("shows the Lanabaga who introduced a shop, with the code and without « Vérifié »", () => {
-    server.seller = ok({ stores: [{ id: "s1", name: "Boutique Diallo", city: "Ouagadougou", introduced_by: { ...card, accepted_at: "2026-10-21T10:24:00Z" }, assignment: null }] });
+    server.seller = ok({ stores: [{ id: "s1", name: "Boutique Diallo", city: "Ouagadougou", introduced_by: { ...card, accepted_at: "2026-10-21T10:24:00Z" }, assignment: null, proposal: null }] });
     render(<SellerLanayaScreen />);
     expect(screen.getByText("Kalifa Traoré")).toBeInTheDocument();
     expect(screen.getByText(/Lanabaga admis par SUGU ·/)).toBeInTheDocument();
@@ -246,5 +272,61 @@ describe("Programme Lanaya — the seller's side", () => {
     render(<SellerLanayaScreen />);
     expect(screen.queryByRole("heading", { name: "Décision du vendeur" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Rejoindre le programme" })).toBeInTheDocument();
+  });
+
+  it("a proposal of SUGU: the consent is never ticked in advance; nothing is sent without it", async () => {
+    server.seller = ok({ stores: [{ id: store.id, name: store.name, city: store.city, introduced_by: null, assignment: null, proposal: { ...assignmentOf("A1", "proposed"), consent } }] });
+    render(<SellerLanayaScreen />);
+
+    expect(screen.getByRole("heading", { name: "Proposition d'accompagnement" })).toBeInTheDocument();
+    const box = screen.getByRole("checkbox", { name: /Lanabaga principal de ma boutique/ });
+    expect(box).not.toBeChecked();
+    const acceptButton = screen.getByRole("button", { name: "Accepter ce Lanabaga" });
+    await userEvent.click(acceptButton);
+    expect(server.assignment.accept.mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Cochez la case");
+
+    await userEvent.click(box);
+    await userEvent.click(acceptButton);
+    expect(server.assignment.accept.mutateAsync).toHaveBeenCalledWith("A1");
+  });
+
+  it("declining a proposal is confirmed first, then sent", async () => {
+    server.seller = ok({ stores: [{ id: store.id, name: store.name, city: store.city, introduced_by: null, assignment: null, proposal: { ...assignmentOf("A2", "proposed"), consent } }] });
+    render(<SellerLanayaScreen />);
+    await userEvent.click(screen.getByRole("button", { name: "Refuser la proposition pour Boutique Diallo" }));
+    expect(server.assignment.decline.mutateAsync).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Refuser la proposition" }));
+    expect(server.assignment.decline.mutateAsync).toHaveBeenCalledWith("A2");
+    expect(server.assignment.accept.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("the main Lanabaga of a shop, and the seller's way to end it", async () => {
+    server.seller = ok({ stores: [{ id: store.id, name: store.name, city: store.city, introduced_by: null, assignment: assignmentOf("A3", "active"), proposal: null }] });
+    render(<SellerLanayaScreen />);
+    expect(screen.getByText("Kalifa Traoré")).toBeInTheDocument();
+    expect(screen.getByText(/Lanabaga principal de Boutique Diallo depuis le/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Votre accompagnement" })).toBeInTheDocument();
+    expect(screen.getByText("Lanabaga principal accepté")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Mettre fin à l'accompagnement" }));
+    expect(server.assignment.end.mutateAsync).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Mettre fin" }));
+    expect(server.assignment.end.mutateAsync).toHaveBeenCalledWith({ id: "A3" });
+  });
+
+  it("a proposal that replaces the current Lanabaga says so", () => {
+    const other = { ...card, public_code: "LNB-ZZ99ZZ", name: "Awa Ouédraogo" };
+    server.seller = ok({
+      stores: [{ id: store.id, name: store.name, city: store.city, introduced_by: null, assignment: assignmentOf("A4", "active"), proposal: { ...assignmentOf("A5", "proposed", other), consent } }],
+    });
+    render(<SellerLanayaScreen />);
+    expect(screen.getByText(/Awa Ouédraogo remplacera Kalifa Traoré/)).toBeInTheDocument();
+  });
+
+  it("the contract drops an unknown assignment shape rather than inventing one", () => {
+    const parsed = contract.sellerLanayaSchema.parse({ stores: [{ id: "s1", name: "B", city: null, introduced_by: null, assignment: { broken: true } }] });
+    expect(parsed.stores[0].assignment).toBeNull();
+    expect(parsed.stores[0].proposal).toBeNull();
   });
 });

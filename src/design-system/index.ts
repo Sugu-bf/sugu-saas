@@ -88,6 +88,8 @@ export {
   lanayaAccountStatus,
   lanayaAgreementStatus,
   lanayaApplicationStatus,
+  lanayaAssignmentStatus,
+  lanayaAttributionStatus,
   lanayaDocumentStatus,
   lanayaIdentityStatus,
   lanayaInvitationStatus,

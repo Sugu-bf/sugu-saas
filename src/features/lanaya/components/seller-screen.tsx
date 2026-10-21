@@ -4,23 +4,26 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CircleCheck, HandHeart, MapPin, MessageSquareQuote, ShieldCheck, Undo2, UserCheck, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { CircleCheck, HandHeart, Handshake, MapPin, MessageSquareQuote, ShieldCheck, Undo2, UserCheck, UserMinus, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { Alert, Avatar, Badge, Button, Card, Checkbox, ConfirmDialog, ErrorState, PageHeader, Radio, RadioGroup, Skeleton } from "@/design-system";
 import { LANABAGA_FILE_PATH } from "@/lib/auth/session-user";
 import { ApiError } from "@/lib/http/api-error";
 import { LanayaPage, Panel, formatDate, formatDateTime } from "./frame";
 import type { InvitationPreview, LanabagaPublicCard, SellerLanaya } from "../contract";
+
+type SellerStore = SellerLanaya["stores"][number];
 import { describeLanayaFailure } from "../errors";
-import { isInvitationToken, useAnswerInvitation, useInvitationPreview, useSellerLanaya } from "../hooks";
+import { isInvitationToken, useAnswerInvitation, useAssignmentAnswer, useInvitationPreview, useSellerLanaya } from "../hooks";
 
 // ============================================================
 // Programme Lanaya, côté vendeur (maquettes 3 et 4).
 //
-// Lot 1: who introduced each shop (first accepted invitation, DEC-23),
-// and the decision on an invitation opened from its link. The consent is
-// a box the seller ticks; the button says exactly what is recorded. The
-// assigned Lanabaga, the follow-up and the badge come with later lots and
-// are not drawn.
+// Who introduced each shop (first accepted invitation, DEC-23), the
+// decision on an invitation opened from its link, and the main Lanabaga
+// of the shop: SUGU proposes one, the seller accepts or declines (DEC-30),
+// and may end it whenever they want. Every consent is a box the seller
+// ticks; every button says exactly what is recorded. The follow-up and the
+// badge come with later lots and are not drawn.
 // ============================================================
 
 export function SellerLanayaScreen() {
@@ -33,6 +36,8 @@ export function SellerLanayaScreen() {
   const seller = useSellerLanaya();
   const preview = useInvitationPreview(token);
   const introduced = seller.data?.stores.filter((store) => store.introduced_by) ?? [];
+  const assigned = seller.data?.stores.filter((store) => store.assignment) ?? [];
+  const proposed = seller.data?.stores.filter((store) => store.proposal) ?? [];
   const closeInvitation = () => router.replace(pathname);
 
   return (
@@ -52,7 +57,10 @@ export function SellerLanayaScreen() {
       </Card>
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <Panel title="Votre Lanabaga" description={token ? "Le Lanabaga qui vous invite à rejoindre le programme." : "Le Lanabaga qui vous a présenté SUGU."}>
+        <Panel
+          title="Votre Lanabaga"
+          description={token ? "Le Lanabaga qui vous invite à rejoindre le programme." : assigned.length > 0 ? "Le Lanabaga principal qui accompagne votre boutique." : "Le Lanabaga qui vous a présenté SUGU."}
+        >
           {token ? (
             preview.data ? (
               <LanabagaCard card={preview.data.lanabaga} />
@@ -65,6 +73,12 @@ export function SellerLanayaScreen() {
             <ErrorState title="Votre Lanabaga n'a pas pu être chargé" description={describeLanayaFailure(seller.error).message} onRetry={() => seller.refetch()} retrying={seller.isFetching} />
           ) : !seller.data ? (
             <Skeleton className="h-32 rounded-control" />
+          ) : assigned.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              {assigned.map((store) => (
+                <MainLanabaga key={store.id} store={store} several={(seller.data?.stores.length ?? 0) > 1} />
+              ))}
+            </div>
           ) : introduced.length === 0 ? (
             <p className="text-body text-foreground-muted">
               Aucun Lanabaga ne vous a présenté SUGU. Si un Lanabaga vous a envoyé une invitation, ouvrez le lien qu&apos;il vous a transmis : elle s&apos;affichera ici.
@@ -83,10 +97,22 @@ export function SellerLanayaScreen() {
 
         {token ? (
           <DecisionCard token={token} preview={preview.data} error={preview.isError ? preview.error : null} onDone={closeInvitation} />
+        ) : proposed.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {proposed.map((store) => (
+              <ProposalCard key={store.id} store={store} />
+            ))}
+          </div>
+        ) : assigned.length > 0 ? (
+          <Panel title="Votre accompagnement" description="Ce que votre Lanabaga principal fait, et ce qu'il ne fait pas.">
+            <p className="text-body text-foreground">
+              Votre Lanabaga principal vous conseille pour vendre sur SUGU. Il n&apos;a aucun accès à votre compte, à vos commandes ni à vos paiements, et vous pouvez mettre fin à son accompagnement à tout moment.
+            </p>
+          </Panel>
         ) : introduced.length > 0 ? (
           <Panel title="Prochaine étape" description="Ce qui vient après la mise en relation.">
             <p className="text-body text-foreground">
-              SUGU proposera l&apos;accompagnement actif de votre boutique par un Lanabaga dans une prochaine étape du programme, avec votre accord. D&apos;ici là, rien ne change pour votre boutique ni pour vos paiements.
+              SUGU peut vous proposer un Lanabaga principal pour votre boutique. La proposition s&apos;affichera ici, et rien ne sera actif sans votre accord. D&apos;ici là, rien ne change pour votre boutique ni pour vos paiements.
             </p>
           </Panel>
         ) : (
@@ -99,6 +125,14 @@ export function SellerLanayaScreen() {
           </Panel>
         )}
       </div>
+
+      {token && proposed.length > 0 && (
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          {proposed.map((store) => (
+            <ProposalCard key={store.id} store={store} />
+          ))}
+        </div>
+      )}
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Panel title="Ce que cela change" description="Ce que le programme fait, et ce qu'il ne fait pas.">
@@ -124,6 +158,117 @@ export function SellerLanayaScreen() {
         . Votre propre boutique se déclare alors dans les liens à déclarer.
       </p>
     </LanayaPage>
+  );
+}
+
+/** The main Lanabaga of one shop, accepted by the seller, and the way out of it. */
+function MainLanabaga({ store, several }: { store: SellerStore; several: boolean }) {
+  const { end } = useAssignmentAnswer();
+  const [ending, setEnding] = useState(false);
+  const assignment = store.assignment!;
+
+  async function confirmEnd() {
+    try {
+      await end.mutateAsync({ id: assignment.id });
+      toast.success("L'accompagnement de votre boutique est terminé.");
+    } catch (failure) {
+      toast.error(describeLanayaFailure(failure).message);
+      throw failure;
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {several && <p className="text-label text-foreground-muted">{store.name}</p>}
+      {assignment.lanabaga && <LanabagaCard card={assignment.lanabaga} />}
+      <p className="text-meta text-foreground-muted">Lanabaga principal de {store.name} depuis le {formatDate(assignment.accepted_at)}.</p>
+      <Button size="compact" variant="quiet" icon={UserMinus} className="self-start" onClick={() => setEnding(true)}>
+        Mettre fin à l&apos;accompagnement
+      </Button>
+      <ConfirmDialog
+        open={ending}
+        onOpenChange={setEnding}
+        title="Mettre fin à l'accompagnement ?"
+        description={`${assignment.lanabaga?.name ?? "Ce Lanabaga"} ne sera plus le Lanabaga principal de ${store.name}. Vous pourrez accepter plus tard une autre proposition de SUGU.`}
+        confirmLabel="Mettre fin"
+        confirmIcon={UserMinus}
+        tone="danger"
+        onConfirm={confirmEnd}
+      />
+    </div>
+  );
+}
+
+/** SUGU proposes a main Lanabaga for one shop (DEC-30): nothing is active before the seller ticks and accepts. */
+function ProposalCard({ store }: { store: SellerStore }) {
+  const { accept, decline } = useAssignmentAnswer();
+  const [consent, setConsent] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [declining, setDeclining] = useState(false);
+  const proposal = store.proposal!;
+  const name = proposal.lanabaga?.name ?? "Ce Lanabaga";
+  const current = store.assignment?.lanabaga?.name ?? null;
+
+  async function confirm() {
+    setProblem(null);
+    if (!consent) {
+      setProblem("Cochez la case pour confirmer votre accord.");
+      return;
+    }
+    try {
+      await accept.mutateAsync(proposal.id);
+      toast.success("Votre Lanabaga principal est enregistré.");
+    } catch (failure) {
+      setProblem(describeLanayaFailure(failure).message);
+    }
+  }
+
+  async function refuse() {
+    try {
+      await decline.mutateAsync(proposal.id);
+      toast.success("Proposition refusée.");
+    } catch (failure) {
+      toast.error(describeLanayaFailure(failure).message);
+      throw failure;
+    }
+  }
+
+  return (
+    <Panel title="Proposition d'accompagnement" description={`Pour ${store.name}, reçue le ${formatDate(proposal.proposed_at)}.`} icon={Handshake} tone="brand">
+      <div className="flex flex-col gap-4">
+        <p className="text-body text-foreground">
+          SUGU vous propose {name} comme Lanabaga principal de <span className="font-medium">{store.name}</span>.
+          {current ? ` ${name} remplacera ${current}.` : ""}
+        </p>
+        {proposal.lanabaga && <LanabagaCard card={proposal.lanabaga} />}
+        <div className="rounded-control border border-border p-3">
+          <Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} label={proposal.consent.text} description={`Version ${proposal.consent.version}`} />
+        </div>
+        {problem && (
+          <p role="alert" className="text-label font-normal text-danger-fg">
+            {problem}
+          </p>
+        )}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          {/* An invitation may be answered on the same page: each « Refuser » says what it refuses. */}
+          <Button className="sm:flex-1" icon={Undo2} onClick={() => setDeclining(true)} disabled={accept.isPending} aria-label={`Refuser la proposition pour ${store.name}`}>
+            Refuser
+          </Button>
+          <Button className="sm:flex-[2]" variant="primary" icon={UserCheck} loading={accept.isPending} onClick={confirm}>
+            Accepter ce Lanabaga
+          </Button>
+        </div>
+      </div>
+      <ConfirmDialog
+        open={declining}
+        onOpenChange={setDeclining}
+        title="Refuser cette proposition ?"
+        description={`${name} ne deviendra pas le Lanabaga principal de ${store.name}. SUGU pourra vous en proposer un autre.`}
+        confirmLabel="Refuser la proposition"
+        confirmIcon={Undo2}
+        onConfirm={refuse}
+      />
+    </Panel>
   );
 }
 
@@ -342,6 +487,15 @@ function History({ seller, preview }: { seller?: SellerLanaya; preview?: Invitat
       });
     }
   }
+  for (const store of seller?.stores ?? []) {
+    if (store.assignment) {
+      entries.push({ key: `assignment-${store.assignment.id}`, title: "Lanabaga principal accepté", body: `${store.assignment.lanabaga?.name ?? "Un Lanabaga"} accompagne ${store.name}.`, at: store.assignment.accepted_at });
+    }
+    if (store.proposal) {
+      entries.push({ key: `proposal-${store.proposal.id}`, title: "Proposition de SUGU reçue", body: `${store.proposal.lanabaga?.name ?? "Un Lanabaga"} est proposé pour ${store.name}.`, at: store.proposal.proposed_at });
+    }
+  }
+  entries.sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
   if (preview) {
     entries.unshift({ key: "preview", title: "Invitation reçue", body: `${preview.lanabaga.name ?? "Un Lanabaga"} vous invite à rejoindre le programme.`, at: null });
   }

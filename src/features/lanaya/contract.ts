@@ -133,6 +133,32 @@ export const invitationSchema = z.object({
 });
 export type LanayaInvitation = z.infer<typeof invitationSchema>;
 
+/** A store entrusted to a Lanabaga (DEC-29, DEC-30): proposed by SUGU, active once the seller agrees. */
+export const assignmentSchema = z.object({
+  id: z.string(),
+  status: state,
+  scope: z.string().optional().default("store"),
+  store: z.object({ id: z.string(), name: z.string(), slug: text, city: text, active: z.boolean() }).nullable().catch(null),
+  lanabaga: z.lazy(() => publicCardSchema).nullable().catch(null),
+  proposed_at: text,
+  accepted_at: text,
+  declined_at: text,
+  cancelled_at: text,
+  ended_at: text,
+});
+export type LanayaAssignment = z.infer<typeof assignmentSchema>;
+
+/** The part of one store in an order, followed by a Lanabaga (DEC-31): no amount, no buyer. */
+export const attributionSchema = z.object({
+  id: z.string(),
+  status: state,
+  order: z.object({ id: z.string(), number: z.string(), status: state, placed_at: text }).nullable().catch(null),
+  store: z.object({ id: z.string(), name: z.string(), city: text }).nullable().catch(null),
+  attributed_at: text,
+  ended_at: text,
+});
+export type LanayaAttribution = z.infer<typeof attributionSchema>;
+
 const overviewSchema = z.object({
   profile: profileSchema,
   capacity: capacitySchema,
@@ -142,6 +168,7 @@ const overviewSchema = z.object({
   recent_leads: z.array(leadSchema),
   level: state,
   commissions: z.object({ available: z.boolean() }),
+  assigned: z.array(assignmentSchema).optional().default([]),
 });
 export type LanayaOverview = z.infer<typeof overviewSchema>;
 
@@ -181,14 +208,17 @@ const previewSchema = z.object({
 });
 export type InvitationPreview = z.infer<typeof previewSchema>;
 
-const sellerLanayaSchema = z.object({
+export const sellerLanayaSchema = z.object({
   stores: z.array(
     z.object({
       id: z.string(),
       name: z.string(),
       city: text,
       introduced_by: publicCardSchema.extend({ accepted_at: text }).nullable(),
-      assignment: z.null().catch(null),
+      // The main Lanabaga of the store, once the seller agreed (DEC-30).
+      assignment: assignmentSchema.nullable().catch(null),
+      // A proposal of SUGU awaiting the seller's answer, with the consent text it asks for.
+      proposal: assignmentSchema.extend({ consent: z.object({ key: z.string(), version: z.string(), text: z.string() }) }).nullable().optional().default(null).catch(null),
     }),
   ),
 });
@@ -234,6 +264,20 @@ export async function fetchInvitationPreview(token: string): Promise<InvitationP
 
 export async function fetchSellerLanaya(): Promise<SellerLanaya> {
   return sellerLanayaSchema.parse(data(await apiRequest("sellers/lanaya")));
+}
+
+const assignmentsPageSchema = z.object({ items: z.array(assignmentSchema), past: z.array(assignmentSchema).default([]) });
+export type LanayaAssignmentsPage = z.infer<typeof assignmentsPageSchema>;
+
+export async function fetchAssignments(): Promise<LanayaAssignmentsPage> {
+  return assignmentsPageSchema.parse(data(await apiRequest("lanaya/me/assignments")));
+}
+
+const ordersPageSchema = z.object({ items: z.array(attributionSchema), meta: pageMeta });
+export type LanayaOrdersPage = z.infer<typeof ordersPageSchema>;
+
+export async function fetchFollowedOrders(page = 1): Promise<LanayaOrdersPage> {
+  return ordersPageSchema.parse(data(await apiRequest("lanaya/me/orders", { params: page > 1 ? { page } : undefined })));
 }
 
 /** A document of one's own file, through the relay (never the API host). */
@@ -328,6 +372,19 @@ export async function revokeInvitation(id: string): Promise<void> {
 
 export async function acceptInvitation(token: string, storeId: string): Promise<void> {
   await apiRequest(`lanaya/invitations/${encodeURIComponent(token)}/accept`, { method: "POST", body: { store_id: storeId, consent: true } });
+}
+
+/** The seller accepts the proposal for their store: the box they ticked is sent as `consent`. */
+export async function acceptAssignment(id: string): Promise<void> {
+  await apiRequest(`sellers/lanaya/assignments/${encodeURIComponent(id)}/accept`, { method: "POST", body: { consent: true } });
+}
+
+export async function declineAssignment(id: string): Promise<void> {
+  await apiRequest(`sellers/lanaya/assignments/${encodeURIComponent(id)}/decline`, { method: "POST" });
+}
+
+export async function endAssignment(id: string, reason?: string | null): Promise<void> {
+  await apiRequest(`sellers/lanaya/assignments/${encodeURIComponent(id)}/end`, { method: "POST", body: { reason: reason || null } });
 }
 
 export async function declineInvitation(token: string): Promise<void> {

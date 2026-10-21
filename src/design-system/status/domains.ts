@@ -522,6 +522,28 @@ export const lanayaInvitationStatus = defineStatusRegistry({
   },
 });
 
+/** `App\Domain\Lanaya\Enums\AssignmentStatus` (DEC-30). */
+export const lanayaAssignmentStatus = defineStatusRegistry({
+  domain: "lanayaAssignment",
+  statuses: {
+    proposed: { label: "En attente de l'accord du vendeur", tone: "warning", icon: Hourglass },
+    active: { label: "Active", tone: "success", icon: CheckCircle2 },
+    declined: { label: "Refusée par le vendeur", tone: "neutral", icon: XCircle },
+    cancelled: { label: "Proposition retirée", tone: "neutral", icon: CircleSlash },
+    ended: { label: "Terminée", tone: "neutral", icon: Archive },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\AttributionStatus` (DEC-31). */
+export const lanayaAttributionStatus = defineStatusRegistry({
+  domain: "lanayaAttribution",
+  statuses: {
+    active: { label: "En cours", tone: "success", icon: CheckCircle2 },
+    removed: { label: "Retirée", tone: "neutral", icon: CircleSlash },
+    replaced: { label: "Réattribuée", tone: "info", icon: Archive },
+  },
+});
+
 export const statusRegistries = {
   order: orderStatus,
   payment: paymentStatus,
@@ -553,6 +575,8 @@ export const statusRegistries = {
   lanayaAgreement: lanayaAgreementStatus,
   lanayaLead: lanayaLeadStatus,
   lanayaInvitation: lanayaInvitationStatus,
+  lanayaAssignment: lanayaAssignmentStatus,
+  lanayaAttribution: lanayaAttributionStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistries;

@@ -4,10 +4,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { once } from "@/features/agency/single-flight";
 import { queryKeys } from "@/lib/query";
 import {
+  acceptAssignment,
   acceptInvitation,
   createInvitation,
   createLead,
+  declineAssignment,
   declineInvitation,
+  endAssignment,
+  fetchAssignments,
+  fetchFollowedOrders,
   fetchInvitationPreview,
   fetchInvitations,
   fetchLeads,
@@ -38,6 +43,8 @@ export const lanayaKeys = {
   sellers: () => [...root, "sellers"] as const,
   preview: (token: string) => [...root, "preview", token] as const,
   seller: () => [...root, "seller"] as const,
+  assignments: () => [...root, "assignments"] as const,
+  orders: (page: number) => [...root, "orders", page] as const,
 };
 
 /** After a change of state, the session profile (lanaya block) is read again too. */
@@ -74,6 +81,23 @@ export function useInvitationPreview(token: string | null) {
 
 /** The shape of a token the server could have issued (64 hex characters today). */
 export const isInvitationToken = (value: string | null | undefined): value is string => typeof value === "string" && /^[A-Za-z0-9]{16,128}$/.test(value);
+
+export function useLanayaAssignments() {
+  return useQuery({ queryKey: lanayaKeys.assignments(), queryFn: fetchAssignments });
+}
+
+export function useFollowedOrders(page = 1) {
+  return useQuery({ queryKey: lanayaKeys.orders(page), queryFn: () => fetchFollowedOrders(page), placeholderData: (previous) => previous });
+}
+
+/** The seller's answers to SUGU's proposal, and the end of an assignment. */
+export function useAssignmentAnswer() {
+  const refresh = useRefresh();
+  const accept = useMutation({ mutationFn: (id: string) => once(["lanaya assignment accept", id], () => acceptAssignment(id)), onSettled: refresh });
+  const decline = useMutation({ mutationFn: (id: string) => once(["lanaya assignment decline", id], () => declineAssignment(id)), onSettled: refresh });
+  const end = useMutation({ mutationFn: ({ id, reason }: { id: string; reason?: string | null }) => once(["lanaya assignment end", id], () => endAssignment(id, reason)), onSettled: refresh });
+  return { accept, decline, end };
+}
 
 export function useSellerLanaya() {
   return useQuery({ queryKey: lanayaKeys.seller(), queryFn: fetchSellerLanaya });
