@@ -20,13 +20,15 @@ import {
 } from "../navigation";
 
 const src = join(__dirname, "..", "..", "..");
-const ROLES: UserRole[] = ["vendor", "agency", "courier"];
-const PREFIX: Record<UserRole, string> = { vendor: "/vendor/", agency: "/agency/", courier: "/driver/" };
+const ROLES: UserRole[] = ["vendor", "agency", "courier", "lanabaga"];
+const PREFIX: Record<UserRole, string> = { vendor: "/vendor/", agency: "/agency/", courier: "/driver/", lanabaga: "/lanabaga/" };
+/** An admitted Lanabaga who can act: their home is the dashboard. */
+const ADMITTED = { profile_id: "p1", public_code: "LNB-7K2Q9M", application_status: "approved", account_status: "active", can_work: true };
 
 /** Does an App Router page exist for this pathname (route groups ignored)? */
 function pageExists(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
-  const groups = ["(vendor)", "(agency)", "(driver)", "(marketing)", "(auth)", "(public)", ""];
+  const groups = ["(vendor)", "(agency)", "(driver)", "(lanabaga)", "(marketing)", "(auth)", "(public)", ""];
   return groups.some((group) => existsSync(join(src, "app", group, ...segments, "page.tsx")));
 }
 
@@ -63,7 +65,7 @@ describe("navigation config", () => {
     const workspace = WORKSPACES[role];
     const internal = flattenItems(workspace.groups).filter((item) => !item.external);
     expect(internal.filter((item) => !item.href.startsWith(PREFIX[role]))).toEqual([]);
-    expect(workspace.home).toBe(homePathFor({ role, courier_status: null }));
+    expect(workspace.home).toBe(homePathFor({ role, courier_status: null, lanaya: role === "lanabaga" ? ADMITTED : null }));
     expect(pageExists(workspace.home)).toBe(true);
   });
 

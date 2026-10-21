@@ -15,7 +15,7 @@ export const userSchema = z.object({
   id: z.union([z.string(), z.number()]),
   name: z.string(),
   email: z.string().email(),
-  role: z.enum(["vendor", "agency", "courier"]),
+  role: z.enum(["vendor", "agency", "courier", "lanabaga"]),
   avatar_url: z.string().nullable(),
   email_verified_at: z.string().nullable(),
   created_at: z.string(),
@@ -27,6 +27,19 @@ export const userSchema = z.object({
   courier_status: z.number().nullable().optional().default(null),
   // Whether the courier can take missions, as the server enforces it.
   courier_operational: z.boolean().nullable().optional().default(null),
+  // Spaces of the account (a seller who is also a Lanabaga has two).
+  spaces: z.array(z.enum(["vendor", "agency", "courier", "lanabaga"])).optional(),
+  lanaya: z
+    .object({
+      profile_id: z.string(),
+      public_code: z.string(),
+      application_status: z.string(),
+      account_status: z.string(),
+      can_work: z.boolean(),
+    })
+    .nullable()
+    .optional()
+    .default(null),
 });
 
 export const loginResponseSchema = z.object({

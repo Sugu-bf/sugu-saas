@@ -29,7 +29,9 @@ const PUBLIC_PREFIXES = ["/api/", "/_next/", "/favicon", "/signup/"];
 const PUBLIC_FILE = /\.[^/]+$/;
 // First-access link sent by email: /reset-password/{token}. Exactly one
 // segment after the prefix — the token is validated by the API, not here.
-const PUBLIC_PATTERNS = [/^\/reset-password\/[^/]+\/?$/];
+// An invitation link of SUGU Lanaya (/invitation/{token}): the invited seller
+// may not have an account yet. The page asks to sign in before answering.
+const PUBLIC_PATTERNS = [/^\/reset-password\/[^/]+\/?$/, /^\/invitation\/[A-Za-z0-9]{1,128}\/?$/];
 
 export function isPublicPath(pathname: string): boolean {
   return (

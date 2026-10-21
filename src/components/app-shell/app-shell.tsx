@@ -13,6 +13,7 @@ import {
   isImmersiveRoute,
   mobileMenuGroups,
   mobileTabs,
+  otherSpaces,
   shellContextFor,
   userMenuItems,
   visibleGroups,
@@ -56,6 +57,7 @@ export function AppShell({ role, children }: AppShellProps) {
   const activeId = findActiveItem(groups, pathname)?.id ?? null;
   const tabs = mobileTabs(groups);
   const name = workspaceName(workspace, user);
+  const switches = otherSpaces(user, role);
   const immersive = isImmersiveRoute(workspace, pathname);
   // A menu opened on another page is closed: navigating dismisses it.
   const menu = openMenu && openMenu.pathname === pathname ? openMenu : null;
@@ -106,6 +108,7 @@ export function AppShell({ role, children }: AppShellProps) {
           onOpenDrawer={(opener) => openMenuFrom("left", opener)}
           drawerOpen={menu?.side === "left"}
           userMenuItems={userMenuItems(groups)}
+          spaceSwitches={switches}
           onLogout={signOut}
           loggingOut={logout.isPending}
         />
@@ -140,6 +143,7 @@ export function AppShell({ role, children }: AppShellProps) {
         name={name}
         spaceLabel={workspace.spaceLabel}
         action={workspace.action}
+        switches={switches}
         onLogout={signOut}
         loggingOut={logout.isPending}
       />

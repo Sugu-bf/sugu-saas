@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { ArrowLeftRight, LogOut } from "lucide-react";
 import { Button, Sheet, SheetContent } from "@/design-system";
 import { NavList } from "./nav-list";
-import type { NavGroup, WorkspaceNavigation } from "./navigation";
+import type { NavGroup, SpaceSwitch, WorkspaceNavigation } from "./navigation";
 
 export interface MobileMenuProps {
   /** `bottom`: phone menu (entries that are not tabs). `left`: tablet drawer (everything). */
@@ -19,6 +19,8 @@ export interface MobileMenuProps {
   spaceLabel: string;
   /** The main action of the space, under the navigation. */
   action?: WorkspaceNavigation["action"];
+  /** The other spaces of the session (a seller who is also a Lanabaga). */
+  switches?: SpaceSwitch[];
   onLogout: () => void;
   loggingOut: boolean;
 }
@@ -38,6 +40,7 @@ export function MobileMenu({
   name,
   spaceLabel,
   action,
+  switches = [],
   onLogout,
   loggingOut,
 }: MobileMenuProps) {
@@ -66,6 +69,13 @@ export function MobileMenu({
               </Link>
             </Button>
           )}
+          {switches.map((item) => (
+            <Button key={item.space} asChild variant="outline" icon={ArrowLeftRight} className="w-full">
+              <Link href={item.href} onClick={onClose}>
+                {item.label}
+              </Link>
+            </Button>
+          ))}
           <Button icon={LogOut} onClick={onLogout} loading={loggingOut} className="w-full">
             Se déconnecter
           </Button>

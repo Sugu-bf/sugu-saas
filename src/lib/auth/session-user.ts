@@ -1,4 +1,4 @@
-import type { User, UserRole } from "@/types";
+import type { LanayaFacts, User, UserRole } from "@/types";
 
 // ============================================================
 // Session user — the ONE place that turns a backend profile
@@ -41,7 +41,25 @@ export function mapRole(backendUser: BackendUser): UserRole | null {
   if (backendUser.courier) return "courier";
   if (backendUser.can_sell === true || backendUser.store) return "vendor";
 
+  // An ordinary SUGU account whose only pro space is Lanaya (a candidate or
+  // an admitted Lanabaga). The status lives in the profile, never in the
+  // user type (ADR-02).
+  if (extractLanaya(backendUser)) return "lanabaga";
+
   return null;
+}
+
+/** The `lanaya` block of the profile, when the account has a Lanabaga profile. */
+export function extractLanaya(backendUser: BackendUser): LanayaFacts | null {
+  const lanaya = asRecord(backendUser.lanaya);
+  if (!lanaya || typeof lanaya.profile_id !== "string") return null;
+  return {
+    profile_id: lanaya.profile_id,
+    public_code: String(lanaya.public_code ?? ""),
+    application_status: String(lanaya.application_status ?? "draft"),
+    account_status: String(lanaya.account_status ?? "none"),
+    can_work: lanaya.can_work === true,
+  };
 }
 
 /** Store name (vendor) or agency name (agency / courier's agency). */
@@ -78,6 +96,9 @@ export function toSessionUser(backendUser: BackendUser): User | null {
   const role = mapRole(backendUser);
   if (!role) return null;
 
+  const lanaya = extractLanaya(backendUser);
+  const spaces: UserRole[] = lanaya && role !== "lanabaga" ? [role, "lanabaga"] : [role];
+
   const store = asRecord(backendUser.store);
   const agency = asRecord(backendUser.agency) ?? asRecord(backendUser.delivery_partner);
   const courierAgency = asRecord(asRecord(backendUser.courier)?.delivery_partner);
@@ -96,13 +117,39 @@ export function toSessionUser(backendUser: BackendUser): User | null {
     store_id: store?.id ? String(store.id) : null,
     courier_status: role === "courier" ? extractCourierStatus(backendUser) : null,
     courier_operational: role === "courier" ? extractCourierOperational(backendUser) : null,
+    spaces,
+    lanaya,
   };
+}
+
+/** May this session open that space? Navigation comfort: the API decides. */
+export function canEnterSpace(user: Pick<User, "role" | "spaces">, space: UserRole): boolean {
+  return (user.spaces ?? [user.role]).includes(space);
+}
+
+/**
+ * Whether a Lanabaga can act, as the session knows it: admitted, active
+ * account, valid agreement (`lanaya.can_work`). The server refuses every
+ * protected route by itself; this only picks the screens to offer.
+ */
+export function lanabagaCanWork(user: Pick<User, "lanaya">): boolean {
+  return user.lanaya?.can_work === true;
+}
+
+/** Where a candidate (or a Lanabaga who cannot act yet) follows their file. */
+export const LANABAGA_FILE_PATH = "/lanabaga/application";
+
+/** What stays open to a Lanabaga who cannot act: their application, their documents, their account. */
+const LANABAGA_OPEN_PATHS = [LANABAGA_FILE_PATH, "/lanabaga/documents", "/lanabaga/compliance", "/lanabaga/settings"];
+
+export function isOpenToEveryLanabaga(pathname: string): boolean {
+  return LANABAGA_OPEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 /** CourierStatus::PENDING_KYC on the backend. */
 export const COURIER_STATUS_PENDING_KYC = 4;
 
-type CourierFacts = Pick<User, "role" | "courier_status"> & Partial<Pick<User, "courier_operational">>;
+type CourierFacts = Pick<User, "role" | "courier_status"> & Partial<Pick<User, "courier_operational" | "spaces" | "lanaya">>;
 
 /**
  * Whether a courier can take missions, as the session knows it: what
@@ -134,16 +181,30 @@ export function isOpenToEveryCourier(pathname: string): boolean {
 export function homePathFor(user: CourierFacts): string {
   if (user.role === "vendor") return "/vendor/dashboard";
   if (user.role === "agency") return "/agency/dashboard";
+  if (user.role === "lanabaga") return spaceHomePath(user, "lanabaga");
   // A courier who cannot work yet lands on their file, where it is completed:
   // the waiting screen of the sign-up left them nothing to do.
   return courierCanWork(user) ? "/driver/dashboard" : COURIER_FILE_PATH;
+}
+
+/** Home of one space of the session (the space switcher of the user menu). */
+export function spaceHomePath(user: CourierFacts, space: UserRole): string {
+  if (space === "lanabaga") return lanabagaCanWork({ lanaya: user.lanaya ?? null }) ? "/lanabaga/dashboard" : LANABAGA_FILE_PATH;
+  return homePathFor({ ...user, role: space });
 }
 
 const ROLE_PREFIX: Record<UserRole, string> = {
   vendor: "/vendor/",
   agency: "/agency/",
   courier: "/driver/",
+  lanabaga: "/lanabaga/",
 };
+
+/** The space a pathname belongs to, if any. */
+export function spaceOfPath(pathname: string): UserRole | null {
+  const entry = (Object.entries(ROLE_PREFIX) as [UserRole, string][]).find(([, prefix]) => pathname.startsWith(prefix));
+  return entry ? entry[0] : null;
+}
 
 /**
  * Destination after login: the `redirect` asked for by the proxy when it is a
@@ -154,9 +215,15 @@ const ROLE_PREFIX: Record<UserRole, string> = {
 export function postLoginPath(user: CourierFacts, redirect?: string | null): string {
   const home = homePathFor(user);
   if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//") || redirect.includes("\\")) return home;
-  if (!redirect.startsWith(ROLE_PREFIX[user.role])) return home;
+  const space = spaceOfPath(redirect);
+  const path = redirect.split(/[?#]/)[0];
+  // Any account may open its application, with or without a profile yet.
+  if (space === "lanabaga" && isOpenToEveryLanabaga(path)) return redirect;
+  if (!space || !canEnterSpace({ role: user.role, spaces: user.spaces }, space)) return home;
   // A mission page would bounce a courier who cannot work straight back.
-  if (user.role === "courier" && !courierCanWork(user) && !isOpenToEveryCourier(redirect.split(/[?#]/)[0])) return home;
+  if (space === "courier" && !courierCanWork(user) && !isOpenToEveryCourier(path)) return home;
+  // Same for a Lanabaga page to a candidate: their application instead.
+  if (space === "lanabaga" && !lanabagaCanWork({ lanaya: user.lanaya ?? null }) && !isOpenToEveryLanabaga(path)) return LANABAGA_FILE_PATH;
   return redirect;
 }
 

@@ -1,4 +1,4 @@
-import { loginResponseSchema, meResponseSchema, type LoginPayload, type LoginResultData, type VerifyOtpPayload } from "./schema";
+import { loginResponseSchema, meResponseSchema, userSchema, type LoginPayload, type LoginResultData, type VerifyOtpPayload } from "./schema";
 import type { User } from "@/types";
 
 // ============================================================
@@ -161,6 +161,35 @@ export async function registerCourier(payload: Record<string, unknown>): Promise
 
   const validated = loginResponseSchema.parse(json);
   return validated.data;
+}
+
+/**
+ * Lanabaga candidate sign-up via BFF route handler: an ordinary SUGU account
+ * and a draft application, signed in through the httpOnly cookie.
+ */
+export async function registerLanabaga(payload: Record<string, unknown>): Promise<{ user: User; email_verification_required: boolean }> {
+  const res = await fetch("/api/auth/lanabaga-register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const err = new Error(json.message ?? "Erreur d'inscription") as Error & {
+      status: number;
+      errors?: Record<string, string[]>;
+      code?: string;
+    };
+    err.status = res.status;
+    err.errors = json.errors;
+    err.code = json.code;
+    throw err;
+  }
+
+  const user = userSchema.parse(json.data?.user);
+  return { user, email_verification_required: json.data?.email_verification_required === true };
 }
 
 /**

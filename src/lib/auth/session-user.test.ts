@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { homePathFor, mapRole, postLoginPath, sessionMaxAge, toSessionUser, courierCanWork, isOpenToEveryCourier } from "./session-user";
+import { canEnterSpace, homePathFor, lanabagaCanWork, mapRole, postLoginPath, sessionMaxAge, spaceHomePath, spaceOfPath, toSessionUser, courierCanWork, isOpenToEveryCourier } from "./session-user";
 
 describe("mapRole", () => {
   it("maps the backend user types of the pro portal", () => {
@@ -138,5 +138,50 @@ describe("sessionMaxAge", () => {
     expect(sessionMaxAge("2027-01-01T00:00:00Z", now)).toBe(sevenDays);
     expect(sessionMaxAge(undefined, now)).toBe(sevenDays);
     expect(sessionMaxAge("not-a-date", now)).toBe(sevenDays);
+  });
+});
+
+describe("SUGU Lanaya — one session, several spaces (ADR-03)", () => {
+  const lanaya = { profile_id: "01HX", public_code: "LNB-AB12CD", application_status: "approved", account_status: "active", can_work: true };
+
+  it("a seller with a Lanabaga profile keeps the seller space first and gains the Lanabaga one", () => {
+    const user = toSessionUser({ id: 1, name: "Awa", email: "a@x.test", user_type: "seller", store: { id: "s1", name: "Chez Awa" }, lanaya })!;
+    expect(user.role).toBe("vendor");
+    expect(user.spaces).toEqual(["vendor", "lanabaga"]);
+    expect(canEnterSpace(user, "lanabaga")).toBe(true);
+    expect(lanabagaCanWork(user)).toBe(true);
+  });
+
+  it("an ordinary account with a profile is a Lanabaga, not a seller", () => {
+    const user = toSessionUser({ id: 2, name: "Issa", email: "i@x.test", user_type: "buyer", lanaya: { ...lanaya, application_status: "draft", account_status: "none", can_work: false } })!;
+    expect(user.role).toBe("lanabaga");
+    expect(user.spaces).toEqual(["lanabaga"]);
+    expect(canEnterSpace(user, "vendor")).toBe(false);
+    expect(homePathFor(user)).toBe("/lanabaga/application");
+  });
+
+  it("a buyer without a profile still has no portal session", () => {
+    expect(toSessionUser({ id: 3, name: "B", email: "b@x.test", user_type: "buyer", lanaya: null })).toBeNull();
+    // A profile block without its identifier is not a profile.
+    expect(toSessionUser({ id: 3, name: "B", email: "b@x.test", user_type: "buyer", lanaya: { public_code: "LNB-X" } })).toBeNull();
+  });
+
+  it("each space has its door; the URL decides which space is open", () => {
+    const user = toSessionUser({ id: 1, name: "Awa", email: "a@x.test", user_type: "seller", lanaya })!;
+    expect(spaceHomePath(user, "vendor")).toBe("/vendor/dashboard");
+    expect(spaceHomePath(user, "lanabaga")).toBe("/lanabaga/dashboard");
+    expect(spaceHomePath({ ...user, lanaya: { ...lanaya, can_work: false } }, "lanabaga")).toBe("/lanabaga/application");
+    expect(spaceOfPath("/lanabaga/prospects")).toBe("lanabaga");
+    expect(spaceOfPath("/vendor/lanaya")).toBe("vendor");
+  });
+
+  it("after login: a network page for a candidate becomes their application; any account may reach its application", () => {
+    const candidate = toSessionUser({ id: 2, name: "Issa", email: "i@x.test", user_type: "buyer", lanaya: { ...lanaya, can_work: false } })!;
+    expect(postLoginPath(candidate, "/lanabaga/prospects")).toBe("/lanabaga/application");
+    expect(postLoginPath(candidate, "/lanabaga/documents")).toBe("/lanabaga/documents");
+    const seller = toSessionUser({ id: 1, name: "Awa", email: "a@x.test", user_type: "seller" })!;
+    expect(postLoginPath(seller, "/lanabaga/application")).toBe("/lanabaga/application");
+    expect(postLoginPath(seller, "/lanabaga/dashboard")).toBe("/vendor/dashboard");
+    expect(postLoginPath(seller, "/vendor/lanaya?invitation=abc123abc123abc123")).toBe("/vendor/lanaya?invitation=abc123abc123abc123");
   });
 });

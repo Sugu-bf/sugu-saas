@@ -7,7 +7,10 @@ import {
   ClipboardList,
   Contact,
   FileText,
+  FileUser,
+  FolderOpen,
   HandCoins,
+  HeartHandshake,
   Headset,
   History,
   House,
@@ -17,15 +20,19 @@ import {
   PackageMinus,
   PackagePlus,
   Plus,
+  Send,
   Settings,
+  ShieldCheck,
   ShoppingBag,
+  Store,
+  UserPlus,
   UserRound,
   Users,
   Wallet,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
-import { COURIER_FILE_PATH, courierCanWork } from "@/lib/auth/session-user";
+import { COURIER_FILE_PATH, LANABAGA_FILE_PATH, courierCanWork, lanabagaCanWork, spaceHomePath } from "@/lib/auth/session-user";
 import type { User, UserRole } from "@/types";
 
 // ============================================================
@@ -122,6 +129,8 @@ const vendor: WorkspaceNavigation = {
         { id: "vendor-wallet", label: "Finances", href: "/vendor/wallet", icon: Wallet, mobilePriority: 3 },
         { id: "vendor-marketing", label: "Marketing", href: "/vendor/marketing", icon: BadgePercent },
         { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare, badge: "messages" },
+        // SUGU Lanaya (maquette 4) : qui a présenté chaque boutique, invitations reçues.
+        { id: "vendor-lanaya", label: "Lanaya", href: "/vendor/lanaya", icon: HeartHandshake },
       ],
     },
     {
@@ -222,7 +231,44 @@ const courier: WorkspaceNavigation = {
   ],
 };
 
-export const WORKSPACES: Record<UserRole, WorkspaceNavigation> = { vendor, agency, courier };
+// The entries are those of the Lanabaga mock-ups (5 to 8). A candidate who
+// is not admitted keeps their application, their documents and their
+// compliance; the server refuses them everything else. No "Paramètres" entry:
+// the account settings of a Lanabaga-only account do not exist yet (Lot 1).
+const lanabaga: WorkspaceNavigation = {
+  role: "lanabaga",
+  spaceLabel: "Lanabaga",
+  fallbackName: "Mon espace Lanabaga",
+  home: "/lanabaga/dashboard",
+  immersiveRoutes: [],
+  groups: [
+    {
+      id: "lanabaga-network",
+      items: [
+        { id: "lanabaga-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/lanabaga/dashboard", icon: LayoutDashboard, mobilePriority: 1, visible: lanabagaCanWork },
+        { id: "lanabaga-sellers", label: "Mes vendeurs", shortLabel: "Vendeurs", href: "/lanabaga/sellers", icon: Store, mobilePriority: 2, visible: lanabagaCanWork },
+        { id: "lanabaga-prospects", label: "Prospects", href: "/lanabaga/prospects", icon: UserPlus, mobilePriority: 3, visible: lanabagaCanWork },
+        { id: "lanabaga-invitations", label: "Invitations", href: "/lanabaga/invitations", icon: Send, visible: lanabagaCanWork },
+      ],
+    },
+    {
+      id: "lanabaga-file",
+      label: "Mon dossier",
+      items: [
+        { id: "lanabaga-application", label: "Candidature", shortLabel: "Dossier", href: LANABAGA_FILE_PATH, icon: FileUser, mobilePriority: 4 },
+        { id: "lanabaga-documents", label: "Documents", href: "/lanabaga/documents", icon: FolderOpen },
+        { id: "lanabaga-compliance", label: "Conformité", href: "/lanabaga/compliance", icon: ShieldCheck },
+      ],
+    },
+    {
+      id: "lanabaga-help",
+      label: "Aide",
+      items: [{ id: "lanabaga-help", label: "Aide et FAQ", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true }],
+    },
+  ],
+};
+
+export const WORKSPACES: Record<UserRole, WorkspaceNavigation> = { vendor, agency, courier, lanabaga };
 
 /** Navigation of a role, or `null` for anything that is not a pro role. */
 export function getWorkspace(role: unknown): WorkspaceNavigation | null {
@@ -306,8 +352,34 @@ export function shellContextFor(groups: NavGroup[], pathname: string): ShellCont
   };
 }
 
+export interface SpaceSwitch {
+  space: UserRole;
+  label: string;
+  href: string;
+}
+
+const SPACE_SWITCH_LABEL: Record<UserRole, string> = {
+  vendor: "Passer à l'espace vendeur",
+  agency: "Passer à l'espace agence",
+  courier: "Passer à l'espace coursier",
+  lanabaga: "Passer à l'espace Lanabaga",
+};
+
+/**
+ * The other spaces of the session (ADR-03), for the user menu and the phone
+ * menu. Switching is a plain navigation: the space is the one of the URL.
+ */
+export function otherSpaces(user: User | null | undefined, current: UserRole): SpaceSwitch[] {
+  if (!user) return [];
+  return (user.spaces ?? [user.role])
+    .filter((space) => space !== current)
+    .map((space) => ({ space, label: SPACE_SWITCH_LABEL[space], href: spaceHomePath(user, space) }));
+}
+
 /** Business name shown by the shell; never a made-up person. */
 export function workspaceName(workspace: WorkspaceNavigation, user?: Pick<User, "business_name" | "name"> | null): string {
+  // In the Lanabaga space the account acts as a person, not as its shop.
+  if (workspace.role === "lanabaga") return user?.name || workspace.fallbackName;
   if (user?.business_name) return user.business_name;
   if (workspace.role === "courier" && user?.name) return user.name;
   return workspace.fallbackName;

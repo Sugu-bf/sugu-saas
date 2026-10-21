@@ -5,7 +5,7 @@ import { ChevronRight, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { IconButton } from "@/design-system";
 import type { User } from "@/types";
 import { WorkspaceBrand } from "./brand";
-import type { NavItem, ShellContext } from "./navigation";
+import type { NavItem, ShellContext, SpaceSwitch } from "./navigation";
 import { SIDEBAR_ID } from "./sidebar";
 import { UserMenu } from "./user-menu";
 
@@ -23,6 +23,8 @@ export interface TopbarProps {
   onOpenDrawer: (opener: HTMLElement) => void;
   drawerOpen: boolean;
   userMenuItems: NavItem[];
+  /** The other spaces of the session, offered in the user menu. */
+  spaceSwitches?: SpaceSwitch[];
   onLogout: () => void;
   loggingOut: boolean;
 }
@@ -43,6 +45,7 @@ export function Topbar({
   onOpenDrawer,
   drawerOpen,
   userMenuItems,
+  spaceSwitches = [],
   onLogout,
   loggingOut,
 }: TopbarProps) {
@@ -91,7 +94,7 @@ export function Topbar({
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
-        {user && <UserMenu user={user} items={userMenuItems} onLogout={onLogout} loggingOut={loggingOut} />}
+        {user && <UserMenu user={user} items={userMenuItems} switches={spaceSwitches} onLogout={onLogout} loggingOut={loggingOut} />}
       </div>
     </header>
   );

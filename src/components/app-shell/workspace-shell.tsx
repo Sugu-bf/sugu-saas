@@ -27,7 +27,8 @@ export interface WorkspaceShellProps {
  * The guards are the same whichever frame is rendered.
  */
 export function WorkspaceShell({ role, children }: WorkspaceShellProps) {
-  const legacy = isLegacyShellEnabled();
+  // The legacy frame has no Lanabaga navigation: that space always uses the current one.
+  const legacy = isLegacyShellEnabled() && role !== "lanabaga";
   return (
     <AuthGuard fallback={legacy ? undefined : <ShellSkeleton />}>
       <RoleGuard allowedRoles={[role]}>

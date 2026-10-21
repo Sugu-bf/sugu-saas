@@ -194,6 +194,8 @@ describe("AppShell — phone tab bar and menus", () => {
       "Statistiques",
       "Marketing",
       "Messages",
+      // SUGU Lanaya (Lot 1): the seller's side of the programme.
+      "Lanaya",
       "Vue d'ensemble",
       "Mon stock",
       "Réceptions",
@@ -408,5 +410,72 @@ describe("AppShell — the main action of a space", () => {
     signIn("courier", "/driver/dashboard");
     render(<AppShell role="courier">x</AppShell>);
     expect(sidebar().queryByRole("link", { name: /Nouvelle/ })).not.toBeInTheDocument();
+  });
+});
+
+// ── SUGU Lanaya (Lot 1): a second space on the same session ─────────────
+const LANAYA_ADMITTED = { profile_id: "p1", public_code: "LNB-AB12CD", application_status: "approved", account_status: "active", can_work: true };
+const LANAYA_CANDIDATE = { ...LANAYA_ADMITTED, application_status: "submitted", account_status: "none", can_work: false };
+
+describe("SUGU Lanaya — spaces, candidate and admitted Lanabaga", () => {
+  it("a seller who is also a Lanabaga is offered the other space, at its right door", async () => {
+    for (const [lanaya, href] of [
+      [LANAYA_ADMITTED, "/lanabaga/dashboard"],
+      [LANAYA_CANDIDATE, "/lanabaga/application"],
+    ] as const) {
+      signIn("vendor", "/vendor/dashboard", { spaces: ["vendor", "lanabaga"], lanaya });
+      const { unmount } = render(<AppShell role="vendor">x</AppShell>);
+      await userEvent.click(tabBar().getByRole("button", { name: "Menu" }));
+      expect(within(screen.getByRole("dialog")).getByRole("link", { name: "Passer à l'espace Lanabaga" })).toHaveAttribute("href", href);
+      unmount();
+    }
+  });
+
+  it("a seller without a profile is offered no Lanabaga space", async () => {
+    signIn("vendor", "/vendor/dashboard");
+    render(<AppShell role="vendor">x</AppShell>);
+    await userEvent.click(tabBar().getByRole("button", { name: "Menu" }));
+    expect(within(screen.getByRole("dialog")).queryByRole("link", { name: /Passer à l'espace/ })).toBeNull();
+  });
+
+  it("a candidate sees their file only; an admitted Lanabaga sees the network", () => {
+    signIn("lanabaga", "/lanabaga/application", { lanaya: LANAYA_CANDIDATE });
+    const { unmount } = render(<AppShell role="lanabaga">x</AppShell>);
+    expect(sidebar().getByRole("link", { name: "Candidature" })).toHaveAttribute("aria-current", "page");
+    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations"]) expect(sidebar().queryByRole("link", { name })).toBeNull();
+    unmount();
+
+    signIn("lanabaga", "/lanabaga/dashboard", { lanaya: LANAYA_ADMITTED });
+    render(<AppShell role="lanabaga">x</AppShell>);
+    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations", "Candidature", "Documents", "Conformité"]) {
+      expect(sidebar().getByRole("link", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("a candidate asking for a network page is sent to their application", async () => {
+    signIn("lanabaga", "/lanabaga/prospects", { lanaya: LANAYA_CANDIDATE });
+    render(<WorkspaceShell role="lanabaga">secret</WorkspaceShell>);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/lanabaga/application"));
+    expect(screen.queryByText("secret")).toBeNull();
+  });
+
+  it("an existing seller without a profile may open their application, and nothing else of the space", async () => {
+    signIn("vendor", "/lanabaga/application");
+    const { unmount } = render(<WorkspaceShell role="lanabaga">candidature</WorkspaceShell>);
+    expect(screen.getByText("candidature")).toBeInTheDocument();
+    expect(nav.replace).not.toHaveBeenCalled();
+    unmount();
+
+    signIn("vendor", "/lanabaga/dashboard");
+    render(<WorkspaceShell role="lanabaga">secret</WorkspaceShell>);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/vendor/dashboard"));
+    expect(screen.queryByText("secret")).toBeNull();
+  });
+
+  it("an admitted Lanabaga opens the network pages", () => {
+    signIn("lanabaga", "/lanabaga/invitations", { lanaya: LANAYA_ADMITTED });
+    render(<WorkspaceShell role="lanabaga">réseau</WorkspaceShell>);
+    expect(screen.getByText("réseau")).toBeInTheDocument();
+    expect(nav.replace).not.toHaveBeenCalled();
   });
 });

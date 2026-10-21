@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, LogOut } from "lucide-react";
 import { Avatar, Button, DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/design-system";
 import type { User } from "@/types";
-import type { NavItem } from "./navigation";
+import type { NavItem, SpaceSwitch } from "./navigation";
 
 export interface UserMenuProps {
   user: User;
   /** Destinations flagged `inUserMenu` in the navigation config. */
   items: NavItem[];
+  /** The other spaces of the session: "Passer à l'espace …". */
+  switches?: SpaceSwitch[];
   onLogout: () => void;
   loggingOut: boolean;
 }
 
 /** Account menu of the topbar. Every entry leads somewhere real. */
-export function UserMenu({ user, items, onLogout, loggingOut }: UserMenuProps) {
+export function UserMenu({ user, items, switches = [], onLogout, loggingOut }: UserMenuProps) {
   const displayName = user.name || user.email;
   return (
     <DropdownMenu
@@ -35,6 +37,15 @@ export function UserMenu({ user, items, onLogout, loggingOut }: UserMenuProps) {
         )}
       </div>
       <DropdownMenuSeparator />
+      {switches.map((item) => (
+        <DropdownMenuItem key={item.space} asChild>
+          <Link href={item.href}>
+            <ArrowLeftRight className="size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        </DropdownMenuItem>
+      ))}
+      {switches.length > 0 && <DropdownMenuSeparator />}
       {items.map((item) => (
         <DropdownMenuItem key={item.id} asChild>
           <Link href={item.href}>

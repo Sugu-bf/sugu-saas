@@ -2,8 +2,22 @@
 // SUGU SaaS — Core Type Definitions
 // ============================================================
 
-/** The three roles supported by the SaaS platform */
-export type UserRole = "vendor" | "agency" | "courier";
+/**
+ * The spaces of the pro portal. A session has one primary space (`role`)
+ * and may hold others (`spaces`): a seller can also be a Lanabaga, with one
+ * account (SUGU Lanaya, ADR-03).
+ */
+export type UserRole = "vendor" | "agency" | "courier" | "lanabaga";
+
+/** What the session knows of the Lanabaga profile (`lanaya` block of the profile). */
+export interface LanayaFacts {
+  profile_id: string;
+  public_code: string;
+  application_status: string;
+  account_status: string;
+  /** Admitted, active, valid agreement: the server rule, read at sign-in. */
+  can_work: boolean;
+}
 
 /** Authenticated user shape (returned by /me) */
 export interface User {
@@ -24,6 +38,10 @@ export interface User {
   courier_status?: number | null;
   /** Whether the courier can take missions (server rule); null when unknown. */
   courier_operational?: boolean | null;
+  /** Every space this account may open, primary first. Absent: only `role`. */
+  spaces?: UserRole[];
+  /** Lanabaga profile, when the account has one. */
+  lanaya?: LanayaFacts | null;
 }
 
 /** Auth session carried client‑side */
