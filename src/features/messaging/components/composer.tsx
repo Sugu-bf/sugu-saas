@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
-import { FileText, ImageIcon, Paperclip, SendHorizontal, X } from "lucide-react";
+import { FileText, ImageIcon, Paperclip, SendHorizontal, ShieldCheck, X } from "lucide-react";
 import { IconButton, cn } from "@/design-system";
 import { MESSAGE_LIMITS, fileRefusal, type FileLimits } from "../contract";
 import { formatFileSize } from "../format";
@@ -33,6 +33,8 @@ export interface ComposerProps {
   /** A send is in progress and a second one must wait (support replies). */
   busy?: boolean;
   autoFocus?: boolean;
+  /** A short notice above the field (what the server masks in this conversation). */
+  notice?: string | null;
 }
 
 const acceptOf = (extensions: readonly string[]) => extensions.map((extension) => `.${extension}`).join(",");
@@ -52,6 +54,7 @@ export function Composer({
   extra,
   busy = false,
   autoFocus = false,
+  notice = null,
 }: ComposerProps) {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -128,6 +131,12 @@ export function Composer({
 
   return (
     <div className="border-t border-border bg-surface px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-4" data-composer>
+      {notice && (
+        <p className="mb-2 flex items-start gap-1.5 text-meta text-foreground-muted" data-composer-notice>
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <span>{notice}</span>
+        </p>
+      )}
       {files.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-2" aria-label="Fichiers à envoyer">
           {files.map((file, index) => (

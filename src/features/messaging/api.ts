@@ -20,7 +20,8 @@ import {
 export type MessagingScope =
   | { profile: "vendor"; storeId: string | null }
   | { profile: "courier"; userId: string | null }
-  | { profile: "agency"; agencyId: string | null };
+  | { profile: "agency"; agencyId: string | null }
+  | { profile: "lanabaga"; userId: string | null };
 
 const ID = /^[0-9A-Za-z-]{1,64}$/;
 
@@ -33,6 +34,7 @@ function segment(id: string): string {
 export function basePath(scope: MessagingScope): string | null {
   if (scope.profile === "vendor") return "seller/conversations";
   if (scope.profile === "courier") return "courier/conversations";
+  if (scope.profile === "lanabaga") return "lanaya/me/conversations";
   return scope.agencyId ? `agency/${segment(scope.agencyId)}/conversations` : null;
 }
 
@@ -40,14 +42,21 @@ export function basePath(scope: MessagingScope): string | null {
 export function channelOf(scope: MessagingScope): string | null {
   if (scope.profile === "vendor") return scope.storeId ? `messaging.store.${scope.storeId}` : null;
   if (scope.profile === "courier") return scope.userId ? `messaging.courier.${scope.userId}` : null;
+  if (scope.profile === "lanabaga") return scope.userId ? `messaging.lanabaga.${scope.userId}` : null;
   return scope.agencyId ? `messaging.agency.${scope.agencyId}` : null;
 }
 
-export const routeOf = (profile: Profile): string => ({ vendor: "/vendor/messages", courier: "/driver/messages", agency: "/agency/messages" })[profile];
+export const routeOf = (profile: Profile): string => ({ vendor: "/vendor/messages", courier: "/driver/messages", agency: "/agency/messages", lanabaga: "/lanabaga/messages" })[profile];
 
 /** A key that changes with the reader: two accounts never share a cache entry. */
 export const scopeKey = (scope: MessagingScope): string =>
-  scope.profile === "vendor" ? `vendor:${scope.storeId ?? ""}` : scope.profile === "courier" ? `courier:${scope.userId ?? ""}` : `agency:${scope.agencyId ?? ""}`;
+  scope.profile === "vendor"
+    ? `vendor:${scope.storeId ?? ""}`
+    : scope.profile === "courier"
+      ? `courier:${scope.userId ?? ""}`
+      : scope.profile === "lanabaga"
+        ? `lanabaga:${scope.userId ?? ""}`
+        : `agency:${scope.agencyId ?? ""}`;
 
 function base(scope: MessagingScope): string {
   const path = basePath(scope);
@@ -158,7 +167,7 @@ export async function fetchShareableProducts(conversationId: string, search: str
  */
 export function attachmentHref(path: string): string | null {
   const clean = path.replace(/^\/+/, "");
-  const known = /^(seller\/conversations|courier\/conversations|agency\/[0-9A-Za-z]+\/conversations|sellers\/support\/tickets)\/[0-9A-Za-z/_-]+\/attachments\/\d+$/;
+  const known = /^(seller\/conversations|courier\/conversations|agency\/[0-9A-Za-z]+\/conversations|sellers\/support\/tickets|lanaya\/me\/conversations|lanaya\/me\/tickets)\/[0-9A-Za-z/_-]+\/attachments\/\d+$/;
   return known.test(clean) ? apiUrl(clean) : null;
 }
 
@@ -171,4 +180,21 @@ export async function startCourierConversation(start: { shipmentId: string; targ
   const body: Record<string, string> = { shipment_id: start.shipmentId, target: start.target };
   if (start.storeId) body.store_id = start.storeId;
   return parseConversation(await api.post<unknown>("courier/conversations/start", body));
+}
+
+/**
+ * A Lanabaga opens (or finds again) the conversation with the seller of a
+ * store SUGU entrusted to them. The server checks that the assignment is
+ * active; otherwise the conversation does not exist.
+ */
+export async function startLanabagaConversation(storeId: string) {
+  return parseConversation(await api.post<unknown>("lanaya/me/conversations/start", { store_id: segment(storeId) }));
+}
+
+/** A seller writes to the Lanabaga of their store: the identifier of the conversation, read then under « Messages ». */
+export async function startSellerLanayaConversation(storeId: string): Promise<string> {
+  const raw = await api.post<{ data?: { id?: unknown } }>("sellers/lanaya/conversation", { store_id: segment(storeId) });
+  const id = raw?.data?.id;
+  if (typeof id !== "string" || !ID.test(id)) throw new Error("Conversation indisponible.");
+  return id;
 }

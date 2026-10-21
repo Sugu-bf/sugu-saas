@@ -44,6 +44,15 @@ export interface ThreadProps {
   subtitle?: string | null;
 }
 
+/** Said before the message leaves: what the server will not pass on in this conversation. */
+function contactNotice(conversation: Conversation): string | null {
+  const masked = conversation.contactPolicy.masked;
+  if (masked.length === 0) return null;
+  const words = [masked.includes("phone") && "numéros de téléphone", masked.includes("email") && "e-mails", masked.includes("link") && "liens externes"].filter(Boolean) as string[];
+  const list = words.length > 1 ? `${words.slice(0, -1).join(", ")} et ${words.at(-1)}` : words[0];
+  return `Pour votre sécurité, les ${list} ne sont pas transmis : l'échange reste sur SUGU.`;
+}
+
 const NEAR_BOTTOM_PX = 80;
 
 export function ThreadView({ scope, conversation, viewerId, links, phone, subtitle }: ThreadProps) {
@@ -199,6 +208,7 @@ export function ThreadView({ scope, conversation, viewerId, links, phone, subtit
             onTyping={thread.notifyTyping}
             imageExtensions={MESSAGE_LIMITS.imageExtensions}
             label={`Écrire à ${conversation.peer.name}`}
+            notice={contactNotice(conversation)}
           />
         ))}
 
@@ -457,6 +467,8 @@ function Bubble({ message, profile, peerAvatar, showSender, mark, productHref, r
         {time}
       </time>
       {mark && <DeliveryTick mark={mark} />}
+      {/* Its author learns that the server did not pass on a number, an e-mail or a link. */}
+      {own && message.masked.length > 0 && <span>· Coordonnées masquées</span>}
       {!own && message.flagged && <span>· Signalé</span>}
     </span>
   );

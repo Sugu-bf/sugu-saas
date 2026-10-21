@@ -73,12 +73,12 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
 }
 
-const PEER_WORD = { customer: "Client", store: "Boutique", courier: "Coursier", unknown: "Conversation" } as const;
+const PEER_WORD = { customer: "Client", store: "Boutique", courier: "Coursier", lanabaga: "Lanabaga", unknown: "Conversation" } as const;
 
 /** What a conversation is called in a list and at the top of a thread. */
 export function titleOf(conversation: Conversation, profile: Profile): string {
   const word = PEER_WORD[conversation.peer.type];
-  if (profile === "vendor") return conversation.peer.type === "courier" ? `Coursier · ${conversation.peer.name}` : conversation.peer.name;
+  if (profile === "vendor") return conversation.peer.type === "courier" || conversation.peer.type === "lanabaga" ? `${word} · ${conversation.peer.name}` : conversation.peer.name;
   // A courier and an agency think in deliveries: the order number names the exchange.
   if (conversation.orderNumber) return profile === "agency" ? conversation.orderNumber : `${word} – ${conversation.orderNumber}`;
   return conversation.peer.name;
@@ -102,7 +102,7 @@ export function previewOf(conversation: Conversation, profile: Profile): { text:
   if (!last) return { text: "Aucun message", kind: "none" };
   if (last.hidden) return { text: "Message masqué par la modération", kind: "none" };
 
-  const mine = profile === "vendor" ? last.senderType === "seller" : profile === "courier" ? last.senderType === "courier" : false;
+  const mine = profile === "vendor" ? last.senderType === "seller" : profile === "courier" ? last.senderType === "courier" : profile === "lanabaga" ? last.senderType === "lanabaga" : false;
   const prefix = mine ? "Vous : " : "";
 
   if (last.type === "product_card") return { text: `${prefix}${last.body || "Produit partagé"}`, kind: "product" };

@@ -12,7 +12,7 @@ import { z } from "zod";
 // Nothing is computed here but what is display: a title, a preview.
 // ============================================================
 
-export type Profile = "vendor" | "courier" | "agency";
+export type Profile = "vendor" | "courier" | "agency" | "lanabaga";
 
 const text = z
   .string()
@@ -62,11 +62,13 @@ const conversationSchema = z.object({
   unread_count: z.coerce.number().int().nonnegative().nullish(),
   peer_last_read_message_id: text,
   can: canSchema,
+  // What the server removes from a message here (phone, email, link).
+  contact_policy: z.object({ masked: z.array(z.string()).catch([]) }).nullish().catch(null),
   updated_at: text,
   created_at: text,
 });
 
-export type PeerType = "customer" | "store" | "courier" | "unknown";
+export type PeerType = "customer" | "store" | "courier" | "lanabaga" | "unknown";
 
 export interface Conversation {
   id: string;
@@ -98,10 +100,12 @@ export interface Conversation {
   /** The furthest message the other side has read. */
   peerLastReadId: string | null;
   can: { send: boolean; shareProduct: boolean; close: boolean; block: boolean; report: boolean };
+  /** What the server masks in a message of this conversation: `phone`, `email`, `link`. */
+  contactPolicy: { masked: string[] };
   updatedAt: string | null;
 }
 
-const PEER_TYPES: PeerType[] = ["customer", "store", "courier"];
+const PEER_TYPES: PeerType[] = ["customer", "store", "courier", "lanabaga"];
 
 function toConversation(raw: z.infer<typeof conversationSchema>): Conversation {
   const peerType = PEER_TYPES.find((type) => type === raw.peer?.type) ?? "unknown";
@@ -139,6 +143,7 @@ function toConversation(raw: z.infer<typeof conversationSchema>): Conversation {
     unread: raw.unread_count ?? 0,
     peerLastReadId: raw.peer_last_read_message_id,
     can: raw.can,
+    contactPolicy: { masked: raw.contact_policy?.masked ?? [] },
     updatedAt: raw.updated_at,
   };
 }
@@ -257,6 +262,8 @@ export interface Message {
   /** Written by the reader. For an agency, which is nobody's side: written by its courier. */
   own: boolean;
   flagged: boolean;
+  /** What the server masked in it (`phone`, `email`, `link`): told to its author. */
+  masked: string[];
   at: string;
 }
 
@@ -291,6 +298,7 @@ function toMessage(raw: z.infer<typeof messageSchema>): Message {
               : null,
           }
         : null,
+    masked: Array.isArray(meta.masked) ? meta.masked.filter((kind): kind is string => typeof kind === "string") : [],
     attachments: (raw.attachments ?? []).map((file) => ({
       id: file.id,
       kind: file.type,

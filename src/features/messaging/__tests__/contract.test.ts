@@ -145,7 +145,7 @@ describe("les messages", () => {
 });
 
 describe("le fil affiché", () => {
-  const message = (id: string, at: string, clientId: string | null = null): Message => ({ id, clientId, senderId: "u1", senderType: "seller", senderName: "Awa", body: id, type: "text", product: null, attachments: [], own: true, flagged: false, at });
+  const message = (id: string, at: string, clientId: string | null = null): Message => ({ id, clientId, senderId: "u1", senderType: "seller", senderName: "Awa", body: id, type: "text", product: null, attachments: [], own: true, flagged: false, masked: [], at });
   const pending = (clientId: string): PendingMessage => ({ clientId, kind: "message", body: "…", files: [], productId: null, productName: null, state: "sending", error: null, retryable: true, createdAt: "2026-10-12T10:00:00Z" });
 
   it("montre chaque message une fois, dans l'ordre du serveur, quelles que soient les pages", () => {
@@ -185,6 +185,10 @@ describe("les fichiers", () => {
     expect(attachmentHref("seller/conversations/c1/messages/m1/attachments/12")).toBe("/api/proxy/seller/conversations/c1/messages/m1/attachments/12");
     expect(attachmentHref("/agency/a1/conversations/c1/messages/m1/attachments/3")).toBe("/api/proxy/agency/a1/conversations/c1/messages/m1/attachments/3");
     expect(attachmentHref("sellers/support/tickets/t1/messages/m1/attachments/7")).toBe("/api/proxy/sellers/support/tickets/t1/messages/m1/attachments/7");
+    // The Lanabaga's conversations and requests to the programme (DEC-33, DEC-35).
+    expect(attachmentHref("lanaya/me/conversations/c1/messages/m1/attachments/4")).toBe("/api/proxy/lanaya/me/conversations/c1/messages/m1/attachments/4");
+    expect(attachmentHref("lanaya/me/tickets/t1/messages/m1/attachments/5")).toBe("/api/proxy/lanaya/me/tickets/t1/messages/m1/attachments/5");
+    expect(attachmentHref("lanaya/me/documents/d1/attachments/5")).toBeNull();
 
     for (const path of ["https://cdn.example/secret.png", "//evil.example/x/attachments/1", "sellers/kyc/documents/attachments/1", "seller/conversations/c1/../../web-auth/me", "seller/conversations/c1/messages/m1/attachments/1?x=1", "javascript:alert(1)"]) {
       expect(attachmentHref(path), path).toBeNull();
@@ -226,6 +230,8 @@ describe("le temps réel", () => {
     expect(channelOf({ profile: "agency", agencyId: "21" })).toBe("messaging.agency.21");
     expect(channelOf({ profile: "vendor", storeId: null })).toBeNull();
     expect(channelOf({ profile: "agency", agencyId: null })).toBeNull();
+    expect(channelOf({ profile: "lanabaga", userId: "104" })).toBe("messaging.lanabaga.104");
+    expect(channelOf({ profile: "lanabaga", userId: null })).toBeNull();
   });
 
   it("adresse chaque profil à ses propres routes, et sépare les comptes dans le cache", () => {
@@ -235,6 +241,8 @@ describe("le temps réel", () => {
     expect(basePath({ profile: "agency", agencyId: null })).toBeNull();
     expect(() => basePath({ profile: "agency", agencyId: "21/../../web-auth" })).toThrow();
     expect(scopeKey({ profile: "vendor", storeId: "11" })).not.toBe(scopeKey({ profile: "vendor", storeId: "12" }));
+    expect(basePath({ profile: "lanabaga", userId: "104" })).toBe("lanaya/me/conversations");
+    expect(scopeKey({ profile: "lanabaga", userId: "104" })).not.toBe(scopeKey({ profile: "courier", userId: "104" }));
   });
 
   it("dit la présence telle que le serveur la connaît, et rien quand il ne dit rien", () => {
@@ -270,5 +278,35 @@ describe("les dates", () => {
     expect(formatSince(at(12, 14), now)).toBe("Il y a 2 h");
     expect(formatSince(at(11, 14), now)).toBe("Hier");
     expect(formatSince(new Date(now.getTime() - 20_000).toISOString(), now)).toBe("À l'instant");
+  });
+});
+
+describe("un vendeur et son Lanabaga", () => {
+  it("nomme le Lanabaga pour le vendeur, et lit ce que le serveur masque", () => {
+    const withLanabaga = conversation({
+      type: "lanaya",
+      customer: null,
+      peer: { type: "lanabaga", id: "u4", name: "Aïssata Kaboré", avatar_url: null, is_online: false },
+      order_id: null,
+      order_number: null,
+      contact_policy: { masked: ["phone", "email", "link"] },
+      can: { send: true, share_product: false, close: false, block: false, report: true },
+    });
+    expect(withLanabaga.peer.type).toBe("lanabaga");
+    expect(titleOf(withLanabaga, "vendor")).toBe("Lanabaga · Aïssata Kaboré");
+    expect(withLanabaga.contactPolicy.masked).toEqual(["phone", "email", "link"]);
+    expect(withLanabaga.can).toMatchObject({ shareProduct: false, close: false, block: false });
+    // Absent: nothing masked, never an error.
+    expect(conversation().contactPolicy.masked).toEqual([]);
+  });
+
+  it("dit à l'auteur ce qui n'est pas parti", () => {
+    const masked = {
+      id: "m2", client_message_id: null, sender_id: "u4", sender_type: "lanabaga", sender_name: "Aïssata", body: "Appelez [numéro masqué]",
+      message_type: "text", metadata: { masked: ["phone", 3] }, attachments: [], is_own: true, is_flagged: false, created_at: "2026-10-21T10:00:00Z",
+    };
+    const page = parseMessagePage({ data: { messages: [masked], has_more: false } });
+    expect(page.messages[0].masked).toEqual(["phone"]);
+    expect(previewOf(conversation({ last_message: { ...sellerRow.last_message, sender_type: "lanabaga", body: "Bonjour" } }), "lanabaga").text).toBe("Vous : Bonjour");
   });
 });

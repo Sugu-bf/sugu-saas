@@ -60,6 +60,7 @@ const conversation = (overrides: Partial<Conversation> = {}): Conversation => ({
   unread: 1,
   peerLastReadId: null,
   can: { send: true, shareProduct: true, close: true, block: true, report: true },
+  contactPolicy: { masked: [] },
   updatedAt: null,
   ...overrides,
 });
@@ -76,6 +77,7 @@ const message = (id: string, own: boolean, body: string, clientId: string | null
   attachments: [],
   own,
   flagged: false,
+  masked: [],
   at: `2026-10-12T10:${id.slice(-2)}:00.000Z`,
 });
 
@@ -302,6 +304,22 @@ describe("ce que le serveur permet", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole("link", { name: "Appeler Aminata Traoré" })).toHaveAttribute("href", "tel:+22670123456");
+  });
+});
+
+describe("les coordonnées masquées", () => {
+  it("le dit avant l'envoi là où le serveur masque, et nulle part ailleurs", async () => {
+    show(VENDOR, conversation({ contactPolicy: { masked: ["phone", "email", "link"] } }));
+    await screen.findByText("Bonjour, est-ce disponible ?");
+    expect(screen.getByText("Pour votre sécurité, les numéros de téléphone, e-mails et liens externes ne sont pas transmis : l'échange reste sur SUGU.")).toBeInTheDocument();
+  });
+
+  it("ne dit rien dans une conversation de livraison, et marque le message masqué de son auteur", async () => {
+    server = [{ ...message("m02", true, "Mon numéro : [numéro masqué]"), masked: ["phone"] }];
+    show(VENDOR, conversation());
+    await screen.findByText("Mon numéro : [numéro masqué]");
+    expect(screen.queryByText(/ne sont pas transmis/)).toBeNull();
+    expect(screen.getByText("· Coordonnées masquées")).toBeInTheDocument();
   });
 });
 

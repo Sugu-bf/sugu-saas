@@ -12,13 +12,15 @@ import { useConversationCounts } from "../hooks";
  * messaging screens refresh it as messages arrive. An agency reads without
  * taking part: it has nothing unread, and no badge.
  */
-export function UnreadMessagesBadge() {
+export function UnreadMessagesBadge({ space = "own" }: { space?: "own" | "lanabaga" }) {
   const { data: user } = useSession();
   const scope = useMemo<MessagingScope | null>(() => {
+    // The Lanabaga space of an account, whatever its main role (a seller may be a Lanabaga too).
+    if (space === "lanabaga") return user?.lanaya?.can_work ? { profile: "lanabaga", userId: String(user.id) } : null;
     if (user?.role === "vendor") return { profile: "vendor", storeId: user.store_id };
     if (user?.role === "courier") return { profile: "courier", userId: String(user.id) };
     return null;
-  }, [user]);
+  }, [user, space]);
 
   // The hook is always called: a scope that reads nothing asks nothing.
   const counts = useConversationCounts(scope ?? { profile: "agency", agencyId: null }, { enabled: scope !== null });

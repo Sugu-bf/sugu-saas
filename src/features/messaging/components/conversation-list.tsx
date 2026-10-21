@@ -21,6 +21,7 @@ const HEADINGS: Record<Profile, { title: string; description: string }> = {
   vendor: { title: "Messages", description: "Discutez avec vos clients" },
   courier: { title: "Messages", description: "Vos échanges avec les clients et les boutiques de vos missions" },
   agency: { title: "Conversations", description: "Suivez les échanges liés à vos livraisons" },
+  lanabaga: { title: "Messages", description: "Échangez avec les vendeurs des boutiques que vous accompagnez" },
 };
 
 export interface CourierOption {
@@ -177,6 +178,7 @@ const EMPTY: Record<Profile, string> = {
   vendor: "Les messages de vos clients apparaîtront ici.",
   courier: "Écrivez à un client ou à une boutique depuis la fiche d'une mission : l'échange apparaîtra ici.",
   agency: "Les échanges de vos coursiers avec les clients et les boutiques de vos livraisons apparaîtront ici.",
+  lanabaga: "Écrivez au vendeur d'une boutique confiée depuis « Mes vendeurs » : l'échange apparaîtra ici.",
 };
 
 const PREVIEW_ICON = { image: ImageIcon, file: FileText, product: Package } as const;
