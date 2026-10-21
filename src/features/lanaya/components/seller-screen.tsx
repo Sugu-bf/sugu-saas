@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CircleCheck, HandHeart, Handshake, MapPin, MessageSquareQuote, ShieldCheck, Undo2, UserCheck, UserMinus, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { CircleCheck, HandHeart, Handshake, MapPin, MessageSquareQuote, MessagesSquare, ShieldCheck, Undo2, UserCheck, UserMinus, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { Alert, Avatar, Badge, Button, Card, Checkbox, ConfirmDialog, ErrorState, PageHeader, Radio, RadioGroup, Skeleton } from "@/design-system";
 import { LANABAGA_FILE_PATH } from "@/lib/auth/session-user";
+import { startSellerLanayaConversation } from "@/features/messaging/api";
 import { ApiError } from "@/lib/http/api-error";
 import { LanayaPage, Panel, formatDate, formatDateTime } from "./frame";
 import type { InvitationPreview, LanabagaPublicCard, SellerLanaya } from "../contract";
@@ -164,8 +165,23 @@ export function SellerLanayaScreen() {
 /** The main Lanabaga of one shop, accepted by the seller, and the way out of it. */
 function MainLanabaga({ store, several }: { store: SellerStore; several: boolean }) {
   const { end } = useAssignmentAnswer();
+  const router = useRouter();
   const [ending, setEnding] = useState(false);
+  const [opening, setOpening] = useState(false);
   const assignment = store.assignment!;
+  const name = assignment.lanabaga?.name ?? "votre Lanabaga";
+
+  // The conversation is found or opened by the server, then read in « Messages » like the others (DEC-33).
+  async function write() {
+    setOpening(true);
+    try {
+      const id = await startSellerLanayaConversation(store.id);
+      router.push(`/vendor/messages/${encodeURIComponent(id)}`);
+    } catch (failure) {
+      toast.error(describeLanayaFailure(failure).message);
+      setOpening(false);
+    }
+  }
 
   async function confirmEnd() {
     try {
@@ -182,9 +198,14 @@ function MainLanabaga({ store, several }: { store: SellerStore; several: boolean
       {several && <p className="text-label text-foreground-muted">{store.name}</p>}
       {assignment.lanabaga && <LanabagaCard card={assignment.lanabaga} />}
       <p className="text-meta text-foreground-muted">Lanabaga principal de {store.name} depuis le {formatDate(assignment.accepted_at)}.</p>
-      <Button size="compact" variant="quiet" icon={UserMinus} className="self-start" onClick={() => setEnding(true)}>
-        Mettre fin à l&apos;accompagnement
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="compact" variant="primary" icon={MessagesSquare} loading={opening} onClick={write}>
+          Écrire à {name}
+        </Button>
+        <Button size="compact" variant="quiet" icon={UserMinus} onClick={() => setEnding(true)}>
+          Mettre fin à l&apos;accompagnement
+        </Button>
+      </div>
       <ConfirmDialog
         open={ending}
         onOpenChange={setEnding}

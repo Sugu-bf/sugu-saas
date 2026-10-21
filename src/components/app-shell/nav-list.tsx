@@ -102,7 +102,7 @@ function NavLink({ item, active, collapsed, touch, onNavigate }: NavLinkProps) {
     >
       <Icon className={cn("size-4 shrink-0", active ? "text-primary" : "text-foreground-subtle")} aria-hidden="true" />
       {!collapsed && <span className="truncate">{item.label}</span>}
-      {!collapsed && item.badge === "messages" && <UnreadMessagesBadge />}
+      {!collapsed && item.badge && <UnreadMessagesBadge space={item.badge === "lanabaga-messages" ? "lanabaga" : "own"} />}
     </Link>
   );
   return collapsed ? (

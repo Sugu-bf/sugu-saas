@@ -32,6 +32,7 @@ import {
   Wallet,
   Warehouse,
   type LucideIcon,
+  LifeBuoy,
 } from "lucide-react";
 import { COURIER_FILE_PATH, LANABAGA_FILE_PATH, courierCanWork, lanabagaCanWork, spaceHomePath } from "@/lib/auth/session-user";
 import type { User, UserRole } from "@/types";
@@ -65,7 +66,8 @@ export interface NavItem {
   /** Leaves the workspace (public help pages): no active state. */
   external?: boolean;
   /** A count beside the label, asked to the server: unread conversations. */
-  badge?: "messages";
+  /** Unread conversations beside the entry: of the store or the courier, or of the Lanabaga. */
+  badge?: "messages" | "lanabaga-messages";
   /**
    * Hide the entry for this user. Must only read facts the session really
    * carries — never infer a permission from the role name.
@@ -241,13 +243,14 @@ const lanabaga: WorkspaceNavigation = {
   spaceLabel: "Lanabaga",
   fallbackName: "Mon espace Lanabaga",
   home: "/lanabaga/dashboard",
-  immersiveRoutes: [],
+  immersiveRoutes: [/^\/lanabaga\/messages\/[^/]+$/],
   groups: [
     {
       id: "lanabaga-network",
       items: [
         { id: "lanabaga-dashboard", label: "Tableau de bord", shortLabel: "Accueil", href: "/lanabaga/dashboard", icon: LayoutDashboard, mobilePriority: 1, visible: lanabagaCanWork },
         { id: "lanabaga-sellers", label: "Mes vendeurs", shortLabel: "Vendeurs", href: "/lanabaga/sellers", icon: Store, mobilePriority: 2, visible: lanabagaCanWork },
+        { id: "lanabaga-messages", label: "Messages", href: "/lanabaga/messages", icon: MessagesSquare, badge: "lanabaga-messages", visible: lanabagaCanWork },
         { id: "lanabaga-prospects", label: "Prospects", href: "/lanabaga/prospects", icon: UserPlus, mobilePriority: 3, visible: lanabagaCanWork },
         { id: "lanabaga-invitations", label: "Invitations", href: "/lanabaga/invitations", icon: Send, visible: lanabagaCanWork },
         { id: "lanabaga-orders", label: "Commandes suivies", href: "/lanabaga/orders", icon: PackageSearch, visible: lanabagaCanWork },
@@ -265,7 +268,11 @@ const lanabaga: WorkspaceNavigation = {
     {
       id: "lanabaga-help",
       label: "Aide",
-      items: [{ id: "lanabaga-help", label: "Aide et FAQ", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true }],
+      items: [
+        // A candidate needs SUGU too: their requests are open to every Lanabaga profile (DEC-35).
+        { id: "lanabaga-support", label: "Mes demandes", href: "/lanabaga/support", icon: LifeBuoy },
+        { id: "lanabaga-help", label: "Aide et FAQ", href: "/faq", icon: CircleHelp, inUserMenu: true, external: true },
+      ],
     },
   ],
 };

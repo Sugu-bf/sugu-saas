@@ -140,7 +140,7 @@ export function lanabagaCanWork(user: Pick<User, "lanaya">): boolean {
 export const LANABAGA_FILE_PATH = "/lanabaga/application";
 
 /** What stays open to a Lanabaga who cannot act: their application, their documents, their account. */
-const LANABAGA_OPEN_PATHS = [LANABAGA_FILE_PATH, "/lanabaga/documents", "/lanabaga/compliance", "/lanabaga/settings"];
+const LANABAGA_OPEN_PATHS = [LANABAGA_FILE_PATH, "/lanabaga/documents", "/lanabaga/compliance", "/lanabaga/settings", "/lanabaga/support"];
 
 export function isOpenToEveryLanabaga(pathname: string): boolean {
   return LANABAGA_OPEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

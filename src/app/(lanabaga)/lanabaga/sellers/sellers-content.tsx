@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Store, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ExternalLink, MessagesSquare, Store, UserPlus } from "lucide-react";
 import { Alert, Avatar, Badge, Button, DataTable, PageHeader, StatusBadge, type DataTableColumn } from "@/design-system";
 import { LanayaPage, formatDate, formatPhone } from "@/features/lanaya/components/frame";
 import { NetworkTabs } from "@/features/lanaya/components/network";
 import type { LanayaAssignment, LanayaInvitation } from "@/features/lanaya/contract";
 import { describeLanayaFailure } from "@/features/lanaya/errors";
 import { useLanayaAssignments, useLanayaSellers } from "@/features/lanaya/hooks";
+import { startLanabagaConversation } from "@/features/messaging/api";
 import { env } from "@/lib/env";
 import { loadStateOf } from "@/lib/query/load-state";
 
@@ -46,6 +50,31 @@ const COLUMNS: DataTableColumn<LanayaInvitation>[] = [
 ];
 
 /** Stores SUGU entrusted to the Lanabaga: active once their seller agreed (DEC-30). */
+/** Opens (or finds again) the conversation with the seller of an entrusted store, then goes to it. */
+function WriteToSeller({ assignment }: { assignment: LanayaAssignment }) {
+  const router = useRouter();
+  const [opening, setOpening] = useState(false);
+  const storeId = assignment.store?.id;
+  if (!storeId || assignment.status.value !== "active") return null;
+
+  async function write() {
+    setOpening(true);
+    try {
+      const conversation = await startLanabagaConversation(storeId!);
+      router.push(`/lanabaga/messages/${encodeURIComponent(conversation.id)}`);
+    } catch (failure) {
+      toast.error(describeLanayaFailure(failure).message);
+      setOpening(false);
+    }
+  }
+
+  return (
+    <Button size="compact" icon={MessagesSquare} loading={opening} onClick={write} aria-label={`Écrire au vendeur de ${assignment.store?.name ?? "la boutique"}`}>
+      Écrire
+    </Button>
+  );
+}
+
 const ASSIGNED_COLUMNS: DataTableColumn<LanayaAssignment>[] = [
   {
     id: "store",
@@ -91,6 +120,7 @@ export function SellersContent() {
         header={{ title: "Boutiques confiées", description: "Les boutiques dont SUGU vous a fait le Lanabaga principal, avec l'accord de leur vendeur." }}
         columns={ASSIGNED_COLUMNS}
         rows={assignments.data?.items ?? []}
+        rowActions={(assignment) => <WriteToSeller assignment={assignment} />}
         getRowId={(assignment) => assignment.id}
         state={loadStateOf(assignments)}
         error={{
