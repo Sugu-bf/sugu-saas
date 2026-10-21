@@ -190,3 +190,32 @@ Permissions et rôles : ajout des permissions `lanaya.*` et des rôles `lanaya-*
 | `lanaya_events`, `lanaya_consents`, conventions | conservés (preuve) ; anonymisation par procédure dédiée seulement |
 
 Aucune donnée personnelle réelle dans les fixtures, les seeders de recette ou les captures (les seeders QA utiliseront des identités fictives `qa.sugu.test` et des fichiers générés).
+
+---
+
+## 7. Écarts de l'implémentation (Lot 1, 21 octobre 2026)
+
+Comparaison du plan ci-dessus avec ce qui est écrit dans `sugu` : migrations `2026_10_21_100000` à `100600`, Enums `app/Domain/Lanaya/Enums/`, `PolicyService`, `ConsentService`, `config/lanaya.php`. Le plan n'est pas réécrit : ses sections disent ce qui était prévu, celle-ci ce qui est livré.
+
+**Communs aux neuf tables**
+
+- Les contraintes CHECK et les index uniques partiels ne sont créés que sous PostgreSQL (le moteur de toutes les bases SUGU). Sur un autre moteur, ils n'existeraient pas.
+- L'immuabilité (politique approuvée, consentement, événement) est assurée par les modèles Eloquent (`booted()`), pas par un trigger. Une écriture par le query builder la contourne ; `PolicyService::approve` n'écrit que si `approved_at` est encore vide.
+- Les tables reçoivent `created_at` et `updated_at` (`timestampsTz()`), sauf `lanaya_consents` et `lanaya_events` (horodatage de création seul).
+- Conformes au plan : l'ordre des migrations, aucune donnée insérée, aucune table native modifiée, des `down()` qui ne suppriment que leurs tables.
+
+| Table | Écart | Remarque |
+|---|---|---|
+| `lanaya_policy_versions` | clé `required_references` (0 à 5) ajoutée au document ; `application_retention_days` absente | La durée de conservation attend DEC-20. Au Lot 1, seule la famille `policy` est acceptée. Index `lanaya_policy_current_idx` ajouté pour trouver la version en vigueur. |
+| `lanabaga_profiles` | `experience_band` string(10) nullable ; `conflicts_declared` en `text` (pas jsonb) ; `identity_verified_at`, `identity_verified_by`, `suspended_by` ajoutées | La CHECK `lanabaga_active_means_approved` est plus stricte que prévu : un compte suspendu doit aussi être admis. `quality_gate_state` vaut `open` dès le brouillon. |
+| `lanabaga_documents` | `document_number_hash` absente (aucun numéro de pièce n'est saisi) ; `rejection_reason` en texte (pas un code) | Le disque `kyc_private` est imposé par le code (`KycStorage`), pas par une contrainte. |
+| `lanabaga_references` | `position` ajoutée (unique par profil) ; `email` absente ; `note` devient `verification_note` | **À confirmer** : une référence retirée par le candidat pendant son brouillon (ou son complément) est supprimée physiquement (`ApplicationService::replaceReferences`). Rien n'est supprimé après la soumission. |
+| `lanabaga_agreements` | états `recorded`, `valid`, `rejected`, `terminated` (au lieu de `pending_signature`, `valid`, `expired`, `terminated`) ; `termination_reason` en texte ; `verification_note` ajoutée | L'échéance n'est pas un état : `isInForce()` la calcule à partir de `valid_from` et `valid_until`. La règle « contrôlée par une autre personne » est devenue une CHECK (`lanabaga_agreements_four_eyes`). |
+| `lanaya_consents` | `contact_by_sugu` absente ; `channel` toujours `portal` | Les clés vivent dans `config/lanaya.php` (textes provisoires, version `pilote-2026-10-provisoire`). |
+| `lanaya_seller_leads` | `last_activity_at` ajoutée ; états `prospect`, `contacted`, `invited`, `no_response`, `registered`, `lost` | `verified`, `activated`, `first_sale` arriveront avec les affectations (Lot 2). `no_response` est posé quand une invitation expire. **Index `matched_store_id` oublié par la première migration, ajouté par `2026_10_21_100600`.** |
+| `lanaya_seller_invitations` | `company_name`, `contact_name`, `created_by` ajoutées ; `channel` toujours `link` ; index `(status, expires_at)` ajouté | Aucun SMS ni WhatsApp n'est envoyé par SUGU au Lot 1 : le Lanabaga transmet le lien. |
+| `lanaya_events` | conforme ; noms d'événements plus nombreux que les exemples du plan | `document.reviewed` (et non `document.rejected`), `risk_signal.known_seller`, `risk_signal.concurrent_origin`, `document.opened`, `agreement.opened`… |
+
+**États** : `prechecked` n'existe pas (`submitted` vaut pré-vérification passée) ; `AccountStatus`, `IdentityStatus`, `QualityGateState`, `DocumentReviewStatus`, `ReferenceStatus`, `InvitationStatus` sont conformes. `RejectionReason` et `SuspensionReason` forment le référentiel de motifs annoncé au §2.1.
+
+**Conservation (§6, DEC-20)** : aucun mécanisme de purge ni d'anonymisation n'est écrit, conformément au report ; rien n'est préparé non plus.

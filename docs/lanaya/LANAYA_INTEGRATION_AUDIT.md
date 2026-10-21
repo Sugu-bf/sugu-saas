@@ -300,6 +300,7 @@ Conformément à la mission, je n'ai simulé aucune convention signée et n'ai c
 | R-12 | **P2** | `activity_log` modifiable en base, sans purge planifiée ni règle de conservation. | §3.9 | Historique Lanaya append-only (ADR-08) ; DEC-20. |
 | R-13 | **P2** | Profil `/auth/me` en cache 60 s : un changement de statut Lanabaga se voit avec retard dans le portail. | §3.1 | Règle serveur lue sans cache à chaque requête protégée ; le portail n'est qu'un confort. |
 | R-14 | **P3** | `POST sellers/premium/upgrade` répond un succès sans effet. | §3.5 | Ne jamais l'appeler ; à retirer (hors Lanaya). |
+| R-15 | **P1** | *(constaté pendant la recette du Lot 1)* `AuthService::register` donne le rôle Spatie `buyer` (ou `seller`, `partner`) au nouveau compte, mais aucun seeder ne crée ce rôle : sur une base qui ne l'a pas, **toute inscription web échoue** (« There is no role named `buyer` »), Lanabaga comprise. | Recette locale, 21/10/2026 | Hors Lanaya : vérifier que le rôle existe sur le staging et en production, et le faire créer par `ProductionRolesPermissionsSeeder`. L'inscription Lanabaga répond désormais 503 « momentanément indisponible » dans ce cas, au lieu du message neutre « compte existant ». |
 
 ---
 

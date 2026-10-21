@@ -86,6 +86,10 @@ Statuts : **Ouverte** (personne ne l'a tranchée) · **Préparée** (constat tec
 | **DEC-26** | Cadrage d'un espace de sourcing pour acheteurs de gros (maquette 9) | Produit | 9 | hors P0/P1 ; voir ci-dessous | Ouverte |
 | **DEC-27** | Données d'un vendeur visibles par son Lanabaga ; canal de message direct vendeur–Lanabaga | Produit + Privacy | 2 | maquettes 3 et 5 : chiffre d'affaires, commandes, taux de retour, messagerie directe ; le cahier ne prévoit que les commandes dont le Lanabaga est responsable et une conversation par commande | Ouverte |
 | **DEC-28** | Qui admet, à combien de personnes | Risk + Ops | 1 | voir §1 | **Validée** 21/10/2026 (option a) |
+| **DEC-29** | L'admin peut-il rattacher et retirer des vendeurs d'un Lanabaga, et attribuer un Lanabaga à une commande ? | Produit | 2-3 | demande de l'utilisateur, 21/10/2026 | **Validée** 21/10/2026 : oui, les deux, **sans aucun effet financier** (ni commission, ni honoraire, ni versement) |
+| **DEC-30** | Quand une affectation proposée par l'admin devient-elle effective ? | Produit + Legal | 2 | cahier §8 : après consentement et contrôles | **Validée** 21/10/2026 : après l'accord du vendeur, donné depuis « Programme Lanaya » |
+| **DEC-31** | Sur quelles commandes l'admin ajoute, retire ou réattribue un Lanabaga | Produit + Ops | 3 | cahier §10, §29 : jamais de réattribution silencieuse d'une commande en cours | **Validée** 21/10/2026 : commandes non livrées seulement, motif obligatoire, historique gardé |
+| **DEC-32** | Qui fait ces opérations au back-office | Ops + Security | 2-3 | — | **Validée** 21/10/2026 : Ops (`lanaya-ops`), permission dédiée, motif obligatoire, double authentification ; jamais le rôle `admin` seul |
 
 ## 3. Décisions nouvelles, détail
 
