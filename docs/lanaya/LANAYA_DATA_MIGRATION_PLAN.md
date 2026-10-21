@@ -248,3 +248,11 @@ Deux capacités de plus, fermées par défaut : `seller_assignment` (proposer et
 
 `php artisan migrate`, puis `ProductionRolesPermissionsSeeder` pour donner `lanaya.assignments.manage` et `lanaya.orders.attribute` au rôle `lanaya-ops` (voir `../sugu/docs/PERMISSIONS_DEPLOY_RUNBOOK.md` : le seeder réécrit les permissions des rôles). Retour arrière : la migration se défait (`down`) tant qu'aucune donnée réelle n'a été saisie ; ensuite, terminer les affectations plutôt que supprimer les lignes (l'historique `lanaya_events` les référence).
 
+## 9. Messagerie et support du programme (DEC-33 à DEC-37, 21 octobre 2026)
+
+Migration `2026_10_21_100800_add_lanaya_to_messaging_and_tickets` : aucune table nouvelle, la messagerie et les tickets existants sont réutilisés (aucun second système).
+
+- `conversations.lanabaga_profile_id` (nullable, clé étrangère) : renseigné pour le seul type `lanaya`. Index unique partiel `conversations_lanaya_one_per_store` sur (boutique, Lanabaga) ; contrainte `CHECK` : une conversation `lanaya` a un Lanabaga et une boutique, jamais d'acheteur. Participants : le propriétaire de la boutique (`seller` / `store_owner`) et le Lanabaga (`lanabaga` / `lanabaga`, nouveaux types). Messages du Lanabaga : `sender_type = lanabaga`.
+- `support_tickets.topic` (nullable, 40) : le thème d'une demande de catégorie `lanaya` (`LanayaTicketTopic`) ; index (catégorie, statut).
+- Pièces jointes des messages et des tickets : disque privé `messaging_private` (DEC-37) ; reprise des anciennes par `php artisan messaging:relocate-attachments --apply`.
+- Déploiement : `migrate`, puis `ProductionRolesPermissionsSeeder` (permission `lanaya.support.handle` pour Ops et Compliance), puis la reprise des pièces jointes. Retour arrière : `down` tant qu'aucune conversation `lanaya` n'existe ; ensuite, garder les colonnes.

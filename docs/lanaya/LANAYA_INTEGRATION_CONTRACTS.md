@@ -181,3 +181,26 @@ Limite de débit dédiée `lanaya.assignments.answer`.
 
 `assignment.proposed`, `assignment.cancelled`, `assignment.accepted`, `assignment.declined`, `assignment.ended` (un transfert termine l'affectation précédente par cet événement, avec l'affectation qui la remplace), `order_attribution.added`, `order_attribution.reassigned`, `order_attribution.removed` — avec l'acteur, sa qualité (Ops, vendeur) et le motif. Aucune notification n'est envoyée au vendeur ni au Lanabaga à ce stade : la proposition apparaît dans « Programme Lanaya » à sa prochaine visite.
 
+## 9. Messagerie et support du programme (DEC-33 à DEC-37, livré le 21 octobre 2026)
+
+### 9.1 Lanabaga (admis, actif, convention valide ; affectation active pour chaque conversation)
+
+`lanaya/me/conversations` : `GET` (liste, curseur, `meta.counts`), `POST start { store_id }` (201 nouvelle, 200 retrouvée), `GET {id}`, `GET {id}/messages`, `POST {id}/messages` (texte, 5 pièces, `client_message_id`), `GET {id}/messages/{m}/attachments/{media}`, `POST {id}/read`, `POST {id}/typing`, `POST {id}/messages/{m}/report`, `GET {id}/presence`. Même forme que `seller/conversations` ; l'autre côté (`peer`) est la **boutique** (`type: store`), jamais le téléphone du vendeur ; `can.share_product`, `close`, `block` toujours faux ; `contact_policy.masked = [phone, email, link]`. Hors affectation active : 404 `SUGU-LANAYA-CONVERSATION-UNAVAILABLE`.
+
+Canal privé `messaging.lanabaga.{userId}` (le compte lui-même, avec un profil Lanabaga) : `.message.created`, `.message.read`, `.user.typing`.
+
+### 9.2 Vendeur
+
+`POST sellers/lanaya/conversation { store_id }` → `{ id }` ; la conversation se lit ensuite sous `seller/conversations` (type `lanaya`, `peer.type = lanabaga`). `POST seller/conversations/{id}/close` sur une conversation `lanaya` : 422 (mettre fin à l'accompagnement). Tickets : `category = lanaya` exige `topic` parmi `my_lanabaga`, `conduct`, `other`.
+
+### 9.3 Demandes au programme (tout profil Lanabaga)
+
+`lanaya/me/tickets` : `GET` (page Laravel + `counts`, `topics`), `POST { subject, description, topic }`, `GET {id}`, `GET {id}/messages` (jamais de note interne ; l'équipe signe « Équipe Lanaya »), `POST {id}/messages` (3 pièces, `client_message_id`), `POST {id}/close`, `GET {id}/messages/{m}/attachments/{media}`. Une demande d'un autre compte : 404 `SUGU-LANAYA-TICKET-UNAVAILABLE`. Thème `conduct` : priorité haute. Réponse de l'équipe : e-mail `LanayaTicketRepliedNotification` sans le contenu.
+
+### 9.4 Back-office
+
+File du support : les tickets `lanaya` n'apparaissent (liste, compteurs, filtre, fiche, pièces) qu'avec `lanaya.support.handle` ; ailleurs, 404. Écrire, changer, assigner : 2FA exigée ; assignation à l'équipe Lanaya seulement. Menu Lanaya › « Support » (`/admin/support/tickets?category=lanaya`).
+
+### 9.5 Contenu des messages (tous types)
+
+`config/messaging.php` : `phone`, `email`, `link` masqués en `general`, `pre_order`, `order_support`, `lanaya` ; rien en livraison ni au support. Le message porte `metadata.masked` ; chaque conversation dit sa `contact_policy`.

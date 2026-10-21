@@ -46,6 +46,7 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | `lanaya.policies.approve` (jamais la sienne) | — | — | ✓ | ✓ ¹ | — | ✓ |
 | `lanaya.assignments.manage` — confier une boutique à un Lanabaga (proposition au vendeur), retirer une proposition, mettre fin à une affectation, avec motif (DEC-29, DEC-32) | — | ✓ | — | — | — | ✓ |
 | `lanaya.orders.attribute` — ajouter, retirer ou réattribuer le Lanabaga de la part d'une boutique dans une commande non livrée, avec motif (DEC-31, DEC-32) | — | ✓ | — | — | — | ✓ |
+| `lanaya.support.handle` — lire et traiter les demandes au programme (tickets `lanaya`) : file, fiche, réponse sous 2FA, assignation à l'équipe seulement (DEC-35) | — | ✓ | ✓ | — | — | ✓ |
 | Attribuer un rôle `lanaya-*` | — | — | — | — | — | ✓ ² |
 
 ¹ Finance approuve les familles `commission` à partir du Lot 3 ; au Lot 1, seule la famille `policy` existe.
@@ -76,6 +77,9 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | Lire les commandes qu'Ops lui a attribuées : numéro, statut, date, boutique (DEC-31) | — | ✓ tant que l'attribution est active | — | — | jamais : une attribution retirée ou remplacée ne donne plus accès |
 | Lire le montant, l'acheteur, l'adresse, les messages, les chiffres de vente d'une commande | **jamais** | **jamais** (le serveur ne les envoie pas) | — | — | — |
 | Changer sa propre affectation ou une attribution | **jamais** | **jamais** | **jamais** | **jamais** | — |
+| Écrire au vendeur d'une boutique confiée, lire leur conversation (DEC-33) | — | ✓ tant que l'affectation est active | — | — | jamais : une affectation terminée rend la conversation introuvable |
+| Lire une conversation de la boutique avec un acheteur (DEC-34) | **jamais** | **jamais** | **jamais** | **jamais** | — |
+| Écrire au support du programme, lire ses propres demandes (DEC-35) | ✓ | ✓ | ✓ (contester) | — | jamais la demande d'un autre |
 | Encaisser, modifier un bénéficiaire de versement, créer un compte vendeur | **jamais** | **jamais** | **jamais** | **jamais** | — |
 
 ## 4. Espace vendeur (portail)
@@ -90,6 +94,8 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | Accepter la proposition (DEC-30) | propriétaire ; case du consentement `seller_assignment` cochée par lui (jamais pré-cochée) ; Lanabaga toujours admis, actif, convention valide, capacité disponible (vérifiée sous verrou) ; capacité `seller_assignment` ouverte dans le pays ; la boutique n'est pas au Lanabaga ; accepter un autre Lanabaga termine l'affectation précédente (transfert) |
 | Refuser la proposition | propriétaire, tant qu'elle attend sa réponse |
 | Mettre fin à l'accompagnement de sa boutique | propriétaire, à tout moment ; les commandes en cours gardent leur attribution jusqu'à ce qu'Ops la retire ou la réattribue |
+| Écrire à son Lanabaga principal (DEC-33) | propriétaire, tant que l'affectation est active ; la conversation reste lisible, fermée, après la fin ; pas de fermeture ni de blocage dans le fil |
+| Écrire au programme au sujet de son Lanabaga (ticket `lanaya`, thème « mon Lanabaga » ou « signaler un comportement ») | propriétaire ; lu par l'équipe Lanaya seulement |
 
 ## 5. Interdictions structurelles testées dès le Lot 1
 
