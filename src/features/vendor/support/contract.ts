@@ -36,6 +36,10 @@ export const TICKET_CATEGORIES = [
   { value: "other", label: "Autre" },
 ] as const;
 
+/** What a ticket is about: the topic of a request to the programme, or its category. */
+export const ticketKindLabel = (ticket: { category: string | null; topic: { label: string } | null }): string =>
+  ticket.topic ? (ticket.category === "lanaya" ? `Programme Lanaya – ${ticket.topic.label}` : ticket.topic.label) : ticket.category === "lanaya" ? "Programme Lanaya" : categoryLabel(ticket.category);
+
 const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(TICKET_CATEGORIES.map((category) => [category.value, category.label]));
 export const categoryLabel = (code: string | null): string => (code ? (CATEGORY_LABEL[code] ?? "Autre") : "Non renseignée");
 
@@ -70,6 +74,8 @@ const ticketSchema = z.object({
   status: z.string(),
   priority: text,
   category: text,
+  // The subject of a request to the Lanaya programme (DEC-35).
+  topic: z.object({ value: z.string(), label: z.string() }).nullish().catch(null),
   store: z.object({ id: z.string(), name: text }).nullish(),
   customer: z.object({ id: z.string(), name: text }).nullish(),
   is_requester: flag,
@@ -87,6 +93,8 @@ export interface Ticket {
   status: string;
   priority: string | null;
   category: string | null;
+  /** The subject of a request to the programme, as the server names it. */
+  topic: { value: string; label: string } | null;
   storeName: string | null;
   /** Who opened it, when it is not the seller (a buyer who wrote about the store). */
   openedBy: string | null;
@@ -105,6 +113,7 @@ function toTicket(raw: z.infer<typeof ticketSchema>): Ticket {
     status: raw.status,
     priority: raw.priority,
     category: raw.category,
+    topic: raw.topic ?? null,
     storeName: raw.store?.name ?? null,
     openedBy: raw.is_requester ? null : (raw.customer?.name ?? null),
     isRequester: raw.is_requester,
@@ -232,7 +241,7 @@ export interface NewTicket {
 }
 
 /** What the form refuses before asking the server, field by field. */
-export function validateNewTicket(values: NewTicket): Partial<Record<keyof NewTicket, string>> {
+export function validateNewTicket(values: NewTicket, kinds: readonly { value: string }[] = TICKET_CATEGORIES): Partial<Record<keyof NewTicket, string>> {
   const errors: Partial<Record<keyof NewTicket, string>> = {};
   const subject = values.subject.trim();
   const description = values.description.trim();
@@ -240,7 +249,7 @@ export function validateNewTicket(values: NewTicket): Partial<Record<keyof NewTi
   if (subject === "") errors.subject = "Indiquez le sujet de votre demande.";
   else if (subject.length > SUBJECT_MAX) errors.subject = `${SUBJECT_MAX} caractères au plus.`;
 
-  if (!TICKET_CATEGORIES.some((category) => category.value === values.category)) errors.category = "Choisissez une catégorie.";
+  if (!kinds.some((kind) => kind.value === values.category)) errors.category = kinds === TICKET_CATEGORIES ? "Choisissez une catégorie." : "Choisissez le thème de votre demande.";
 
   if (description === "") errors.description = "Décrivez votre demande.";
   else if (description.length > DESCRIPTION_MAX) errors.description = `${DESCRIPTION_MAX} caractères au plus.`;

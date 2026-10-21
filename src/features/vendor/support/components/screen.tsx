@@ -38,17 +38,17 @@ import {
   REPLY_FILE_LIMITS,
   REPLY_MAX,
   SUBJECT_MAX,
-  TICKET_CATEGORIES,
   TICKET_FILTERS,
-  categoryLabel,
   countOf,
   priorityLabel,
+  ticketKindLabel,
   validateNewTicket,
   type NewTicket,
   type Ticket,
   type TicketFilter,
   type TicketReply,
 } from "../contract";
+import { useSupportDesk } from "../desk";
 import { describeSupportFailure, useCloseTicket, useCreateTicket, useReplies, useSendReply, useTicket, useTickets } from "../hooks";
 
 // ============================================================
@@ -60,7 +60,6 @@ import { describeSupportFailure, useCloseTicket, useCreateTicket, useReplies, us
 // screen, with its own way back.
 // ============================================================
 
-const ROUTE = "/vendor/tickets";
 const CARD = "md:overflow-hidden md:rounded-panel md:border md:border-border";
 
 function useDebounced(value: string, delay = 300): string {
@@ -73,6 +72,7 @@ function useDebounced(value: string, delay = 300): string {
 }
 
 export function SupportScreen() {
+  const { route: ROUTE } = useSupportDesk();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -163,6 +163,7 @@ interface TicketListProps {
 }
 
 function TicketList({ className, activeId, filter, onFilter, typed, onTyped, search, page, onPage }: TicketListProps) {
+  const { route: ROUTE, empty } = useSupportDesk();
   const tickets = useTickets({ filter, search, page });
   const data = tickets.data;
   const narrowed = filter !== "all" || search.trim() !== "";
@@ -235,7 +236,7 @@ function TicketList({ className, activeId, filter, onFilter, typed, onTyped, sea
           narrowed ? (
             <EmptyState icon={Search} title="Aucun ticket ne correspond" description="Modifiez la recherche ou le statut." />
           ) : (
-            <EmptyState icon={Headset} title="Aucun ticket" description="Une question, un problème de paiement ou de livraison ? Écrivez à l'équipe SUGU." />
+            <EmptyState icon={Headset} title="Aucun ticket" description={empty} />
           )
         ) : (
           <>
@@ -264,6 +265,7 @@ function TicketList({ className, activeId, filter, onFilter, typed, onTyped, sea
 }
 
 function TicketRow({ ticket, active }: { ticket: Ticket; active: boolean }) {
+  const { route: ROUTE } = useSupportDesk();
   return (
     <Link
       href={`${ROUTE}?ticket=${encodeURIComponent(ticket.id)}`}
@@ -290,6 +292,7 @@ function TicketRow({ ticket, active }: { ticket: Ticket; active: boolean }) {
 // ── An open ticket ──────────────────────────────────────────
 
 function OpenTicket({ id }: { id: string }) {
+  const { route: ROUTE } = useSupportDesk();
   const ticket = useTicket(id);
 
   if (ticket.isLoading) {
@@ -336,7 +339,7 @@ function facts(ticket: Ticket): { label: string; value: ReactNode }[] {
   const priority = priorityLabel(ticket.priority);
   return [
     { label: "Statut", value: <StatusBadge domain="ticket" code={ticket.status} /> },
-    { label: "Catégorie", value: categoryLabel(ticket.category) },
+    { label: ticket.topic ? "Thème" : "Catégorie", value: ticketKindLabel(ticket) },
     ...(priority ? [{ label: "Priorité", value: priority }] : []),
     ...(ticket.order?.number ? [{ label: "Commande", value: <Link href={`/vendor/orders/${ticket.order.id}`} className="font-medium text-foreground underline underline-offset-2">{ticket.order.number}</Link> }] : []),
     ...(ticket.openedBy ? [{ label: "Ouvert par", value: ticket.openedBy }] : []),
@@ -362,6 +365,7 @@ function TicketFacts({ ticket }: { ticket: Ticket }) {
 }
 
 function TicketThread({ ticket }: { ticket: Ticket }) {
+  const { route: ROUTE, team } = useSupportDesk();
   const replies = useReplies(ticket.id);
   const send = useSendReply(ticket.id);
   const close = useCloseTicket(ticket.id);
@@ -425,7 +429,7 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
           <p className="text-meta text-foreground-subtle">Créé le {formatFullDate(ticket.createdAt)}</p>
           {/* Below 1400px the side panel is not there: what it says is said here, in one line. */}
           <p className="mt-1 text-meta text-foreground-muted min-[1400px]:hidden">
-            {[categoryLabel(ticket.category), priorityLabel(ticket.priority) ? `Priorité ${priorityLabel(ticket.priority)!.toLowerCase()}` : null, ticket.openedBy ? `Ouvert par ${ticket.openedBy}` : null].filter(Boolean).join(" · ")}
+            {[ticketKindLabel(ticket), priorityLabel(ticket.priority) ? `Priorité ${priorityLabel(ticket.priority)!.toLowerCase()}` : null, ticket.openedBy ? `Ouvert par ${ticket.openedBy}` : null].filter(Boolean).join(" · ")}
           </p>
         </div>
         {ticket.can.close && (
@@ -524,7 +528,7 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
         open={closing}
         onOpenChange={setClosing}
         title="Fermer ce ticket ?"
-        description="Un ticket fermé ne reçoit plus de réponse, ni de vous ni de l'équipe SUGU. Vous ne pourrez pas le rouvrir depuis le portail."
+        description={`Un ticket fermé ne reçoit plus de réponse, ni de vous ni de ${team}. Vous ne pourrez pas le rouvrir depuis le portail.`}
         confirmLabel="Fermer le ticket"
         tone="danger"
         onConfirm={async () => {
@@ -589,7 +593,8 @@ const EMPTY_TICKET: NewTicket = { subject: "", category: "", description: "" };
 
 function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (id: string) => void }) {
   const { data: user } = useSession();
-  const create = useCreateTicket(user?.store_id ?? null);
+  const desk = useSupportDesk();
+  const create = useCreateTicket(desk.needsStore ? (user?.store_id ?? null) : null);
   const [values, setValues] = useState<NewTicket>(EMPTY_TICKET);
   const [errors, setErrors] = useState<Partial<Record<keyof NewTicket, string>>>({});
   const [failure, setFailure] = useState<string | null>(null);
@@ -612,7 +617,7 @@ function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
     event.preventDefault();
     if (creating.current) return;
 
-    const found = validateNewTicket(values);
+    const found = validateNewTicket(values, desk.kinds);
     setErrors(found);
     setFailure(null);
     if (Object.keys(found).length > 0) return;
@@ -649,7 +654,7 @@ function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {failure &&
           (summary.length > 0 ? (
-            <FormErrorSummary title={failure} errors={Object.fromEntries(summary)} fields={{ subject: { label: "Sujet" }, category: { label: "Catégorie" }, description: { label: "Description" } }} />
+            <FormErrorSummary title={failure} errors={Object.fromEntries(summary)} fields={{ subject: { label: "Sujet" }, category: { label: desk.kindLabel }, description: { label: "Description" } }} />
           ) : (
             <Alert tone="danger" title={failure} />
           ))}
@@ -658,9 +663,14 @@ function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
           <Input ref={subject} value={values.subject} onChange={(event) => set("subject", event.target.value)} maxLength={SUBJECT_MAX} placeholder="Problème de paiement" autoComplete="off" />
         </FormField>
 
-        <FormField label="Catégorie" required error={errors.category}>
-          <Select value={values.category} onChange={(event) => set("category", event.target.value)} placeholder="Choisir une catégorie">
-            {TICKET_CATEGORIES.map((category) => (
+        {desk.formNotice && (
+          <Alert tone="info" title="Avant d'écrire">
+            {desk.formNotice}
+          </Alert>
+        )}
+        <FormField label={desk.kindLabel} required error={errors.category}>
+          <Select value={values.category} onChange={(event) => set("category", event.target.value)} placeholder={desk.id === "lanabaga" ? "Choisir un thème" : "Choisir une catégorie"}>
+            {desk.kinds.map((category) => (
               <option key={category.value} value={category.value}>
                 {category.label}
               </option>

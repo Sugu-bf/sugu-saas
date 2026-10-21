@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/http/api-error";
 import { ticketStatus } from "@/design-system";
-import { TICKET_FILTERS, TICKET_STATUSES, categoryLabel, countOf, parseCreatedTicket, parseReplyPage, parseTicket, parseTicketPage, priorityLabel, validateNewTicket } from "../contract";
+import { TICKET_FILTERS, TICKET_STATUSES, categoryLabel, countOf, parseCreatedTicket, parseReplyPage, parseTicket, parseTicketPage, priorityLabel, ticketKindLabel, validateNewTicket } from "../contract";
+import { LANABAGA_DESK, LANABAGA_TOPICS, SELLER_DESK, SupportDeskProvider, kindFields } from "../desk";
 
 // The tickets of a seller: what is read of an answer of Laravel
 // (SellerSupportTicketsTest in ../sugu asserts the same payloads), and how the
@@ -176,7 +177,7 @@ describe("l'écran", () => {
     fireEvent.submit(form);
 
     await waitFor(() => expect(api.createTicket).toHaveBeenCalledTimes(1));
-    expect(api.createTicket).toHaveBeenCalledWith({ subject: "Virement non reçu", category: "payment", description: "Mon retrait n'est pas arrivé." }, "11");
+    expect(api.createTicket).toHaveBeenCalledWith("sellers/support/tickets", { subject: "Virement non reçu", category: "payment", description: "Mon retrait n'est pas arrivé." }, { category: "payment" }, "11");
     // Still on its way: nothing is said, nothing is opened.
     expect(toast.success).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
@@ -239,5 +240,45 @@ describe("l'écran", () => {
     api.fetchTicket.mockRejectedValue(new ApiError({ message: "Accès non autorisé.", status: 403 }));
     show();
     expect(await screen.findByText("Ticket introuvable")).toBeInTheDocument();
+  });
+});
+
+describe("le guichet du programme Lanaya", () => {
+  it("demande un sujet au Lanabaga, et dit au vendeur ce qu'il écrit au programme", () => {
+    expect(kindFields(LANABAGA_DESK, "documents")).toEqual({ topic: "documents" });
+    expect(kindFields(SELLER_DESK, "lanaya:conduct")).toEqual({ category: "lanaya", topic: "conduct" });
+    expect(kindFields(SELLER_DESK, "payment")).toEqual({ category: "payment" });
+    expect(validateNewTicket({ subject: "Sujet", category: "", description: "Texte" }, LANABAGA_TOPICS)).toEqual({ category: "Choisissez le thème de votre demande." });
+    expect(validateNewTicket({ subject: "Sujet", category: "agreement", description: "Texte" }, LANABAGA_TOPICS)).toEqual({});
+    expect(ticketKindLabel({ category: "lanaya", topic: { label: "Convention" } })).toBe("Programme Lanaya – Convention");
+    expect(ticketKindLabel({ category: "lanaya", topic: null })).toBe("Programme Lanaya");
+    expect(parseTicket({ ticket: { ...row, category: "lanaya", topic: { value: "conduct", label: "Signaler un comportement" }, store: null, store_id: null } }).topic).toEqual({ value: "conduct", label: "Signaler un comportement" });
+  });
+
+  it("envoie la demande d'un Lanabaga à son guichet, sans boutique, avec son sujet", async () => {
+    vi.clearAllMocks();
+    navigation.params = new URLSearchParams("new=1");
+    api.fetchTickets.mockResolvedValue({ rows: [], page: 1, lastPage: 1, total: 0, counts: { all: 0, byStatus: {} } });
+    api.createTicket.mockResolvedValue({ id: "t7", number: "TKT-261021-0007", duplicate: false });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <SupportDeskProvider desk={LANABAGA_DESK}>
+          <SupportScreen />
+        </SupportDeskProvider>
+      </QueryClientProvider>,
+    );
+
+    const form = screen.getByRole("form", { name: "Nouveau ticket" });
+    expect(within(form).getByText(/N'envoyez jamais votre pièce d'identité ici/)).toBeInTheDocument();
+    fireEvent.change(within(form).getByRole("textbox", { name: /^Sujet/ }), { target: { value: "Ma convention" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: /^Thème/ }), { target: { value: "agreement" } });
+    fireEvent.change(within(form).getByRole("textbox", { name: /^Description/ }), { target: { value: "Quand expire-t-elle ?" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Créer le ticket" }));
+
+    await waitFor(() => expect(api.createTicket).toHaveBeenCalledTimes(1));
+    expect(api.createTicket).toHaveBeenCalledWith("lanaya/me/tickets", { subject: "Ma convention", category: "agreement", description: "Quand expire-t-elle ?" }, { topic: "agreement" }, null);
+    // The screen stays on its own address (the test's router answers one pathname for all).
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(expect.stringMatching(/\?ticket=t7$/), { scroll: false }));
   });
 });
