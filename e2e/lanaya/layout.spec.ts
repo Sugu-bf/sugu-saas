@@ -28,6 +28,12 @@ const SCREENS: { name: string; path: string; account?: Account; scenario?: Selle
   { name: "vendeur-decision", path: `/vendor/lanaya?invitation=${TOKEN}`, account: "seller" },
   { name: "vendeur-proposition", path: "/vendor/lanaya", account: "seller", scenario: "replacing" },
   { name: "vendeur-lanabaga-principal", path: "/vendor/lanaya", account: "seller", scenario: "active" },
+  { name: "lanabaga-messages", path: "/lanabaga/messages" },
+  { name: "lanabaga-conversation", path: "/lanabaga/messages/conv-awa" },
+  { name: "lanabaga-demandes", path: "/lanabaga/support" },
+  { name: "lanabaga-demande", path: "/lanabaga/support?ticket=tk-1" },
+  { name: "lanabaga-nouvelle-demande", path: "/lanabaga/support?new=1" },
+  { name: "candidat-demandes", path: "/lanabaga/support", account: "candidate" },
 ];
 
 for (const { name, path, account, scenario } of SCREENS.filter((screen) => !ONLY || ONLY.includes(screen.name))) {

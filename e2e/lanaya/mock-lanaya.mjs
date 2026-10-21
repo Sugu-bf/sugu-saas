@@ -114,6 +114,52 @@ function attributionOf(id, number, status, placedDaysAgo, now) {
   };
 }
 
+/** LanabagaMessagingController::format: the store is the other side, never the seller's phone. */
+function conversationOf(id, store, now) {
+  return {
+    id, type: "lanaya", status: "open",
+    store: { id: store.id, name: store.name }, customer: null,
+    peer: { type: "store", id: store.id, name: store.name, avatar_url: null, is_online: false },
+    order_id: null, order_number: null, shipment_id: null,
+    contact_policy: { masked: ["phone", "email", "link"] },
+    last_message: null, unread_count: 1, peer_last_read_message_id: null,
+    can: { send: true, share_product: false, close: false, block: false, report: true },
+    updated_at: iso(now - 60 * 60 * 1000), created_at: iso(now - DAY), participants: [],
+  };
+}
+
+function messageOf(id, senderId, senderType, senderName, body, at, own, extra = {}) {
+  return { id, client_message_id: null, sender_id: senderId, sender_type: senderType, sender_name: senderName, body, message_type: "text", metadata: null, attachments: [], is_flagged: false, is_own: own, created_at: iso(at), ...extra };
+}
+
+const TOPIC_LABELS = { application: "Ma candidature", documents: "Pièces et identité", agreement: "Convention", stores: "Boutiques confiées", orders: "Commandes suivies", account: "Compte et accès", conduct: "Signaler un comportement", other: "Autre question" };
+
+/** LanabagaTicketController::format. */
+function ticketOf(id, number, subject, status, topic, at) {
+  return {
+    id, ticket_number: number, subject, status, priority: topic === "conduct" ? "high" : "medium", category: "lanaya",
+    topic: { value: topic, label: TOPIC_LABELS[topic] }, store_id: null, store: null, customer_id: "u-lanabaga", is_requester: true,
+    can: { reply: status !== "closed", close: status !== "closed" }, last_message_at: iso(at), created_at: iso(at), resolved_at: null, closed_at: null,
+  };
+}
+
+function replyOf(id, senderType, senderName, body, at, own) {
+  return { id, client_message_id: null, sender_type: senderType, sender_name: senderName, is_own: own, body, attachments: [], created_at: iso(at) };
+}
+
+/** What ContactDetailsFilter does to a phone number, enough for the stand-in. */
+function masked(body) {
+  const out = String(body).replace(/(?:\+|00)?\d(?:[\s.\-]?\d){7,14}/g, "[numéro masqué]");
+  return { body: out, masked: out !== body ? ["phone"] : [] };
+}
+
+/** Reads one field of a multipart body: the stand-in does not parse forms. */
+const fieldOf = (raw, name) => {
+  const value = new RegExp(`name="${name}"\\r\\n\\r\\n([\\s\\S]*?)\\r\\n--`).exec(raw)?.[1];
+  // The body was read byte by byte (latin1): give the text back its UTF-8.
+  return value === undefined ? null : Buffer.from(value, "latin1").toString("utf8");
+};
+
 function seed(kind) {
   const now = Date.now();
   const set = { kind, now, received: [], documents: [], references: [], consents: {}, profile: kind === "seller" ? null : profileOf(kind, now), answered: false, assignment: null, proposal: null };
@@ -124,6 +170,20 @@ function seed(kind) {
     ];
     set.pastAssignments = [assignmentOf("asg-0", "ended", STORE_SAWADOGO, now, { proposedDaysAgo: 40, acceptedDaysAgo: 39, endedDaysAgo: 8 })];
     set.orders = [attributionOf("att-1", "SG-2026-004812", "processing", 1, now), attributionOf("att-2", "SG-2026-004790", "confirmed", 3, now)];
+    set.conversations = [conversationOf("conv-awa", STORE_AWA, now)];
+    set.messages = {
+      "conv-awa": [
+        messageOf("01JMSGAWA000000000000000001", "u-awa", "seller", "Awa Traoré", "Bonjour, comment rendre mes photos plus attirantes ?", now - 3 * 60 * 60 * 1000, false),
+        messageOf("01JMSGAWA000000000000000002", "u-lanabaga", "lanabaga", "Aïssata Kaboré", "Bonjour ! À la lumière du jour, sur un fond clair.", now - 2 * 60 * 60 * 1000, true),
+        messageOf("01JMSGAWA000000000000000003", "u-awa", "seller", "Awa Traoré", "Merci, je refais les trois premières fiches.", now - 60 * 60 * 1000, false),
+      ],
+    };
+  }
+  if (kind !== "seller") {
+    set.tickets = kind === "admitted" ? [ticketOf("tk-1", "TKT-261021-0012", "Date de fin de ma convention", "pending_customer", "agreement", now - DAY)] : [];
+    set.ticketMessages = kind === "admitted"
+      ? { "tk-1": [replyOf("r1", "lanabaga", "Aïssata Kaboré", "Jusqu'à quand ma convention est-elle valable ?", now - DAY, true), replyOf("r2", "admin", "Équipe Lanaya", "Elle est valable onze mois encore.", now - DAY / 2, false)] }
+      : {};
   }
   if (kind === "admitted") {
     set.leads = [
@@ -206,6 +266,11 @@ export default async function lanaya({ req, res, url, path, method, profile, tok
     const introduced = set.answered === "accepted" ? { ...CARD, accepted_at: iso(set.now) } : null;
     return ok({ stores: [{ id: String(profile.store?.id ?? "11"), name: profile.store?.name ?? "Boutique", city: "Ouagadougou", introduced_by: introduced, assignment: set.assignment, proposal: set.proposal }] });
   }
+  if (path === "/sellers/lanaya/conversation" && method === "POST") {
+    if (profile.user_type !== "seller") return refuse(403, "FORBIDDEN", "Réservé aux vendeurs.");
+    if (!set.assignment) return refuse(404, "SUGU-LANAYA-CONVERSATION-UNAVAILABLE", "Cette conversation n'est pas disponible : la boutique n'est pas accompagnée par ce Lanabaga.");
+    return ok({ id: "01JCONVLANAYA0000000000001" }, null, set.conversationOpened ? 200 : ((set.conversationOpened = true), 201));
+  }
   const answer = /^\/sellers\/lanaya\/assignments\/([^/]+)\/(accept|decline|end)$/.exec(path);
   if (answer && method === "POST") {
     if (profile.user_type !== "seller") return refuse(403, "FORBIDDEN", "Réservé aux vendeurs.");
@@ -274,6 +339,39 @@ export default async function lanaya({ req, res, url, path, method, profile, tok
     return ok(set.documents.at(-1), "Pièce reçue.", 201);
   }
 
+  // ── Requests to the programme (DEC-35): any Lanabaga profile ──
+  if (path === "/lanaya/me/tickets" && method === "GET") {
+    const counts = { all: set.tickets.length };
+    for (const ticket of set.tickets) counts[ticket.status] = (counts[ticket.status] ?? 0) + 1;
+    return (send(res, 200, { data: set.tickets, current_page: 1, last_page: 1, per_page: 15, total: set.tickets.length, counts, topics: Object.entries(TOPIC_LABELS).map(([value, label]) => ({ value, label })) }), true);
+  }
+  if (path === "/lanaya/me/tickets" && method === "POST") {
+    if (!TOPIC_LABELS[body.topic]) return refuse(422, "VALIDATION", "Choisissez le sujet de votre demande.", { errors: { topic: ["Choisissez le sujet de votre demande."] } });
+    const created = ticketOf(`tk-${set.tickets.length + 2}`, `TKT-261021-00${set.tickets.length + 20}`, body.subject, "open", body.topic, set.now);
+    set.tickets = [created, ...set.tickets];
+    set.ticketMessages[created.id] = [replyOf(`r-${created.id}`, "lanabaga", "Vous", body.description, set.now, true)];
+    return (send(res, 201, { message: "Votre demande est envoyée à l'équipe Lanaya.", ticket: created }), true);
+  }
+  const ticketPath = /^\/lanaya\/me\/tickets\/([^/]+)(\/messages|\/close)?$/.exec(path);
+  if (ticketPath) {
+    const ticket = set.tickets.find((item) => item.id === ticketPath[1]);
+    if (!ticket) return refuse(404, "SUGU-LANAYA-TICKET-UNAVAILABLE", "Cette demande n'existe pas ou ne vous appartient pas.");
+    if (!ticketPath[2] && method === "GET") return (send(res, 200, { ticket: { ...ticket, description: set.ticketMessages[ticket.id]?.[0]?.body ?? "" } }), true);
+    if (ticketPath[2] === "/messages" && method === "GET") return (send(res, 200, { messages: set.ticketMessages[ticket.id] ?? [], has_more: false }), true);
+    if (ticketPath[2] === "/messages" && method === "POST") {
+      const reply = replyOf(`r-${Date.now()}`, "lanabaga", "Vous", fieldOf(raw, "body") ?? "", Date.now(), true);
+      reply.client_message_id = fieldOf(raw, "client_message_id");
+      set.received.push({ path: `${method} ${path}`, body: { body: reply.body } });
+      set.ticketMessages[ticket.id] = [...(set.ticketMessages[ticket.id] ?? []), reply];
+      return (send(res, 200, { message: "Message envoyé.", data: reply }), true);
+    }
+    if (ticketPath[2] === "/close" && method === "POST") {
+      ticket.status = "closed";
+      ticket.can = { reply: false, close: false };
+      return (send(res, 200, { message: "Demande fermée." }), true);
+    }
+  }
+
   // ── The network: an admitted Lanabaga only (LanabagaGuard) ──
   if (!set.profile.can_work) return refuse(403, "SUGU-LANAYA-ACCOUNT-NOT-ACTIVE", "Votre candidature Lanabaga n'est pas encore admise.");
 
@@ -293,6 +391,46 @@ export default async function lanaya({ req, res, url, path, method, profile, tok
     });
   }
   if (path === "/lanaya/me/assignments" && method === "GET") return ok({ items: set.assignments, past: set.pastAssignments });
+
+  // ── Messages with the sellers (DEC-33) ──
+  const withLast = (conversation) => {
+    const list = set.messages[conversation.id] ?? [];
+    const last = list.at(-1);
+    return { ...conversation, last_message: last ? { id: last.id, body: last.body, sender_type: last.sender_type, sender_id: last.sender_id, message_type: "text", attachment_kind: null, is_hidden: false, created_at: last.created_at } : null };
+  };
+  if (path === "/lanaya/me/conversations" && method === "GET") {
+    const items = set.conversations.map(withLast);
+    return (send(res, 200, { success: true, data: items, meta: { has_more: false, next_cursor: null, counts: { all: items.length, unread: items.filter((c) => c.unread_count > 0).length } } }), true);
+  }
+  if (path === "/lanaya/me/conversations/start" && method === "POST") {
+    const store = [STORE_AWA].find((s) => s.id === String(body.store_id));
+    if (!store) return refuse(404, "SUGU-LANAYA-CONVERSATION-UNAVAILABLE", "Cette conversation n'est pas disponible : la boutique n'est pas accompagnée par ce Lanabaga.");
+    return ok(withLast(set.conversations.find((c) => c.store.id === store.id)));
+  }
+  const conversationPath = /^\/lanaya\/me\/conversations\/([^/]+)(\/messages|\/read|\/typing|\/presence)?$/.exec(path);
+  if (conversationPath) {
+    const conversation = set.conversations.find((c) => c.id === conversationPath[1]);
+    if (!conversation) return refuse(404, "SUGU-LANAYA-CONVERSATION-UNAVAILABLE", "Cette conversation n'est pas disponible.");
+    const kind = conversationPath[2];
+    if (!kind && method === "GET") return ok(withLast(conversation));
+    if (kind === "/messages" && method === "GET") return ok({ messages: set.messages[conversation.id] ?? [], has_more: false, peer_last_read_message_id: null });
+    if (kind === "/messages" && method === "POST") {
+      const clientId = fieldOf(raw, "client_message_id");
+      const already = (set.messages[conversation.id] ?? []).find((m) => clientId && m.client_message_id === clientId);
+      if (already) return ok(already);
+      const filtered = masked(fieldOf(raw, "body") ?? "");
+      const message = messageOf(`01JMSGNEW${String(Date.now()).padStart(17, "0")}`, "u-lanabaga", "lanabaga", "Aïssata Kaboré", filtered.body, Date.now(), true, { client_message_id: clientId, metadata: filtered.masked.length ? { masked: filtered.masked } : null });
+      set.received.push({ path: `${method} ${path}`, body: { body: fieldOf(raw, "body") } });
+      set.messages[conversation.id] = [...(set.messages[conversation.id] ?? []), message];
+      return ok(message, null, 201);
+    }
+    if (kind === "/read" && method === "POST") {
+      conversation.unread_count = 0;
+      return ok(null, "Marqué comme lu.");
+    }
+    if (kind === "/typing" && method === "POST") return ok(null);
+    if (kind === "/presence" && method === "GET") return ok([{ user_id: "u-awa", name: "Awa Traoré", participant_type: "seller", is_online: false, last_active: "today" }]);
+  }
   if (path === "/lanaya/me/orders" && method === "GET") return ok({ items: set.orders, meta: { total: set.orders.length, current_page: 1, last_page: 1 } });
   if (path === "/lanaya/me/leads" && method === "GET") {
     const params = url.searchParams;

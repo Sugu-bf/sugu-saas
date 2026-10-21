@@ -242,3 +242,68 @@ test("an invitation and a proposal on the same page: each refusal says what it r
   expect(paths.some((entry) => entry.endsWith("/decline") && entry.includes("/lanaya/invitations/"))).toBe(true);
   expect(paths.some((entry) => entry.includes("/assignments/"))).toBe(false);
 });
+
+test("a Lanabaga talks with the seller of an entrusted store: the notice first, a number never passed on", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/lanabaga/messages");
+  const list = page.getByRole("navigation", { name: "Navigation principale" }).first();
+  await expect(list.getByRole("link", { name: /Messages/ })).toBeVisible();
+  await page.getByRole("link", { name: /Boutique Awa/ }).first().click();
+  await expect(page).toHaveURL(/\/lanabaga\/messages\/conv-awa$/);
+  const thread = page.getByLabel("Conversation : Boutique Awa");
+  await expect(thread.getByText("Merci, je refais les trois premières fiches.")).toBeVisible();
+  await expect(thread.getByText(/les numéros de téléphone, e-mails et liens externes ne sont pas transmis/)).toBeVisible();
+
+  const field = page.getByRole("textbox", { name: "Écrire à Boutique Awa" });
+  await field.fill("Appelez-moi au 70 11 22 33 demain.");
+  await page.getByRole("button", { name: "Envoyer" }).click();
+  await expect(thread.getByText("Appelez-moi au [numéro masqué] demain.")).toBeVisible();
+  await expect(thread.getByText("· Coordonnées masquées")).toBeVisible();
+  const sent = (await received(page)).find((entry) => entry.path === "POST /lanaya/me/conversations/conv-awa/messages")!;
+  expect(sent.body.body).toBe("Appelez-moi au 70 11 22 33 demain.");
+});
+
+test("« Écrire » on an entrusted store opens its conversation", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/lanabaga/sellers");
+  await page.getByRole("table", { name: "Boutiques confiées" }).getByRole("button", { name: "Écrire au vendeur de Boutique Awa" }).click();
+  await expect(page).toHaveURL(/\/lanabaga\/messages\/conv-awa$/);
+  // A store awaiting its seller's answer has no conversation yet.
+  await page.goto("/lanabaga/sellers");
+  await expect(page.getByRole("table", { name: "Boutiques confiées" }).getByRole("button", { name: "Écrire au vendeur de Quincaillerie Zongo" })).toHaveCount(0);
+});
+
+test("a Lanabaga writes to the programme: a theme, no store, the team's answer as a team", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/lanabaga/support");
+  await expect(page.getByRole("link", { name: /Date de fin de ma convention/ })).toBeVisible();
+  await page.getByRole("link", { name: /Date de fin de ma convention/ }).click();
+  await expect(page.getByText("Elle est valable onze mois encore.")).toBeVisible();
+  await expect(page.getByText("Équipe Lanaya").first()).toBeVisible();
+
+  await page.goto("/lanabaga/support?new=1");
+  const form = page.getByRole("form", { name: "Nouveau ticket" });
+  await expect(form.getByText(/N'envoyez jamais votre pièce d'identité ici/)).toBeVisible();
+  await form.getByRole("textbox", { name: /^Sujet/ }).fill("Un vendeur me demande de l'argent");
+  await form.getByRole("combobox", { name: /^Thème/ }).selectOption("conduct");
+  await form.getByRole("textbox", { name: /^Description/ }).fill("Il veut que je lui paie ses frais.");
+  await form.getByRole("button", { name: "Créer le ticket" }).click();
+  await expect(toast(page, /créé/)).toBeVisible();
+  const created = (await received(page)).find((entry) => entry.path === "POST /lanaya/me/tickets")!;
+  expect(created.body).toEqual({ subject: "Un vendeur me demande de l'argent", description: "Il veut que je lui paie ses frais.", topic: "conduct" });
+});
+
+test("a candidate writes to the programme too, and has no messages", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/lanabaga/support", { account: "candidate" });
+  await expect(page).toHaveURL(/\/lanabaga\/support$/);
+  const menu = page.getByRole("navigation", { name: "Navigation principale" }).first();
+  await expect(menu.getByRole("link", { name: "Mes demandes" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: /^Messages/ })).toHaveCount(0);
+  await page.goto("/lanabaga/messages");
+  await expect(page).toHaveURL(/\/lanabaga\/application$/);
+});
+
+test("a seller writes to their main Lanabaga from « Programme Lanaya »", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/vendor/lanaya", { account: "seller", scenario: "active" });
+  await page.getByRole("button", { name: "Écrire à Aïssata Kaboré" }).click();
+  await expect(page).toHaveURL(/\/vendor\/messages\/01JCONVLANAYA0000000000001$/);
+  expect((await received(page)).some((entry) => entry.path === "POST /sellers/lanaya/conversation")).toBe(true);
+});
+

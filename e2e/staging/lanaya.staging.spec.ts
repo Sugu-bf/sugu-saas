@@ -389,6 +389,55 @@ test("R10 seller B: the main Lanabaga of store B, and the way to end it", async 
   await widths(page, "vendeur-lanabaga-principal");
 });
 
+test("R11 the Lanabaga's messages: the conversation of store B, the store as the other side, the notice", async ({ as }) => {
+  test.setTimeout(10 * 60_000);
+  const page = await as("lanabaga");
+  await page.goto("/lanabaga/messages");
+  await settle(page);
+  const rows = (await api(page, "lanaya/me/conversations")) as unknown as Json[];
+  expect(rows.length, "seller B and qa-lanabaga talk (QaLanayaSeeder)").toBeGreaterThan(0);
+  expect(rows[0].peer.type).toBe("store");
+  // Nothing of the seller's phone in what the Lanabaga reads.
+  expect(JSON.stringify(rows)).not.toMatch(/\+226\d{8}/);
+  await widths(page, "lanabaga-messages");
+
+  await page.getByRole("link", { name: new RegExp(rows[0].peer.name) }).first().click();
+  await expect(page).toHaveURL(new RegExp(`/lanabaga/messages/${rows[0].id}$`));
+  const messages = await api(page, `lanaya/me/conversations/${rows[0].id}/messages`);
+  for (const message of (messages.messages as Json[]).slice(-2)) await expect(page.getByText(message.body).first()).toBeVisible();
+  await expect(page.getByText(/ne sont pas transmis : l'échange reste sur SUGU/)).toBeVisible();
+  await widths(page, "lanabaga-conversation");
+});
+
+test("R12 the Lanabaga's requests to the programme: the team's answer, signed as a team", async ({ as }) => {
+  test.setTimeout(10 * 60_000);
+  const page = await as("lanabaga");
+  await page.goto("/lanabaga/support");
+  await settle(page);
+  const response = await page.request.get("/api/proxy/lanaya/me/tickets");
+  expect(response.status()).toBe(200);
+  const tickets = ((await response.json()) as Json).data as Json[];
+  const answered = tickets.find((ticket) => ticket.status === "pending_customer");
+  expect(answered, "a request answered by the team (QaLanayaSeeder)").toBeTruthy();
+  await widths(page, "lanabaga-demandes");
+  await page.getByRole("link", { name: new RegExp(answered!.subject) }).first().click();
+  await expect(page.getByText("Équipe Lanaya").first()).toBeVisible();
+  await expect(page.locator(":text(\"Programme Lanaya – Convention\"):visible").first()).toBeVisible();
+  await widths(page, "lanabaga-demande");
+});
+
+test("R13 a candidate writes to the programme, and has no messages", async ({ as }) => {
+  test.setTimeout(6 * 60_000);
+  const page = await as("draft");
+  await page.goto("/lanabaga/support");
+  await settle(page);
+  await expect(page).toHaveURL(/\/lanabaga\/support$/);
+  await expect(page.getByText("Photo professionnelle").first()).toBeVisible();
+  await widths(page, "candidat-demandes");
+  await page.goto("/lanabaga/messages");
+  await expect(page).toHaveURL(/\/lanabaga\/application$/, { timeout: 60_000 });
+});
+
 // ── W: writes on QA accounts ────────────────────────────────
 
 test.describe("writes", () => {
@@ -600,5 +649,64 @@ test.describe("writes", () => {
     expect(now.assignment.lanabaga.public_code).toBe(store!.proposal.lanabaga.public_code);
     expect(now.proposal).toBeNull();
     await widths(page, "vendeur-lanabaga-principal-accepte");
+  });
+
+  test("W4 seller B and their Lanabaga, live: a number never passed on, each sees the other without reloading", async ({ as }) => {
+    test.setTimeout(10 * 60_000);
+    const seller = await as("sellerB");
+    await seller.goto("/vendor/lanaya");
+    await settle(seller);
+    const opened = seller.waitForResponse((response) => response.url().includes("/api/proxy/sellers/lanaya/conversation"));
+    await seller.getByRole("button", { name: /^Écrire à / }).first().click();
+    expect([200, 201]).toContain((await opened).status());
+    await expect(seller).toHaveURL(/\/vendor\/messages\/[0-9A-Za-z]{26}$/, { timeout: 60_000 });
+    const id = seller.url().split("/").pop()!;
+    const sellerThread = seller.getByLabel(/^Conversation : /);
+    await expect(sellerThread.getByText(/ne sont pas transmis/)).toBeVisible();
+
+    const lanabaga = await as("lanabaga");
+    await lanabaga.goto(`/lanabaga/messages/${id}`);
+    await settle(lanabaga);
+    const lanabagaThread = lanabaga.getByLabel(/^Conversation : /);
+
+    // The stamp in letters: a run of 8 digits is a phone number to the filter, and would be masked too.
+    const tag = `Recette ${STAMP.replace(/\d/g, (digit) => "abcdefghij"[Number(digit)])}`;
+    const said = `${tag} : appelez-moi au 70 11 22 33`;
+    await seller.getByRole("textbox", { name: /^Écrire à / }).fill(said);
+    await seller.getByRole("button", { name: "Envoyer" }).click();
+    await expect(sellerThread.getByText(`${tag} : appelez-moi au [numéro masqué]`, { exact: true })).toBeVisible();
+    await expect(sellerThread.getByText("· Coordonnées masquées").first()).toBeVisible();
+    // The Lanabaga's open thread receives it (socket, or the 15-second fallback), never the number.
+    await expect(lanabagaThread.getByText(`${tag} : appelez-moi au [numéro masqué]`, { exact: true })).toBeVisible({ timeout: 45_000 });
+    await expect(lanabaga.getByText("70 11 22 33")).toHaveCount(0);
+
+    const answer = `${tag} : bien reçu, je passe jeudi.`;
+    await lanabaga.getByRole("textbox", { name: /^Écrire à / }).fill(answer);
+    await lanabaga.getByRole("button", { name: "Envoyer" }).click();
+    await expect(sellerThread.getByText(answer, { exact: true })).toBeVisible({ timeout: 45_000 });
+    await seller.setViewportSize({ width: 1440, height: 900 });
+    await seller.screenshot({ path: join(SHOTS, "vendeur-conversation-lanabaga-1440.png") });
+    await lanabaga.setViewportSize({ width: 390, height: 844 });
+    await lanabaga.screenshot({ path: join(SHOTS, "lanabaga-conversation-direct-390.png") });
+  });
+
+  test("W5 a Lanabaga writes to the programme: a theme, a conduct report first", async ({ as }) => {
+    test.setTimeout(6 * 60_000);
+    const page = await as("lanabaga");
+    await page.goto("/lanabaga/support?new=1");
+    await settle(page);
+    const form = page.getByRole("form", { name: "Nouveau ticket" });
+    await form.getByRole("textbox", { name: /^Sujet/ }).fill(`Recette ${STAMP} : un vendeur me demande de l'argent`);
+    await form.getByRole("combobox", { name: /^Thème/ }).selectOption("conduct");
+    await form.getByRole("textbox", { name: /^Description/ }).fill("Recette : il veut que je lui paie ses frais de livraison.");
+    const created = page.waitForResponse((response) => response.url().endsWith("/api/proxy/lanaya/me/tickets") && response.request().method() === "POST");
+    await form.getByRole("button", { name: "Créer le ticket" }).click();
+    expect((await created).status()).toBe(201);
+    const tickets = ((await (await page.request.get("/api/proxy/lanaya/me/tickets")).json()) as Json).data as Json[];
+    const mine = tickets.find((ticket) => String(ticket.subject).startsWith(`Recette ${STAMP}`))!;
+    expect(mine.priority).toBe("high");
+    expect(mine.topic.value).toBe("conduct");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: join(SHOTS, "lanabaga-demande-creee-1440.png") });
   });
 });
