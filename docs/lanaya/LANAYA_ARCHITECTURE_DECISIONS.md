@@ -1,6 +1,6 @@
 # SUGU Lanaya — Décisions d'architecture proposées
 
-**Statut de toutes les décisions : PROPOSÉE.** Aucune n'est validée tant que CTO et lead backend ne l'ont pas acceptée (gate du Lot 0). Chaque décision cite le constat qui la fonde ([LANAYA_INTEGRATION_AUDIT.md](LANAYA_INTEGRATION_AUDIT.md)) et l'exigence du cahier qui l'impose.
+**Statut : ADR-01 à ADR-12 VALIDÉES le 21 octobre 2026** par l'utilisateur, qui a déclaré signer pour le CTO, le lead backend, Produit et Finance (gate du Lot 0). Les « orientations pour les lots suivants » restent des propositions. Chaque décision cite le constat qui la fonde ([LANAYA_INTEGRATION_AUDIT.md](LANAYA_INTEGRATION_AUDIT.md)) et l'exigence du cahier qui l'impose.
 
 Format : contexte, décision, alternatives écartées, conséquences.
 

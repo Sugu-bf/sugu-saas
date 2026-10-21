@@ -26,7 +26,7 @@ Ce rapport dit ce qui existe réellement dans les trois dépôts, où chaque cap
 | 9 | Les pièces KYC ont déjà un **disque privé** (`kyc_private`) et une **sortie unique** contrôlée (`KycStorage`) ; le staging perd encore ses pièces à chaque déploiement. | L0 `app/Support/Kyc/KycStorage.php`, mémoire de recette du 12/10 | Réutiliser `KycStorage` pour les pièces Lanabaga ; la persistance du bucket privé en staging est un prérequis de recette (R-05). |
 | 10 | Le back-office est **Laravel + Inertia + Vue** (`resources/js/admin`), pas Next.js. Le journal d'audit est `spatie/activitylog` (table `activity_log`, lecture seule dans l'admin). | L0 `routes/admin.php`, `resources/js/admin/pages/*` | La console des candidatures s'ajoute au back-office existant. Les décisions Lanaya critiques demandent en plus un historique append-only propre (ADR-08). |
 
-**Verdict Lot 0 :** l'inventaire est complet et les points d'intégration sont identifiés. Le passage au Lot 1 attend des validations qui ne m'appartiennent pas (§11) : **PAUSE GATE LOT 0**.
+**Verdict Lot 0 :** l'inventaire est complet et les points d'intégration sont identifiés. Après revue, l'utilisateur a validé le Lot 0 le 21 octobre 2026 « pour les 4 rôles » et tranché les décisions d'entrée (§11) : **GO LOT 1**.
 
 ---
 
@@ -363,4 +363,6 @@ Les douze conditions de la mission (§21) :
 | 11 | Dépendances contractuelles listées | Fait (§6) |
 | 12 | Tests de non-régression de référence identifiés | Fait (§8) |
 
-**PAUSE GATE LOT 0 : validations nécessaires.** Le travail technique du Lot 0 est terminé ; la validation formelle (CTO, lead backend, Produit, Finance) et les décisions DEC-05, DEC-16, DEC-20, DEC-23 et DEC-28 manquent. Aucune admission réelle, aucun droit financier, aucune modification du checkout n'a été faite.
+Premier verdict, au moment de la rédaction : **PAUSE GATE LOT 0** (validation formelle et décisions DEC-05, DEC-16, DEC-20, DEC-23, DEC-28 manquantes).
+
+**Verdict après revue, 21 octobre 2026 : GO LOT 1 — dépendances formellement satisfaites.** L'utilisateur a validé ce rapport et les ADR-01 à ADR-12 en déclarant signer pour le CTO, le lead backend, Produit et Finance ; il a retenu : liste minimale provisoire de pièces (DEC-16), Burkina Faso avec deux capacités pilotes (DEC-05), conservation provisoire sans effacement (DEC-20), origine = première invitation acceptée (DEC-23), admission à deux personnes (DEC-28), maquettes 1 et 2 adaptées au style du back-office Vue. Restent ouverts et hors Lot 1 : convention v1.1 (fichier), qualification juridique, durées de conservation définitives, secteurs pilotes, et toutes les décisions des Lots 2 à 9. Aucune admission réelle, aucun droit financier, aucune modification du checkout.
