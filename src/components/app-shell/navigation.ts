@@ -19,6 +19,7 @@ import {
   Package,
   PackageMinus,
   PackagePlus,
+  PackageSearch,
   Plus,
   Send,
   Settings,
@@ -249,6 +250,7 @@ const lanabaga: WorkspaceNavigation = {
         { id: "lanabaga-sellers", label: "Mes vendeurs", shortLabel: "Vendeurs", href: "/lanabaga/sellers", icon: Store, mobilePriority: 2, visible: lanabagaCanWork },
         { id: "lanabaga-prospects", label: "Prospects", href: "/lanabaga/prospects", icon: UserPlus, mobilePriority: 3, visible: lanabagaCanWork },
         { id: "lanabaga-invitations", label: "Invitations", href: "/lanabaga/invitations", icon: Send, visible: lanabagaCanWork },
+        { id: "lanabaga-orders", label: "Commandes suivies", href: "/lanabaga/orders", icon: PackageSearch, visible: lanabagaCanWork },
       ],
     },
     {

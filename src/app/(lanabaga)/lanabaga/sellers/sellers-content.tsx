@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { ExternalLink, Store, UserPlus } from "lucide-react";
-import { Alert, Avatar, Badge, Button, DataTable, PageHeader, type DataTableColumn } from "@/design-system";
+import { Alert, Avatar, Badge, Button, DataTable, PageHeader, StatusBadge, type DataTableColumn } from "@/design-system";
 import { LanayaPage, formatDate, formatPhone } from "@/features/lanaya/components/frame";
 import { NetworkTabs } from "@/features/lanaya/components/network";
-import type { LanayaInvitation } from "@/features/lanaya/contract";
+import type { LanayaAssignment, LanayaInvitation } from "@/features/lanaya/contract";
 import { describeLanayaFailure } from "@/features/lanaya/errors";
-import { useLanayaSellers } from "@/features/lanaya/hooks";
+import { useLanayaAssignments, useLanayaSellers } from "@/features/lanaya/hooks";
 import { env } from "@/lib/env";
 import { loadStateOf } from "@/lib/query/load-state";
 
@@ -45,9 +45,39 @@ const COLUMNS: DataTableColumn<LanayaInvitation>[] = [
   { id: "accepted", header: "Présentée le", className: "whitespace-nowrap", cell: (seller) => formatDate(seller.accepted_at) },
 ];
 
+/** Stores SUGU entrusted to the Lanabaga: active once their seller agreed (DEC-30). */
+const ASSIGNED_COLUMNS: DataTableColumn<LanayaAssignment>[] = [
+  {
+    id: "store",
+    header: "Boutique",
+    mobile: "title",
+    cell: (assignment) => (
+      <span className="flex min-w-0 items-center gap-3">
+        <Avatar name={assignment.store?.name ?? "Boutique"} />
+        <span className="block truncate font-medium text-foreground">{assignment.store?.name ?? "—"}</span>
+      </span>
+    ),
+  },
+  { id: "status", header: "Statut", mobile: "badge", cell: (assignment) => <StatusBadge domain="lanayaAssignment" code={assignment.status.value} /> },
+  {
+    id: "city",
+    header: "Ville",
+    cell: (assignment) => assignment.store?.city ?? <span className="text-foreground-muted">—</span>,
+    mobileCell: (assignment) => assignment.store?.city ?? null,
+  },
+  {
+    id: "since",
+    header: "Depuis",
+    className: "whitespace-nowrap",
+    cell: (assignment) => (assignment.status.value === "active" ? formatDate(assignment.accepted_at) : `Proposée le ${formatDate(assignment.proposed_at)}`),
+  },
+];
+
 export function SellersContent() {
   const sellers = useLanayaSellers();
+  const assignments = useLanayaAssignments();
   const total = sellers.data?.meta.total;
+  const past = assignments.data?.past ?? [];
 
   return (
     <LanayaPage>
@@ -56,8 +86,35 @@ export function SellersContent() {
         <NetworkTabs current="sellers" />
       </div>
 
-      <Alert tone="info" title="Présenter une boutique n'est pas encore l'accompagner">
-        SUGU vous confiera l&apos;accompagnement de boutiques dans une prochaine étape du programme. Aucune commission n&apos;est calculée pour l&apos;instant.
+      <DataTable
+        caption="Boutiques confiées"
+        header={{ title: "Boutiques confiées", description: "Les boutiques dont SUGU vous a fait le Lanabaga principal, avec l'accord de leur vendeur." }}
+        columns={ASSIGNED_COLUMNS}
+        rows={assignments.data?.items ?? []}
+        getRowId={(assignment) => assignment.id}
+        state={loadStateOf(assignments)}
+        error={{
+          title: "Vos boutiques confiées n'ont pas pu être chargées",
+          description: describeLanayaFailure(assignments.error).message,
+          onRetry: () => assignments.refetch(),
+          retrying: assignments.isFetching,
+        }}
+        empty={{
+          icon: Store,
+          title: "Aucune boutique ne vous est confiée pour l'instant",
+          description: "SUGU vous confie une boutique quand son vendeur accepte de vous avoir comme Lanabaga principal.",
+        }}
+        mobileRowActions="footer"
+      />
+
+      {past.length > 0 && (
+        <p className="text-label font-normal text-foreground-muted">
+          Accompagnements terminés ou non aboutis : {past.map((assignment) => `${assignment.store?.name ?? "Boutique"} (${assignment.status.label.toLowerCase()})`).join(", ")}.
+        </p>
+      )}
+
+      <Alert tone="info" title="Une boutique présentée n'est pas forcément confiée">
+        Présenter une boutique enregistre seulement que vous l&apos;avez fait connaître à SUGU. Aucune commission n&apos;est calculée pour l&apos;instant.
       </Alert>
 
       <DataTable

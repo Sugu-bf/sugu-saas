@@ -7,7 +7,7 @@ import { Avatar, Badge, Button, Card, DataTable, ErrorState, PageHeader, Skeleto
 import { useSession } from "@/features/auth";
 import { KpiRow, LanayaPage, Panel, formatDate, formatPhone, formatRelative } from "@/features/lanaya/components/frame";
 import { useLanayaOverview } from "@/features/lanaya/hooks";
-import type { LanayaInvitation, LanayaOverview } from "@/features/lanaya/contract";
+import type { LanayaOverview } from "@/features/lanaya/contract";
 import { describeLanayaFailure } from "@/features/lanaya/errors";
 
 /**
@@ -70,17 +70,56 @@ export function DashboardContent() {
   );
 }
 
-const SELLER_COLUMNS: DataTableColumn<LanayaInvitation>[] = [
+/** One row of « Mes vendeurs »: a store entrusted to the Lanabaga, or only introduced by them. */
+interface SellerRow {
+  id: string;
+  name: string;
+  city: string | null;
+  phone: string | null;
+  relation: "active" | "proposed" | "introduced";
+  since: string | null;
+}
+
+const RELATION_BADGE: Record<SellerRow["relation"], { tone: "success" | "warning" | "neutral"; label: string }> = {
+  active: { tone: "success", label: "Confiée" },
+  proposed: { tone: "warning", label: "Accord du vendeur attendu" },
+  introduced: { tone: "neutral", label: "Présentée" },
+};
+
+/** Entrusted stores first (DEC-29), then those only introduced; a store appears once. */
+function sellerRows(data?: LanayaOverview): SellerRow[] {
+  if (!data) return [];
+  const rows: SellerRow[] = data.assigned.map((assignment) => ({
+    id: assignment.store?.id ?? assignment.id,
+    name: assignment.store?.name ?? "Boutique",
+    city: assignment.store?.city ?? null,
+    phone: null,
+    relation: assignment.status.value === "active" ? "active" : "proposed",
+    since: assignment.status.value === "active" ? assignment.accepted_at : assignment.proposed_at,
+  }));
+  for (const invitation of data.sellers) {
+    const id = invitation.store?.id ?? invitation.id;
+    const entrusted = rows.find((row) => row.id === id);
+    if (entrusted) {
+      entrusted.phone ??= invitation.phone;
+      continue;
+    }
+    rows.push({ id, name: invitation.store?.name ?? invitation.company_name, city: invitation.store?.city ?? null, phone: invitation.phone, relation: "introduced", since: invitation.accepted_at });
+  }
+  return rows;
+}
+
+const SELLER_COLUMNS: DataTableColumn<SellerRow>[] = [
   {
     id: "seller",
     header: "Vendeur",
     mobile: "title",
-    cell: (seller) => (
+    cell: (row) => (
       <span className="flex min-w-0 items-center gap-3">
-        <Avatar name={seller.store?.name ?? seller.company_name} />
+        <Avatar name={row.name} />
         <span className="min-w-0">
-          <span className="block truncate font-medium text-foreground">{seller.store?.name ?? seller.company_name}</span>
-          <span className="block truncate text-meta text-foreground-muted tabular-nums">{formatPhone(seller.phone)}</span>
+          <span className="block truncate font-medium text-foreground">{row.name}</span>
+          {row.phone && <span className="block truncate text-meta text-foreground-muted tabular-nums">{formatPhone(row.phone)}</span>}
         </span>
       </span>
     ),
@@ -89,10 +128,10 @@ const SELLER_COLUMNS: DataTableColumn<LanayaInvitation>[] = [
     id: "status",
     header: "Statut",
     mobile: "badge",
-    cell: (seller) => (seller.store_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>),
+    cell: (row) => <Badge tone={RELATION_BADGE[row.relation].tone}>{RELATION_BADGE[row.relation].label}</Badge>,
   },
-  { id: "city", header: "Ville", cell: (seller) => seller.store?.city ?? <span className="text-foreground-muted">—</span>, mobileCell: (seller) => seller.store?.city ?? null },
-  { id: "accepted", header: "Présentée le", className: "whitespace-nowrap", cell: (seller) => formatDate(seller.accepted_at) },
+  { id: "city", header: "Ville", cell: (row) => row.city ?? <span className="text-foreground-muted">—</span>, mobileCell: (row) => row.city },
+  { id: "since", header: "Depuis le", className: "whitespace-nowrap", cell: (row) => formatDate(row.since) },
 ];
 
 function SellersCard({ data, loading }: { data?: LanayaOverview; loading: boolean }) {
@@ -101,7 +140,7 @@ function SellersCard({ data, loading }: { data?: LanayaOverview; loading: boolea
       caption="Mes vendeurs"
       header={{
         title: "Mes vendeurs",
-        description: "Les boutiques que vous avez présentées à SUGU.",
+        description: "Les boutiques que SUGU vous confie, et celles que vous avez présentées.",
         actions: (
           <Button asChild size="compact" variant="outline" trailingIcon={ArrowRight}>
             <Link href="/lanabaga/sellers">Voir tous les vendeurs</Link>
@@ -109,15 +148,15 @@ function SellersCard({ data, loading }: { data?: LanayaOverview; loading: boolea
         ),
       }}
       columns={SELLER_COLUMNS}
-      rows={data?.sellers ?? []}
-      getRowId={(seller) => seller.id}
+      rows={sellerRows(data)}
+      getRowId={(row) => row.id}
       state={loading ? "loading" : "ready"}
       loadingRowCount={3}
       tableFrom="narrow"
       empty={{
         icon: Store,
-        title: "Aucun vendeur présenté pour l'instant",
-        description: "Une boutique apparaît ici quand son propriétaire accepte votre invitation.",
+        title: "Aucun vendeur pour l'instant",
+        description: "Une boutique apparaît ici quand son propriétaire accepte votre invitation, ou quand SUGU vous la confie.",
         action: (
           <Button asChild size="compact" variant="outline" icon={UserPlus}>
             <Link href="/lanabaga/prospects">Ajouter un prospect</Link>

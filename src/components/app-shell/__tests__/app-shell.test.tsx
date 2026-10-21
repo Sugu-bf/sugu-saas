@@ -442,12 +442,12 @@ describe("SUGU Lanaya — spaces, candidate and admitted Lanabaga", () => {
     signIn("lanabaga", "/lanabaga/application", { lanaya: LANAYA_CANDIDATE });
     const { unmount } = render(<AppShell role="lanabaga">x</AppShell>);
     expect(sidebar().getByRole("link", { name: "Candidature" })).toHaveAttribute("aria-current", "page");
-    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations"]) expect(sidebar().queryByRole("link", { name })).toBeNull();
+    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations", "Commandes suivies"]) expect(sidebar().queryByRole("link", { name })).toBeNull();
     unmount();
 
     signIn("lanabaga", "/lanabaga/dashboard", { lanaya: LANAYA_ADMITTED });
     render(<AppShell role="lanabaga">x</AppShell>);
-    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations", "Candidature", "Documents", "Conformité"]) {
+    for (const name of ["Tableau de bord", "Mes vendeurs", "Prospects", "Invitations", "Commandes suivies", "Candidature", "Documents", "Conformité"]) {
       expect(sidebar().getByRole("link", { name })).toBeInTheDocument();
     }
   });
