@@ -9,9 +9,13 @@ test("an admitted Lanabaga: the board of the server, no badge, no amount", async
   await open(page, baseURL, "/lanabaga/dashboard");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bonjour, Aïssata");
   const figures = page.getByRole("region", { name: "Votre activité" });
-  await expect(figures).toContainText("0 / 5");
-  await expect(page.getByRole("table", { name: "Mes vendeurs" }).getByText("Boutique Awa")).toBeVisible();
-  await expect(page.getByRole("table", { name: "Mes vendeurs" }).getByText("+226 70 00 01 01")).toBeVisible();
+  await expect(figures).toContainText("1 / 5");
+  const sellers = page.getByRole("table", { name: "Mes vendeurs" });
+  // Entrusted (DEC-29), awaiting its seller, or only introduced: one row per store, the server's state.
+  await expect(sellers.getByRole("row").filter({ hasText: "Boutique Awa" })).toContainText("Confiée");
+  await expect(sellers.getByText("+226 70 00 01 01")).toBeVisible();
+  await expect(sellers.getByRole("row").filter({ hasText: "Quincaillerie Zongo" })).toContainText("Accord du vendeur attendu");
+  await expect(sellers.getByRole("row").filter({ hasText: "Boutique Awa" })).toHaveCount(1);
   await expect(page.getByText(/Pas encore ouvert : aucune commission n'est calculée/)).toBeVisible();
   await expect(page.getByText(/^Vérifié$|Badge en revue|FCFA/)).toHaveCount(0);
 });
@@ -170,4 +174,71 @@ test("an open invitation is revoked after a confirmation", async ({ page, baseUR
   await expect(toast(page, "Invitation révoquée")).toBeVisible();
   await expect(page.getByRole("table", { name: "Invitations" }).getByRole("button", { name: "Révoquer" })).toHaveCount(0);
   expect((await received(page)).some((entry) => /\/invitations\/inv-1\/revoke$/.test(entry.path))).toBe(true);
+});
+
+test("entrusted stores and followed orders: the server's states, no amount, no buyer", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/lanabaga/sellers");
+  const entrusted = page.getByRole("table", { name: "Boutiques confiées" });
+  await expect(entrusted.getByRole("row").filter({ hasText: "Boutique Awa" })).toContainText("Active");
+  await expect(entrusted.getByRole("row").filter({ hasText: "Quincaillerie Zongo" })).toContainText("En attente de l'accord du vendeur");
+  await expect(page.getByText(/Ets Sawadogo \(terminée\)/)).toBeVisible();
+
+  await page.getByRole("navigation", { name: "Navigation principale" }).first().getByRole("link", { name: "Commandes suivies" }).click();
+  await expect(page).toHaveURL(/\/lanabaga\/orders$/);
+  const orders = page.getByRole("table", { name: "Commandes suivies" });
+  await expect(orders.getByRole("row").filter({ hasText: "SG-2026-004812" })).toContainText("En préparation");
+  await expect(orders.getByRole("row").filter({ hasText: "SG-2026-004790" })).toContainText("Boutique Awa");
+  await expect(page.locator("main").getByText(/FCFA|XOF/)).toHaveCount(0);
+});
+
+test("a seller answers SUGU's proposal: the box is theirs to tick, the replacement is said", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/vendor/lanaya", { account: "seller", scenario: "replacing" });
+  await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toBeVisible();
+  const proposal = page.locator("main");
+  await expect(proposal.getByText(/Aïssata Kaboré remplacera Issouf Zongo/)).toBeVisible();
+  const consent = proposal.getByRole("checkbox", { name: /Lanabaga principal de ma boutique/ });
+  await expect(consent).not.toBeChecked();
+  await proposal.getByRole("button", { name: "Accepter ce Lanabaga" }).click();
+  await expect(proposal.getByText("Cochez la case pour confirmer votre accord.")).toBeVisible();
+  expect((await received(page)).some((entry) => entry.path.endsWith("/accept"))).toBe(false);
+
+  await consent.check();
+  await proposal.getByRole("button", { name: "Accepter ce Lanabaga" }).click();
+  await expect(toast(page, "Votre Lanabaga principal est enregistré.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toHaveCount(0);
+  await expect(page.getByText(/Lanabaga principal de .+ depuis le/)).toBeVisible();
+  const accept = (await received(page)).find((entry) => entry.path.endsWith("/accept"))!;
+  expect(accept).toEqual({ path: "POST /sellers/lanaya/assignments/asg-p/accept", body: { consent: true } });
+});
+
+test("a seller declines SUGU's proposal, then ends an accompaniment: confirmed first each time", async ({ page, baseURL }) => {
+  await open(page, baseURL, "/vendor/lanaya", { account: "seller", scenario: "replacing" });
+  await page.getByRole("button", { name: /^Refuser la proposition pour / }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Refuser la proposition", exact: true }).click();
+  await expect(toast(page, "Proposition refusée.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Mettre fin à l'accompagnement" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Mettre fin" }).click();
+  await expect(toast(page, "L'accompagnement de votre boutique est terminé.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mettre fin à l'accompagnement" })).toHaveCount(0);
+  const paths = (await received(page)).map((entry) => entry.path);
+  expect(paths).toEqual(expect.arrayContaining(["POST /sellers/lanaya/assignments/asg-p/decline", "POST /sellers/lanaya/assignments/asg-a/end"]));
+  expect(paths.some((entry) => entry.endsWith("/accept"))).toBe(false);
+});
+
+test("an invitation and a proposal on the same page: each refusal says what it refuses", async ({ page, baseURL }) => {
+  await open(page, baseURL, `/vendor/lanaya?invitation=${TOKEN}`, { account: "seller", scenario: "proposed" });
+  await expect(page.getByRole("heading", { name: "Décision du vendeur" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(2);
+  for (const box of await page.getByRole("checkbox").all()) await expect(box).not.toBeChecked();
+  await page.getByRole("button", { name: "Refuser", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Refuser l'invitation" }).click();
+  await expect(page).toHaveURL(/\/vendor\/lanaya$/);
+  // The invitation is answered; SUGU's proposal is still waiting for the seller.
+  await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toBeVisible();
+  const paths = (await received(page)).map((entry) => entry.path);
+  expect(paths.some((entry) => entry.endsWith("/decline") && entry.includes("/lanaya/invitations/"))).toBe(true);
+  expect(paths.some((entry) => entry.includes("/assignments/"))).toBe(false);
 });

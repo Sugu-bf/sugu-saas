@@ -35,9 +35,21 @@ export async function signIn(page: Page, baseURL: string | undefined, account: A
   expect(response.ok(), `login: ${response.status()}`).toBe(true);
 }
 
-export async function open(page: Page, baseURL: string | undefined, path: string, { account = "lanabaga", width = 1440 }: { account?: Account; width?: number } = {}) {
+/** What the back-office did for the seller before they open the page (mock-lanaya.mjs, /__lanaya/scenario). */
+export type SellerScenario = "proposed" | "active" | "replacing";
+
+export async function open(
+  page: Page,
+  baseURL: string | undefined,
+  path: string,
+  { account = "lanabaga", width = 1440, scenario }: { account?: Account; width?: number; scenario?: SellerScenario } = {},
+) {
   await page.setViewportSize({ width, height: width < PHONE ? 844 : 900 });
   await signIn(page, baseURL, account);
+  if (scenario) {
+    const response = await overResetConnection(() => page.request.get(`/api/proxy/__lanaya/scenario?seller=${scenario}`));
+    expect(response.ok(), `scenario: ${response.status()}`).toBe(true);
+  }
   await page.goto(path);
   await expect(page.locator("main").getByRole("heading", { level: 1 }).first()).toBeVisible();
   await expect(page.locator("main [aria-busy='true']")).toHaveCount(0);

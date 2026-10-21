@@ -6,9 +6,11 @@ import { join } from "node:path";
 // Acceptance run of SUGU LANAYA (Lot 1) against a REAL backend: the
 // Lanabaga space (admitted, draft, in review, complement asked), the seller's
 // side (introduced, not introduced), the public pages, each figure against
-// what Laravel answers, the six widths and accessibility. With
+// what Laravel answers, the six widths and accessibility; the stores SUGU
+// entrusts and the orders it attributes (DEC-29 to DEC-32). With
 // STAGING_ALLOW_MUTATIONS=1, the writes on QA accounts only: a prospect, an
-// invitation answered by seller A, and a whole application by a new account.
+// invitation answered by seller A, a whole application by a new account, and
+// seller A's answer to the proposal Ops made in the back-office.
 //
 // The portal under STAGING_URL talks to its own Laravel, seeded by
 // QaProPortalSeeder then QaLanayaSeeder.
@@ -218,7 +220,7 @@ test("R3 invitations and sellers: the lists of the server, the link never shown 
   await settle(page);
   const sellers = await api(page, "lanaya/me/sellers");
   for (const seller of sellers.items as Json[]) await expect(page.getByRole("table", { name: "Vendeurs présentés" }).getByText(seller.store.name)).toBeVisible();
-  await expect(page.getByText("Présenter une boutique n'est pas encore l'accompagner")).toBeVisible();
+  await expect(page.getByText("Une boutique présentée n'est pas forcément confiée")).toBeVisible();
   await widths(page, "lanabaga-vendeurs");
 });
 
@@ -346,6 +348,47 @@ test("R8 public pages: the sign-up of a candidate, an unknown invitation", async
   await context.close();
 });
 
+test("R9 entrusted stores and followed orders: the server's lists, no amount, no buyer", async ({ as }) => {
+  test.setTimeout(10 * 60_000);
+  const page = await as("lanabaga");
+  await page.goto("/lanabaga/sellers");
+  await settle(page);
+  const assignments = await api(page, "lanaya/me/assignments");
+  expect((assignments.items as Json[]).some((item) => item.status.value === "active"), "store B is entrusted (QaLanayaSeeder)").toBe(true);
+  const entrusted = page.getByRole("table", { name: "Boutiques confiées" });
+  for (const item of assignments.items as Json[]) await expect(entrusted.getByRole("row").filter({ hasText: item.store.name })).toContainText(item.status.label);
+  await widths(page, "lanabaga-boutiques-confiees");
+
+  await page.goto("/lanabaga/orders");
+  await settle(page);
+  const orders = await api(page, "lanaya/me/orders");
+  const table = page.getByRole("table", { name: "Commandes suivies" });
+  for (const item of orders.items as Json[]) await expect(table.getByRole("row").filter({ hasText: item.order.number })).toContainText(item.store.name);
+  // The server sends neither amount nor buyer; the page shows none.
+  expect(JSON.stringify(orders.items)).not.toMatch(/amount|buyer|address|phone/);
+  await expect(page.locator("main").getByText(/FCFA|\d F$/)).toHaveCount(0);
+  await fullRounded(page);
+  await widths(page, "lanabaga-commandes-suivies");
+});
+
+test("R10 seller B: the main Lanabaga of store B, and the way to end it", async ({ as }) => {
+  test.setTimeout(10 * 60_000);
+  const page = await as("sellerB");
+  await page.goto("/vendor/lanaya");
+  await settle(page);
+  const data = await api(page, "sellers/lanaya");
+  const store = (data.stores as Json[]).find((item) => item.assignment);
+  expect(store, "store B has its main Lanabaga (QaLanayaSeeder)").toBeTruthy();
+  await expect(page.getByRole("heading", { name: "Votre accompagnement" })).toBeVisible();
+  await expect(page.getByText(new RegExp(`Lanabaga principal de ${store!.name} depuis le`))).toBeVisible();
+  await expect(page.getByText(store!.assignment.lanabaga.name).first()).toBeVisible();
+  // The way out is there; this run does not take it.
+  await expect(page.getByRole("button", { name: "Mettre fin à l'accompagnement" })).toBeVisible();
+  await expect(page.getByText(/^Vérifié$|FCFA/)).toHaveCount(0);
+  await fullRounded(page);
+  await widths(page, "vendeur-lanabaga-principal");
+});
+
 // ── W: writes on QA accounts ────────────────────────────────
 
 test.describe("writes", () => {
@@ -394,7 +437,8 @@ test.describe("writes", () => {
       // An invitation to A is still open from an earlier run: revoke it and start again.
       const open = ((await api(page, "lanaya/me/invitations?status=open")).items as Json[]).find((invitation) => invitation.phone === "+22670000101");
       expect(open, "the refusal is the open invitation of an earlier run").toBeTruthy();
-      expect((await page.request.post(`/api/proxy/lanaya/me/invitations/${open!.id}/revoke`)).status()).toBe(200);
+      // A write through the relay is same-origin only (CSRF guard): say where it comes from.
+      expect((await page.request.post(`/api/proxy/lanaya/me/invitations/${open!.id}/revoke`, { headers: { Origin: baseURL ?? "" } })).status()).toBe(200);
       throw new Error("An invitation to seller A was left open by an earlier run: it is revoked now, run W1 again.");
     }
     expect(answer.status()).toBe(201);
@@ -427,7 +471,8 @@ test.describe("writes", () => {
     await expect(consent).not.toBeChecked();
     await widths(sellerA, "vendeur-decision-invitation");
     if (alreadyIntroduced) {
-      await sellerA.getByRole("button", { name: "Refuser" }).click();
+      // A proposal of SUGU may be on the same page: its own « Refuser » is named after it.
+      await sellerA.getByRole("button", { name: "Refuser", exact: true }).click();
       await sellerA.getByRole("button", { name: "Refuser l'invitation" }).click();
       await expect(sellerA).toHaveURL(/\/vendor\/lanaya$/);
       const after = ((await api(page, "lanaya/me/invitations")).items as Json[]).find((invitation) => invitation.id === body.invitation.id);
@@ -524,5 +569,36 @@ test.describe("writes", () => {
     await page.setViewportSize({ width: 390, height: 1800 });
     await page.screenshot({ path: join(SHOTS, "candidature-soumise-390.png") });
     await context.close();
+  });
+
+  test("W3 seller A answers the proposal Ops made in the back-office: the consent is theirs", async ({ as }) => {
+    test.setTimeout(10 * 60_000);
+    const page = await as("sellerA");
+    await page.goto("/vendor/lanaya");
+    await settle(page);
+    const before = await api(page, "sellers/lanaya");
+    const store = (before.stores as Json[]).find((item) => item.proposal);
+    test.skip(!store, "no proposal for seller A: Ops entrusts store A from the back-office first (Lanaya > Candidatures > dossier > Confier une boutique)");
+
+    await expect(page.getByRole("heading", { name: "Proposition d'accompagnement" })).toBeVisible();
+    const consent = page.getByRole("checkbox", { name: /Lanabaga principal de ma boutique/ });
+    await expect(consent).not.toBeChecked();
+    await expect(page.getByText(store!.proposal.consent.text)).toBeVisible();
+    await widths(page, "vendeur-proposition");
+
+    await page.getByRole("button", { name: "Accepter ce Lanabaga" }).click();
+    await expect(page.locator("main").getByText("Cochez la case pour confirmer votre accord.")).toBeVisible();
+    await consent.check();
+    const accepted = page.waitForResponse((response) => response.url().includes(`/sellers/lanaya/assignments/${store!.proposal.id}/accept`));
+    await page.getByRole("button", { name: "Accepter ce Lanabaga" }).click();
+    expect((await accepted).status()).toBe(200);
+    await expect(page.getByText(new RegExp(`Lanabaga principal de ${store!.name} depuis le`))).toBeVisible();
+
+    const after = await api(page, "sellers/lanaya");
+    const now = (after.stores as Json[]).find((item) => item.id === store!.id)!;
+    expect(now.assignment.status.value).toBe("active");
+    expect(now.assignment.lanabaga.public_code).toBe(store!.proposal.lanabaga.public_code);
+    expect(now.proposal).toBeNull();
+    await widths(page, "vendeur-lanabaga-principal-accepte");
   });
 });

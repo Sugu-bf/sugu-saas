@@ -19,6 +19,9 @@ const LABELS = {
   document: { pending: "À vérifier", approved: "Validée", rejected: "Refusée", superseded: "Remplacée" },
   lead: { prospect: "Nouveau", contacted: "En discussion", invited: "Invitation envoyée", no_response: "Sans réponse", registered: "Converti", lost: "Abandonné" },
   invitation: { open: "En attente", accepted: "Acceptée", declined: "Refusée", revoked: "Révoquée", expired: "Expirée" },
+  assignment: { proposed: "En attente de l'accord du vendeur", active: "Active", declined: "Refusée par le vendeur", cancelled: "Proposition retirée", ended: "Terminée" },
+  attribution: { active: "En cours", removed: "Retirée", replaced: "Réattribuée" },
+  order: { pending: "En attente", confirmed: "Confirmée", processing: "En préparation", shipped: "Expédiée" },
   source: { recommendation: "Recommandation", personal_network: "Réseau personnel", trade_fair: "Salon commercial", social_network: "Réseaux sociaux", website: "Site web", other: "Autre" },
   reference: { pending: "Non contactée", contacted: "Contactée", validated: "Référence validée", no_answer: "Sans réponse", rejected: "Non confirmée" },
   relation: { regular_client: "Client régulier", business_partner: "Partenaire commercial", supplier: "Fournisseur", former_employer: "Ancien employeur", other: "Autre" },
@@ -30,6 +33,7 @@ const CONSENTS = [
   { key: "conduct_code", version: "pilote-2026-10-provisoire", text: "Je m'engage à agir avec honnêteté envers les vendeurs et les acheteurs." },
 ];
 const SELLER_CONSENT = { key: "seller_introduction", version: "pilote-2026-10-provisoire", text: "J'accepte que ce Lanabaga soit enregistré comme m'ayant présenté SUGU." };
+const ASSIGNMENT_CONSENT = { key: "seller_assignment", version: "pilote-2026-10-provisoire", text: "J'accepte que ce Lanabaga devienne le Lanabaga principal de ma boutique et me conseille pour vendre sur SUGU. Il n'a accès ni à mon compte, ni à mes paiements." };
 
 const CARD = { public_code: "LNB-AB12CD", name: "Aïssata Kaboré", city: "Ouagadougou", country_code: "BF", specialties: ["Électronique", "Accessoires mobiles"], account_active: true, badge: null };
 
@@ -77,9 +81,50 @@ function invitation(id, company, contact, phone, status, createdDaysAgo, now, ex
   return { id, lead_id: null, company_name: company, contact_name: contact, phone: normalize(phone), message: null, status: state("invitation", status), expires_at: iso(now + (14 - createdDaysAgo) * DAY), accepted_at: null, store: null, created_at: iso(now - createdDaysAgo * DAY), ...extra };
 }
 
+/** LanayaPresenter::assignment: the store, and the Lanabaga's card on the seller's side only. */
+function assignmentOf(id, status, store, now, { card = null, proposedDaysAgo = 3, acceptedDaysAgo = null, endedDaysAgo = null } = {}) {
+  return {
+    id,
+    status: state("assignment", status),
+    scope: "store",
+    store: { ...store, active: true },
+    lanabaga: card,
+    proposed_at: iso(now - proposedDaysAgo * DAY),
+    accepted_at: acceptedDaysAgo === null ? null : iso(now - acceptedDaysAgo * DAY),
+    declined_at: null,
+    cancelled_at: null,
+    ended_at: endedDaysAgo === null ? null : iso(now - endedDaysAgo * DAY),
+    ended_by_capacity: null,
+  };
+}
+
+const STORE_AWA = { id: "11", name: "Boutique Awa", slug: "boutique-awa", city: "Ouagadougou" };
+const STORE_ZONGO = { id: "12", name: "Quincaillerie Zongo", slug: "quincaillerie-zongo", city: "Bobo-Dioulasso" };
+const STORE_SAWADOGO = { id: "13", name: "Ets Sawadogo", slug: "ets-sawadogo", city: "Koudougou" };
+
+function attributionOf(id, number, status, placedDaysAgo, now) {
+  return {
+    id,
+    status: state("attribution", "active"),
+    order: { id: `order-${id}`, number, status: state("order", status), placed_at: iso(now - placedDaysAgo * DAY) },
+    store: { id: STORE_AWA.id, name: STORE_AWA.name, city: STORE_AWA.city },
+    lanabaga: { public_code: CARD.public_code, name: CARD.name },
+    attributed_at: iso(now - placedDaysAgo * DAY + 2 * 60 * 60 * 1000),
+    ended_at: null,
+  };
+}
+
 function seed(kind) {
   const now = Date.now();
-  const set = { kind, now, received: [], documents: [], references: [], consents: {}, profile: kind === "seller" ? null : profileOf(kind, now), answered: false };
+  const set = { kind, now, received: [], documents: [], references: [], consents: {}, profile: kind === "seller" ? null : profileOf(kind, now), answered: false, assignment: null, proposal: null };
+  if (kind === "admitted") {
+    set.assignments = [
+      assignmentOf("asg-1", "active", STORE_AWA, now, { proposedDaysAgo: 12, acceptedDaysAgo: 11 }),
+      assignmentOf("asg-2", "proposed", STORE_ZONGO, now, { proposedDaysAgo: 1 }),
+    ];
+    set.pastAssignments = [assignmentOf("asg-0", "ended", STORE_SAWADOGO, now, { proposedDaysAgo: 40, acceptedDaysAgo: 39, endedDaysAgo: 8 })];
+    set.orders = [attributionOf("att-1", "SG-2026-004812", "processing", 1, now), attributionOf("att-2", "SG-2026-004790", "confirmed", 3, now)];
+  }
   if (kind === "admitted") {
     set.leads = [
       lead("lead-1", "Sankara Électronique", "Ibrahim Sankara", "76112233", "Ouagadougou", "recommendation", "prospect", 0, now),
@@ -122,7 +167,7 @@ function me(set) {
     requirements: { documents: REQUIRED, references: 2 },
     consents: CONSENTS.map((c) => ({ ...c, given: Boolean(set.consents[c.key]) || set.kind === "admitted" })),
     capabilities: { candidate_onboarding: { value: "pilot", label: "Pilote" }, seller_invitation: { value: "pilot", label: "Pilote" } },
-    capacity: set.kind === "admitted" ? { effective: 5, active: 0, available: 5 } : null,
+    capacity: set.kind === "admitted" ? { effective: 5, active: 1, available: 4 } : null,
     history: [{ event: "application.created", to: "draft", by_sugu: false, note: null, occurred_at: set.profile.created_at }],
   };
 }
@@ -133,12 +178,20 @@ function openInvitations(set) {
 
 export default async function lanaya({ req, res, url, path, method, profile, token, send, readJson }) {
   const plumbing = path === "/__lanaya/received";
-  if (!plumbing && !path.startsWith("/lanaya/") && path !== "/sellers/lanaya") return false;
+  if (!plumbing && path !== "/__lanaya/scenario" && !path.startsWith("/lanaya/") && !path.startsWith("/sellers/lanaya")) return false;
 
   const set = setOf(token, profile);
   const ok = (data, message, status = 200) => (send(res, status, { success: true, ...(message ? { message } : {}), data }), true);
   const refuse = (status, code, message, extra = {}) => (send(res, status, { success: false, error_code: code, message: `${code}: ${message}`, ...extra }), true);
   if (plumbing) return (send(res, 200, { received: set.received }), true);
+  // What the back-office would have done for this seller (DEC-29): a proposal, or an accepted assignment.
+  if (path === "/__lanaya/scenario") {
+    const store = { id: String(profile.store?.id ?? "11"), name: profile.store?.name ?? "Boutique", slug: "boutique", city: "Ouagadougou" };
+    const wanted = url.searchParams.get("seller");
+    if (wanted === "proposed" || wanted === "replacing") set.proposal = { ...assignmentOf("asg-p", "proposed", store, set.now, { card: CARD, proposedDaysAgo: 1 }), consent: ASSIGNMENT_CONSENT };
+    if (wanted === "active" || wanted === "replacing") set.assignment = assignmentOf("asg-a", "active", store, set.now, { card: wanted === "replacing" ? { ...CARD, public_code: "LNB-GH56IJ", name: "Issouf Zongo" } : CARD, proposedDaysAgo: 12, acceptedDaysAgo: 11 });
+    return (send(res, 200, { assignment: set.assignment, proposal: set.proposal }), true);
+  }
 
   const multipart = /multipart\/form-data/.test(req.headers["content-type"] ?? "");
   let raw = "";
@@ -151,7 +204,28 @@ export default async function lanaya({ req, res, url, path, method, profile, tok
   if (path === "/sellers/lanaya" && method === "GET") {
     if (profile.user_type !== "seller") return refuse(403, "FORBIDDEN", "Réservé aux vendeurs.");
     const introduced = set.answered === "accepted" ? { ...CARD, accepted_at: iso(set.now) } : null;
-    return ok({ stores: [{ id: String(profile.store?.id ?? "11"), name: profile.store?.name ?? "Boutique", city: "Ouagadougou", introduced_by: introduced, assignment: null }] });
+    return ok({ stores: [{ id: String(profile.store?.id ?? "11"), name: profile.store?.name ?? "Boutique", city: "Ouagadougou", introduced_by: introduced, assignment: set.assignment, proposal: set.proposal }] });
+  }
+  const answer = /^\/sellers\/lanaya\/assignments\/([^/]+)\/(accept|decline|end)$/.exec(path);
+  if (answer && method === "POST") {
+    if (profile.user_type !== "seller") return refuse(403, "FORBIDDEN", "Réservé aux vendeurs.");
+    const [, id, action] = answer;
+    if (action === "end") {
+      if (set.assignment?.id !== id) return refuse(404, "SUGU-LANAYA-ASSIGNMENT-UNAVAILABLE", "Cette affectation n'est pas disponible.");
+      set.assignment = null;
+      return ok(null, "L'accompagnement de votre boutique est terminé.");
+    }
+    if (set.proposal?.id !== id) return refuse(404, "SUGU-LANAYA-ASSIGNMENT-UNAVAILABLE", "Cette proposition n'est pas disponible.");
+    if (action === "decline") {
+      set.proposal = null;
+      return ok(null, "Proposition refusée.");
+    }
+    if (body.consent !== true) return refuse(422, "VALIDATION", "Confirmez votre accord pour que ce Lanabaga accompagne votre boutique.", { errors: { consent: ["Confirmez votre accord pour que ce Lanabaga accompagne votre boutique."] } });
+    const accepted = { ...set.proposal, status: state("assignment", "active"), accepted_at: iso(set.now) };
+    delete accepted.consent;
+    set.assignment = accepted;
+    set.proposal = null;
+    return ok(set.assignment, "Votre Lanabaga principal est enregistré.");
   }
   const invitationPath = /^\/lanaya\/invitations\/([A-Za-z0-9]+)(\/(accept|decline))?$/.exec(path);
   if (invitationPath) {
@@ -207,15 +281,19 @@ export default async function lanaya({ req, res, url, path, method, profile, tok
     const open = openInvitations(set);
     return ok({
       profile: set.profile,
-      capacity: { effective: 5, active: 0, available: 5 },
+      capacity: { effective: 5, active: 1, available: 4 },
       counts: { sellers_introduced: 1, invitations_open: open.length, leads_active: set.leads.filter((l) => !["registered", "lost"].includes(l.status.value)).length, actions_required: open.length > 0 ? 1 : 0 },
       actions: open.length > 0 ? [{ key: "invitations_waiting", count: open.length }] : [],
       sellers: set.invitations.filter((i) => i.status.value === "accepted").map((i) => ({ ...i, store_active: true })),
       recent_leads: set.leads.slice(0, 5),
       level: { value: "new", label: "Nouveau" },
       commissions: { available: false },
+      assigned: set.assignments,
+      orders_followed: set.orders.length,
     });
   }
+  if (path === "/lanaya/me/assignments" && method === "GET") return ok({ items: set.assignments, past: set.pastAssignments });
+  if (path === "/lanaya/me/orders" && method === "GET") return ok({ items: set.orders, meta: { total: set.orders.length, current_page: 1, last_page: 1 } });
   if (path === "/lanaya/me/leads" && method === "GET") {
     const params = url.searchParams;
     let items = set.leads;
