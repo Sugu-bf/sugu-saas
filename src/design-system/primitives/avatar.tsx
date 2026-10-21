@@ -20,7 +20,10 @@ const SIZE = {
 } as const;
 
 export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  // A mark between brackets or a number ("Awa Traoré (QA)", "Boutique 2") is not a name: initials come from the words.
+  const named = words.filter((word) => /^\p{L}/u.test(word));
+  const parts = named.length > 0 ? named : words;
   if (parts.length === 0) return "?";
   const first = parts[0][0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? "") : "";

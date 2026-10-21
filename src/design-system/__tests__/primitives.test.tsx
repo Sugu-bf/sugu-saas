@@ -182,6 +182,9 @@ describe("Badge, Alert, states, Stat, Avatar", () => {
     expect(initialsOf("  agence   démo centre ")).toBe("AC");
     expect(initialsOf("Awa")).toBe("A");
     expect(initialsOf("")).toBe("?");
+    expect(initialsOf("Aïssata Kaboré (QA)")).toBe("AK");
+    expect(initialsOf("Boutique 2")).toBe("B");
+    expect(initialsOf("(QA)")).toBe("(");
     render(<Avatar name="Awa Démo" />);
     expect(screen.getByRole("img", { name: "Awa Démo" })).toHaveTextContent("AD");
   });

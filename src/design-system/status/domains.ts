@@ -422,6 +422,106 @@ export const ticketStatus = defineStatusRegistry({
   },
 });
 
+/* ── SUGU Lanaya (Lot 1) — mirrors App\Domain\Lanaya\Enums ───────────
+   Account, identity and application are separate axes on purpose: an
+   admitted Lanabaga can be active without any badge (ACC-002). */
+
+/** `App\Domain\Lanaya\Enums\ApplicationStatus` */
+export const lanayaApplicationStatus = defineStatusRegistry({
+  domain: "lanayaApplication",
+  statuses: {
+    draft: { label: "Brouillon", tone: "neutral", icon: PencilLine },
+    submitted: { label: "Soumise", tone: "info", icon: Inbox },
+    in_review: { label: "En revue", tone: "info", icon: FileSearch },
+    info_requested: { label: "À compléter", tone: "warning", icon: MessageSquareWarning },
+    approved: { label: "Admise", tone: "success", icon: CheckCircle2 },
+    rejected: { label: "Refusée", tone: "danger", icon: XCircle },
+    withdrawn: { label: "Retirée", tone: "neutral", icon: Undo2 },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\AccountStatus` */
+export const lanayaAccountStatus = defineStatusRegistry({
+  domain: "lanayaAccount",
+  statuses: {
+    none: { label: "Non ouvert", tone: "neutral", icon: CircleDashed },
+    active: { label: "Actif", tone: "success", icon: UserCheck },
+    suspended: { label: "Suspendu", tone: "danger", icon: Ban },
+    closed: { label: "Fermé", tone: "neutral", icon: CircleSlash },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\IdentityStatus` */
+export const lanayaIdentityStatus = defineStatusRegistry({
+  domain: "lanayaIdentity",
+  statuses: {
+    none: { label: "Non déposée", tone: "neutral", icon: CircleDashed },
+    pending: { label: "À vérifier", tone: "warning", icon: Hourglass },
+    verified: { label: "Vérifiée", tone: "success", icon: ShieldCheck },
+    rejected: { label: "Refusée", tone: "danger", icon: ShieldAlert },
+    expired: { label: "Expirée", tone: "danger", icon: CalendarClock },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\DocumentReviewStatus` */
+export const lanayaDocumentStatus = defineStatusRegistry({
+  domain: "lanayaDocument",
+  statuses: {
+    pending: { label: "À vérifier", tone: "warning", icon: Hourglass },
+    approved: { label: "Validée", tone: "success", icon: CheckCircle2 },
+    rejected: { label: "Refusée", tone: "danger", icon: XCircle },
+    superseded: { label: "Remplacée", tone: "neutral", icon: Archive },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\ReferenceStatus` */
+export const lanayaReferenceStatus = defineStatusRegistry({
+  domain: "lanayaReference",
+  statuses: {
+    pending: { label: "Non contactée", tone: "neutral", icon: CircleDashed },
+    contacted: { label: "Contactée", tone: "info", icon: Clock },
+    validated: { label: "Référence validée", tone: "success", icon: CheckCircle2 },
+    no_answer: { label: "Sans réponse", tone: "warning", icon: CircleAlert },
+    rejected: { label: "Non confirmée", tone: "danger", icon: XCircle },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\AgreementStatus` */
+export const lanayaAgreementStatus = defineStatusRegistry({
+  domain: "lanayaAgreement",
+  statuses: {
+    recorded: { label: "À contrôler", tone: "warning", icon: Hourglass },
+    valid: { label: "Valide", tone: "success", icon: ShieldCheck },
+    rejected: { label: "Refusée au contrôle", tone: "danger", icon: XCircle },
+    terminated: { label: "Terminée", tone: "neutral", icon: Archive },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\LeadStatus` */
+export const lanayaLeadStatus = defineStatusRegistry({
+  domain: "lanayaLead",
+  statuses: {
+    prospect: { label: "Nouveau", tone: "info", icon: Sparkles },
+    contacted: { label: "En discussion", tone: "warning", icon: Clock },
+    invited: { label: "Invitation envoyée", tone: "info", icon: Inbox },
+    no_response: { label: "Sans réponse", tone: "neutral", icon: Moon },
+    registered: { label: "Converti", tone: "success", icon: UserCheck },
+    lost: { label: "Abandonné", tone: "neutral", icon: UserX },
+  },
+});
+
+/** `App\Domain\Lanaya\Enums\InvitationStatus` */
+export const lanayaInvitationStatus = defineStatusRegistry({
+  domain: "lanayaInvitation",
+  statuses: {
+    open: { label: "En attente", tone: "info", icon: Hourglass },
+    accepted: { label: "Acceptée", tone: "success", icon: CheckCircle2 },
+    declined: { label: "Refusée", tone: "neutral", icon: XCircle },
+    revoked: { label: "Révoquée", tone: "neutral", icon: CircleSlash },
+    expired: { label: "Expirée", tone: "warning", icon: CalendarClock },
+  },
+});
+
 export const statusRegistries = {
   order: orderStatus,
   payment: paymentStatus,
@@ -445,6 +545,14 @@ export const statusRegistries = {
   customerSegment,
   discount: discountStatus,
   ticket: ticketStatus,
+  lanayaApplication: lanayaApplicationStatus,
+  lanayaAccount: lanayaAccountStatus,
+  lanayaIdentity: lanayaIdentityStatus,
+  lanayaDocument: lanayaDocumentStatus,
+  lanayaReference: lanayaReferenceStatus,
+  lanayaAgreement: lanayaAgreementStatus,
+  lanayaLead: lanayaLeadStatus,
+  lanayaInvitation: lanayaInvitationStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistries;
