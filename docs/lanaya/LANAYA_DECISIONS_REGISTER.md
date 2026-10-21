@@ -110,3 +110,7 @@ Options : (a) au Lot 2, seulement ce que le cahier liste (statut, secteur, ville
 | Invitation envoyée | invité | système (invitation créée) |
 | Sans réponse | — (ajout) | Lanabaga ou système (invitation expirée) |
 | Converti | inscrit → vérifié → activé → première vente | système, d'après la boutique |
+
+### DEC-29 à DEC-32 — Affectations et attributions par Ops *(livrées le 21/10/2026, recette locale L3)*
+
+Mise en œuvre et preuves : [LANAYA_ASSIGNMENTS_QUALIFICATION.md](LANAYA_ASSIGNMENTS_QUALIFICATION.md). Ce qui reste ouvert et n'a pas été tranché ici : la notification du vendeur et du Lanabaga (aucune n'est envoyée), l'attribution automatique au passage de commande (Lot 3), l'affectation par catégorie ou produit (Lot 7). Aucune de ces décisions n'ouvre un droit financier : le calcul, le snapshot et toute commission restent aux Lots 3 à 5.

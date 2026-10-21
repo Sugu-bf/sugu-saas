@@ -1,4 +1,4 @@
-# SUGU Lanaya — Matrice des autorisations (Lot 1)
+# SUGU Lanaya — Matrice des autorisations (Lot 1, puis affectations DEC-29 à DEC-32)
 
 **Statut : PROPOSÉE** (ADR-02, ADR-05, ADR-11). Toute règle ci-dessous est vérifiée **par le serveur**, à chaque requête, en relisant l'état en base (pas de cache). Les écrans ne font que refléter ces règles.
 
@@ -44,6 +44,8 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | `lanaya.policies.view` | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | `lanaya.policies.propose` | — | ✓ | — | — | — | ✓ |
 | `lanaya.policies.approve` (jamais la sienne) | — | — | ✓ | ✓ ¹ | — | ✓ |
+| `lanaya.assignments.manage` — confier une boutique à un Lanabaga (proposition au vendeur), retirer une proposition, mettre fin à une affectation, avec motif (DEC-29, DEC-32) | — | ✓ | — | — | — | ✓ |
+| `lanaya.orders.attribute` — ajouter, retirer ou réattribuer le Lanabaga de la part d'une boutique dans une commande non livrée, avec motif (DEC-31, DEC-32) | — | ✓ | — | — | — | ✓ |
 | Attribuer un rôle `lanaya-*` | — | — | — | — | — | ✓ ² |
 
 ¹ Finance approuve les familles `commission` à partir du Lot 3 ; au Lot 1, seule la famille `policy` existe.
@@ -70,7 +72,10 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | Créer un prospect, une invitation | — | ✓ si convention valide, capacité `seller_invitation` ouverte, Quality Gate ≠ `suspended`, plafond d'invitations non atteint | — | — | — |
 | Révoquer sa propre invitation | — | ✓ | ✓ | — | jamais celle d'un autre |
 | Voir ses vendeurs (invitations acceptées) | — | ✓ | ✓ lecture | — | jamais ceux d'un autre Lanabaga |
-| Lire une commande, un message, un chiffre de vente d'un vendeur | **jamais au Lot 1** | **jamais au Lot 1** (Lot 2, périmètre affecté) | — | — | — |
+| Voir les boutiques qui lui sont confiées (proposées, actives, terminées) | — | ✓ | ✓ lecture | — | jamais celles d'un autre Lanabaga |
+| Lire les commandes qu'Ops lui a attribuées : numéro, statut, date, boutique (DEC-31) | — | ✓ tant que l'attribution est active | — | — | jamais : une attribution retirée ou remplacée ne donne plus accès |
+| Lire le montant, l'acheteur, l'adresse, les messages, les chiffres de vente d'une commande | **jamais** | **jamais** (le serveur ne les envoie pas) | — | — | — |
+| Changer sa propre affectation ou une attribution | **jamais** | **jamais** | **jamais** | **jamais** | — |
 | Encaisser, modifier un bénéficiaire de versement, créer un compte vendeur | **jamais** | **jamais** | **jamais** | **jamais** | — |
 
 ## 4. Espace vendeur (portail)
@@ -81,6 +86,10 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | Accepter la mise en relation pour **une** de ses boutiques | propriétaire de la boutique choisie ; boutique **non** possédée par le Lanabaga invitant ; invitation `open` ; action positive (bouton), aucune case pré-cochée |
 | Refuser | toujours possible tant que l'invitation est ouverte |
 | Voir l'état « Lanaya » de ses boutiques | propriétaire |
+| Voir la proposition de SUGU pour une de ses boutiques (carte publique du Lanabaga, texte du consentement versionné) | propriétaire ; aucune autre donnée du Lanabaga |
+| Accepter la proposition (DEC-30) | propriétaire ; case du consentement `seller_assignment` cochée par lui (jamais pré-cochée) ; Lanabaga toujours admis, actif, convention valide, capacité disponible (vérifiée sous verrou) ; capacité `seller_assignment` ouverte dans le pays ; la boutique n'est pas au Lanabaga ; accepter un autre Lanabaga termine l'affectation précédente (transfert) |
+| Refuser la proposition | propriétaire, tant qu'elle attend sa réponse |
+| Mettre fin à l'accompagnement de sa boutique | propriétaire, à tout moment ; les commandes en cours gardent leur attribution jusqu'à ce qu'Ops la retire ou la réattribue |
 
 ## 5. Interdictions structurelles testées dès le Lot 1
 
@@ -116,4 +125,9 @@ Un même compte peut cumuler Vendeur et Lanabaga (ADR-03). Un opérateur Lanaya 
 | Rôle `lanaya-compliance` attribué par un `admin` non super-admin (fiche Utilisateur, écran Administrateurs) | refus de validation | (I-4) |
 | Seeder des rôles relancé | `admin` ne détient aucune `lanaya.*` | (I-2) |
 | Écriture `lanaya.*` sans 2FA confirmée | 403 | — |
+| Administrateur générique (sans `lanaya-ops`) confie une boutique ou attribue une commande | 403 (`LanayaAssignmentsTest`) | DEC-32 |
+| Vendeur accepte une proposition sans cocher le consentement, ou pour la boutique d'un autre | 422 / 404, rien d'actif | DEC-30 |
+| Attribution d'une commande livrée, annulée, retournée, en échec ; à un Lanabaga non affecté ; au Lanabaga acheteur | 422 `ORDER-CLOSED` / `NOT-ASSIGNED` / `CONFLICT-OF-INTEREST` | DEC-31 |
+| Transfert d'une boutique : les commandes en cours ne changent pas de Lanabaga sans action d'Ops | attribution précédente intacte | cahier §8.4 |
+| Affectation, attribution : aucune ligne de grand livre, d'obligation, de commission | 0 ligne | DEC-29 |
 | Jeton d'invitation deviné, expiré, révoqué, déjà utilisé | 404 / 410, sans dire lequel | — |

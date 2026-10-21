@@ -138,3 +138,46 @@ Canaux existants : e-mail, SMS, WhatsApp, push, base de données (`NotificationT
 | Versement aux Lanabagas | 5 | DEC-03, DEC-19 |
 
 Le Lot 1 ne lit ni n'écrit aucune table de commande, de paiement, de portefeuille ou du grand livre.
+
+## 8. Affectations et attributions (DEC-29 à DEC-32, livré le 21 octobre 2026)
+
+### 8.1 Lanabaga (portail, `LanabagaGuard` : admis, actif, convention valide)
+
+| Méthode | Route | Réponse |
+|---|---|---|
+| GET | `/api/v1/lanaya/me/assignments` | `{ items: Assignment[] (proposées, actives), past: Assignment[] (20 dernières terminées, refusées, retirées) }` |
+| GET | `/api/v1/lanaya/me/orders?page=` | `{ items: Attribution[] (actives seulement), meta }`, 20 par page |
+| GET | `/api/v1/lanaya/me/overview` | ajoute `assigned` (10 affectations actives ou proposées) et `orders_followed` (nombre d'attributions actives) |
+
+### 8.2 Vendeur (propriétaire de la boutique ; une affectation d'une autre boutique répond 404)
+
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/sellers/lanaya` | — | chaque boutique ajoute `assignment` (active) et `proposal` (en attente, avec `consent: { key: "seller_assignment", version, text }`) |
+| POST | `/api/v1/sellers/lanaya/assignments/{id}/accept` | `{ consent: true }` (refus 422 sinon) | l'affectation active |
+| POST | `/api/v1/sellers/lanaya/assignments/{id}/decline` | — | — |
+| POST | `/api/v1/sellers/lanaya/assignments/{id}/end` | `{ reason?: string }` | — |
+
+Limite de débit dédiée `lanaya.assignments.answer`.
+
+### 8.3 Back-office (Inertia, `lanaya-ops`, 2FA confirmée)
+
+| Méthode | Route | Permission |
+|---|---|---|
+| GET | `/admin/lanaya/stores?q=` (JSON : 15 boutiques actives au plus, leurs affectations en cours) | `lanaya.assignments.manage` |
+| POST | `/admin/lanaya/applications/{profile}/assignments` `{ store_id, reason ≥ 10 }` | `lanaya.assignments.manage` |
+| PUT | `/admin/lanaya/assignments/{assignment}/cancel` `{ reason ≥ 5 }` | `lanaya.assignments.manage` |
+| PUT | `/admin/lanaya/assignments/{assignment}/end` `{ reason ≥ 5 }` | `lanaya.assignments.manage` |
+| GET | `/admin/lanaya/orders?number=` (page « Commandes ») | `lanaya.network.view` |
+| POST | `/admin/lanaya/orders/{order}/attributions` `{ store_id, lanabaga_profile_id, reason ≥ 5 }` | `lanaya.orders.attribute` |
+| PUT | `/admin/lanaya/attributions/{attribution}/remove` `{ reason ≥ 5 }` | `lanaya.orders.attribute` |
+
+### 8.4 Formes
+
+- `Assignment` : `id`, `status {value,label}`, `scope`, `store {id,name,slug,city,active}`, `lanabaga` (carte publique, côté vendeur seulement), `proposed_at`, `accepted_at`, `declined_at`, `cancelled_at`, `ended_at`, `ended_by_capacity`.
+- `Attribution` : `id`, `status`, `order {id, number, status {value,label}, placed_at}`, `store {id,name,city}`, `lanabaga {public_code,name}`, `attributed_at`, `ended_at`. **Ni montant, ni acheteur, ni adresse.**
+
+### 8.5 Événements (`lanaya_events`)
+
+`assignment.proposed`, `assignment.cancelled`, `assignment.accepted`, `assignment.declined`, `assignment.ended` (un transfert termine l'affectation précédente par cet événement, avec l'affectation qui la remplace), `order_attribution.added`, `order_attribution.reassigned`, `order_attribution.removed` — avec l'acteur, sa qualité (Ops, vendeur) et le motif. Aucune notification n'est envoyée au vendeur ni au Lanabaga à ce stade : la proposition apparaît dans « Programme Lanaya » à sa prochaine visite.
+

@@ -219,3 +219,32 @@ Comparaison du plan ci-dessus avec ce qui est écrit dans `sugu` : migrations `2
 **États** : `prechecked` n'existe pas (`submitted` vaut pré-vérification passée) ; `AccountStatus`, `IdentityStatus`, `QualityGateState`, `DocumentReviewStatus`, `ReferenceStatus`, `InvitationStatus` sont conformes. `RejectionReason` et `SuspensionReason` forment le référentiel de motifs annoncé au §2.1.
 
 **Conservation (§6, DEC-20)** : aucun mécanisme de purge ni d'anonymisation n'est écrit, conformément au report ; rien n'est préparé non plus.
+
+## 8. Affectations et attributions (DEC-29 à DEC-32, 21 octobre 2026)
+
+Une migration, `2026_10_21_100700_create_lanaya_assignments_and_attributions`, deux tables. Aucune colonne de montant, de taux ou de bénéficiaire.
+
+### 8.1 `lanaya_seller_assignments` — le Lanabaga principal d'une boutique
+
+`lanabaga_profile_id`, `store_id`, `scope` (`store` seulement ; catégorie et produit restent au Lot 7), `status`, `proposal_reason`, `proposed_by` / `proposed_at`, `answered_by`, `accepted_at`, `declined_at`, `cancelled_at` / `cancelled_by`, `ended_at` / `ended_by` / `ended_by_capacity` / `end_reason`, `replaced_by_id` (transfert), `policy_version_id`.
+
+- États : `proposed` → `active` (le vendeur accepte) | `declined` (le vendeur refuse) | `cancelled` (Ops retire) ; `active` → `ended` (le vendeur, Ops, ou un transfert vers un autre Lanabaga).
+- Index uniques partiels PostgreSQL : une seule affectation `active` et une seule `proposed` par (boutique, périmètre).
+- La capacité d'un Lanabaga compte ses boutiques actives distinctes (`AssignmentSellerCounter`, qui remplace la primitive du Lot 1) ; elle est vérifiée à la proposition et, sous verrou, à l'acceptation.
+
+### 8.2 `lanaya_order_attributions` — le Lanabaga d'une part de commande
+
+`order_id`, `store_id`, `lanabaga_profile_id`, `assignment_id` (obligatoire : on n'attribue qu'au Lanabaga principal actif de la boutique), `source` (`manual`), `status`, `reason`, `created_by`, `ended_at` / `ended_by` / `end_reason`, `replaced_by_id`.
+
+- États : `active` → `replaced` (réattribution, la ligne suivante la remplace) | `removed` (retrait). Rien n'est effacé.
+- Index unique partiel : une seule attribution `active` par (commande, boutique). Contrainte `CHECK` : motif de 5 caractères au moins.
+- La part d'une boutique est lue dans `order_items.vendor_id` (repli sur `products.store_id` pour les lignes anciennes). « Non livrée » = commande non close (`delivered`, `canceled`, `returned`, `failed` sont closes).
+
+### 8.3 Politique de pays
+
+Deux capacités de plus, fermées par défaut : `seller_assignment` (proposer et accepter une affectation) et `order_tracking` (attribuer une commande). Toute nouvelle version de politique écrit les quatre capacités (une capacité absente est écrite `disabled`). **Sur un environnement partagé, ces capacités ne s'ouvrent que par une nouvelle version de politique proposée par Ops et approuvée par une autre personne** ; le seeder de recette en écrit une pour les seules données QA.
+
+### 8.4 Déploiement
+
+`php artisan migrate`, puis `ProductionRolesPermissionsSeeder` pour donner `lanaya.assignments.manage` et `lanaya.orders.attribute` au rôle `lanaya-ops` (voir `../sugu/docs/PERMISSIONS_DEPLOY_RUNBOOK.md` : le seeder réécrit les permissions des rôles). Retour arrière : la migration se défait (`down`) tant qu'aucune donnée réelle n'a été saisie ; ensuite, terminer les affectations plutôt que supprimer les lignes (l'historique `lanaya_events` les référence).
+
