@@ -85,9 +85,30 @@ Captures (non versionnées) : `docs/captures/lanaya/messagerie/recette-local/`, 
 | `sugu-saas` (`lanaya/lot0-lot1`) | `8ba5d80` espace Lanabaga de la messagerie, avis de masquage · `186754d` un écran de support, deux guichets · `cad9c75` Messages, demandes, « Écrire » · `0ec8c43` tests e2e · (documentation : ce commit) |
 | `sugu-marketplace` (`fix/messaging-hardening`, depuis `v10/release-hardening`) | `0c3b17e` pièces par le relais, envois uniques, avis · `0586b7c` vendeur et support depuis le suivi, chat en temps réel · `2fd0860` aucun contact inventé |
 
+## 5. Corrections avant la production (22 octobre 2026)
+
+Demandées par « corrige les points à régler avant la production que tu viens de signaler ».
+
+| Point | Correction |
+|---|---|
+| Tous les vendeurs voyaient l'entrée « Lanaya » du menu et deux catégories « Programme Lanaya » dans leurs tickets, alors que personne ne lirait ces demandes | **DEC-38** : le programme n'apparaît qu'à un vendeur lié (boutique présentée par un Lanabaga, ou proposition reçue). Le serveur l'envoie dans le profil (`lanaya_seller.linked`) et refuse la catégorie `lanaya` aux autres ; le profil en cache est oublié dès qu'un vendeur devient lié. La page reste ouverte par le lien d'une invitation |
+| Sans `R2_PRIVATE_BUCKET`, la production refuse les pièces jointes | Un réglage du serveur, que le code ne peut pas faire : vérification à lancer **avant** le déploiement (une commande, `../sugu/docs/MESSAGING_ATTACHMENTS_RUNBOOK.md` §Déploiement) ; nouveau contrôle de santé « Private Storage (R2) » qui le signale au back-office, en avertissement seulement pour ne jamais faire répondre 503 à `/healthz` |
+
+| Vérification | Résultat |
+|---|---|
+| Pest : `LanayaSellerVisibilityTest` (aucun vendeur lié par défaut, lié dès la proposition puis même après un refus, lié par une invitation acceptée et lui seul, demande refusée à un vendeur non lié), `LanayaSupportTest` (vendeur lié), `PrivateStorageCheckTest` (poste de développement, production sans bucket, serveur sur son disque, bucket du CDN, bucket injoignable) | **11 verts** |
+| Pest, non-régression : Lanaya, Messagerie, Support, contrôles de santé, authentification | **433 verts**, 5 sautés (déjà sautés avant : contrôles de santé sans objet sur la base de test), 0 échec |
+| Vitest complet du portail | **1 091 verts** (59 fichiers) |
+| `tsc --noEmit`, `eslint src e2e playwright.lanaya.config.ts`, `pint --test` (fichiers nouveaux) | aucune erreur |
+| Playwright, cadre commun (doublure) | **104 verts** : le vendeur de la doublure, non lié, n'a plus « Lanaya » |
+| Playwright, Lanaya (doublure) | **37 verts** : le vendeur de la doublure, présenté par un Lanabaga, est lié |
+
+Non rejoué : la recette locale contre le vrai Laravel (L3) ; R7 y suppose que le vendeur B, présenté par le seeder de recette, voit l'entrée « Lanaya », ce qui reste vrai.
+
 ## Déploiement (à faire dans cet ordre, sur autorisation)
 
-1. Backend : `migrate` ; `ProductionRolesPermissionsSeeder` (il réécrit les permissions des rôles : `docs/PERMISSIONS_DEPLOY_RUNBOOK.md`) ; vérifier `R2_PRIVATE_BUCKET` ; `php artisan messaging:relocate-attachments` puis `--apply --purge-list=…` (`docs/MESSAGING_ATTACHMENTS_RUNBOOK.md`).
+0. **Avant tout**, vérifier `R2_PRIVATE_BUCKET` sur la production (§5).
+1. Backend : `migrate` (lancé tout seul au démarrage du conteneur) ; `ProductionRolesPermissionsSeeder` (il réécrit les permissions des rôles : `docs/PERMISSIONS_DEPLOY_RUNBOOK.md`) ; vérifier `R2_PRIVATE_BUCKET` ; `php artisan messaging:relocate-attachments` puis `--apply --purge-list=…` (`docs/MESSAGING_ATTACHMENTS_RUNBOOK.md`).
 2. Une version de politique du pays qui ouvre `seller_assignment` (la messagerie vendeur ↔ Lanabaga suit l'affectation), approuvée par une seconde personne.
 3. Portail, puis marketplace (la marketplace lit désormais les pièces par son relais : la déployer après le backend).
 4. Doter l'équipe Lanaya : au moins une personne Ops et une Compliance avec la double authentification, avant d'annoncer « Mes demandes ».

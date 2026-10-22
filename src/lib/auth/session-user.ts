@@ -119,7 +119,17 @@ export function toSessionUser(backendUser: BackendUser): User | null {
     courier_operational: role === "courier" ? extractCourierOperational(backendUser) : null,
     spaces,
     lanaya,
+    lanaya_seller: asRecord(backendUser.lanaya_seller)?.linked === true,
   };
+}
+
+/**
+ * Does this seller see the Lanaya programme (menu entry, ticket categories)?
+ * Only once one of their stores is linked to it (DEC-38). The server refuses
+ * a programme ticket from any other seller.
+ */
+export function sellerSeesLanaya(user: Pick<User, "lanaya_seller">): boolean {
+  return user.lanaya_seller === true;
 }
 
 /** May this session open that space? Navigation comfort: the API decides. */

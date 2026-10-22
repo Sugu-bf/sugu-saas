@@ -42,6 +42,8 @@ export interface User {
   spaces?: UserRole[];
   /** Lanabaga profile, when the account has one. */
   lanaya?: LanayaFacts | null;
+  /** A seller linked to the Lanaya programme (DEC-38): only they see it in their space. */
+  lanaya_seller?: boolean;
 }
 
 /** Auth session carried client‑side */

@@ -12,6 +12,9 @@ const iso = (time) => (time === null || time === undefined ? null : new Date(tim
 /** A token the specs know: the invitation a seller opens. */
 export const KNOWN_TOKEN = "a".repeat(64);
 
+/** The seller of these specs was introduced by a Lanabaga: the programme is in their space (DEC-38). */
+export const profiles = { "vendeur@qa.test": { lanaya_seller: { linked: true } } };
+
 const LABELS = {
   application: { draft: "Brouillon", submitted: "Soumise", in_review: "En revue", info_requested: "À compléter", approved: "Admise", rejected: "Refusée", withdrawn: "Retirée" },
   account: { none: "Non ouvert", active: "Actif", suspended: "Suspendu", closed: "Fermé" },

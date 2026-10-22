@@ -34,7 +34,7 @@ import {
   type LucideIcon,
   LifeBuoy,
 } from "lucide-react";
-import { COURIER_FILE_PATH, LANABAGA_FILE_PATH, courierCanWork, lanabagaCanWork, spaceHomePath } from "@/lib/auth/session-user";
+import { COURIER_FILE_PATH, LANABAGA_FILE_PATH, courierCanWork, lanabagaCanWork, sellerSeesLanaya, spaceHomePath } from "@/lib/auth/session-user";
 import type { User, UserRole } from "@/types";
 
 // ============================================================
@@ -133,7 +133,8 @@ const vendor: WorkspaceNavigation = {
         { id: "vendor-marketing", label: "Marketing", href: "/vendor/marketing", icon: BadgePercent },
         { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare, badge: "messages" },
         // SUGU Lanaya (maquette 4) : qui a présenté chaque boutique, invitations reçues.
-        { id: "vendor-lanaya", label: "Lanaya", href: "/vendor/lanaya", icon: HeartHandshake },
+        // Only to a seller linked to the programme (DEC-38); an invitation opens the page by its link.
+        { id: "vendor-lanaya", label: "Lanaya", href: "/vendor/lanaya", icon: HeartHandshake, visible: sellerSeesLanaya },
       ],
     },
     {

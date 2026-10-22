@@ -194,8 +194,7 @@ describe("AppShell — phone tab bar and menus", () => {
       "Statistiques",
       "Marketing",
       "Messages",
-      // SUGU Lanaya (Lot 1): the seller's side of the programme.
-      "Lanaya",
+      // No « Lanaya »: a seller who is not linked to the programme does not see it (DEC-38).
       "Vue d'ensemble",
       "Mon stock",
       "Réceptions",
@@ -208,6 +207,17 @@ describe("AppShell — phone tab bar and menus", () => {
 
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("shows the Lanaya programme only to a seller linked to it (DEC-38)", () => {
+    signIn("vendor", "/vendor/dashboard");
+    const { unmount } = render(<AppShell role="vendor">x</AppShell>);
+    expect(sidebar().queryByRole("link", { name: "Lanaya" })).toBeNull();
+    unmount();
+
+    signIn("vendor", "/vendor/lanaya", { lanaya_seller: true });
+    render(<AppShell role="vendor">x</AppShell>);
+    expect(sidebar().getByRole("link", { name: "Lanaya" })).toHaveAttribute("aria-current", "page");
   });
 
   it("closes the menu with its close button and when a link is followed", async () => {

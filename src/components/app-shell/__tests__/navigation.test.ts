@@ -192,10 +192,13 @@ describe("visibility and identity", () => {
     expect(visibleGroups(workspace, user("agency")).some((group) => group.id === "agency-account")).toBe(false);
   });
 
-  it("declares no frontend-invented permission: only what the session says of a courier", () => {
-    for (const role of ["vendor", "agency"] as const) {
-      expect(flattenItems(WORKSPACES[role].groups).filter((item) => item.visible)).toEqual([]);
-    }
+  it("declares no frontend-invented permission: only what the session says of a courier, and of a seller in the programme", () => {
+    expect(flattenItems(WORKSPACES.agency.groups).filter((item) => item.visible)).toEqual([]);
+    // « Lanaya » follows `lanaya_seller.linked`, which the server computes and enforces (DEC-38).
+    expect(flattenItems(WORKSPACES.vendor.groups).filter((item) => item.visible).map((item) => item.id)).toEqual(["vendor-lanaya"]);
+    const sellerSees = (extra: Partial<User>) => flattenItems(visibleGroups(WORKSPACES.vendor, user("vendor", extra))).map((item) => item.id);
+    expect(sellerSees({})).not.toContain("vendor-lanaya");
+    expect(sellerSees({ lanaya_seller: true })).toContain("vendor-lanaya");
     // The mission entries follow `courier_operational`, which the server
     // enforces on its own (courier.operational); the file is offered instead.
     const conditional = flattenItems(WORKSPACES.courier.groups).filter((item) => item.visible).map((item) => item.id);

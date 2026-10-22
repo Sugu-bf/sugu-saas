@@ -48,7 +48,7 @@ import {
   type TicketFilter,
   type TicketReply,
 } from "../contract";
-import { useSupportDesk } from "../desk";
+import { deskKinds, useSupportDesk } from "../desk";
 import { describeSupportFailure, useCloseTicket, useCreateTicket, useReplies, useSendReply, useTicket, useTickets } from "../hooks";
 
 // ============================================================
@@ -594,6 +594,7 @@ const EMPTY_TICKET: NewTicket = { subject: "", category: "", description: "" };
 function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (id: string) => void }) {
   const { data: user } = useSession();
   const desk = useSupportDesk();
+  const kinds = deskKinds(desk, user);
   const create = useCreateTicket(desk.needsStore ? (user?.store_id ?? null) : null);
   const [values, setValues] = useState<NewTicket>(EMPTY_TICKET);
   const [errors, setErrors] = useState<Partial<Record<keyof NewTicket, string>>>({});
@@ -617,7 +618,7 @@ function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
     event.preventDefault();
     if (creating.current) return;
 
-    const found = validateNewTicket(values, desk.kinds);
+    const found = validateNewTicket(values, kinds);
     setErrors(found);
     setFailure(null);
     if (Object.keys(found).length > 0) return;
@@ -670,7 +671,7 @@ function NewTicketForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
         )}
         <FormField label={desk.kindLabel} required error={errors.category}>
           <Select value={values.category} onChange={(event) => set("category", event.target.value)} placeholder={desk.id === "lanabaga" ? "Choisir un thème" : "Choisir une catégorie"}>
-            {desk.kinds.map((category) => (
+            {kinds.map((category) => (
               <option key={category.value} value={category.value}>
                 {category.label}
               </option>

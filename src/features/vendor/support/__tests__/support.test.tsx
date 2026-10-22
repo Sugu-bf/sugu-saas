@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/http/api-error";
 import { ticketStatus } from "@/design-system";
 import { TICKET_FILTERS, TICKET_STATUSES, categoryLabel, countOf, parseCreatedTicket, parseReplyPage, parseTicket, parseTicketPage, priorityLabel, ticketKindLabel, validateNewTicket } from "../contract";
-import { LANABAGA_DESK, LANABAGA_TOPICS, SELLER_DESK, SupportDeskProvider, kindFields } from "../desk";
+import { LANABAGA_DESK, LANABAGA_TOPICS, SELLER_DESK, SupportDeskProvider, deskKinds, kindFields } from "../desk";
 
 // The tickets of a seller: what is read of an answer of Laravel
 // (SellerSupportTicketsTest in ../sugu asserts the same payloads), and how the
@@ -253,6 +253,16 @@ describe("le guichet du programme Lanaya", () => {
     expect(ticketKindLabel({ category: "lanaya", topic: { label: "Convention" } })).toBe("Programme Lanaya – Convention");
     expect(ticketKindLabel({ category: "lanaya", topic: null })).toBe("Programme Lanaya");
     expect(parseTicket({ ticket: { ...row, category: "lanaya", topic: { value: "conduct", label: "Signaler un comportement" }, store: null, store_id: null } }).topic).toEqual({ value: "conduct", label: "Signaler un comportement" });
+  });
+
+  it("ne propose le programme qu'au vendeur qui y est lié (DEC-38)", () => {
+    const programme = (kinds: readonly { value: string }[]) => kinds.filter((kind) => kind.value.startsWith("lanaya:")).map((kind) => kind.value);
+    expect(programme(deskKinds(SELLER_DESK, null))).toEqual([]);
+    expect(programme(deskKinds(SELLER_DESK, { lanaya_seller: false }))).toEqual([]);
+    expect(programme(deskKinds(SELLER_DESK, { lanaya_seller: true }))).toEqual(["lanaya:my_lanabaga", "lanaya:conduct"]);
+    // The ordinary categories stay, and the Lanabaga's desk is untouched.
+    expect(deskKinds(SELLER_DESK, null).some((kind) => kind.value === "payment")).toBe(true);
+    expect(deskKinds(LANABAGA_DESK, null)).toBe(LANABAGA_DESK.kinds);
   });
 
   it("envoie la demande d'un Lanabaga à son guichet, sans boutique, avec son sujet", async () => {

@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import { sellerSeesLanaya } from "@/lib/auth/session-user";
+import type { User } from "@/types";
 import { TICKET_CATEGORIES } from "./contract";
 
 // ============================================================
@@ -84,6 +86,15 @@ export function SupportDeskProvider({ desk, children }: { desk: SupportDesk; chi
 }
 
 export const useSupportDesk = (): SupportDesk => useContext(DeskContext);
+
+/**
+ * The kinds the form offers this account: a seller sees the programme ones
+ * only once linked to it (DEC-38); Laravel refuses them to anyone else.
+ */
+export function deskKinds(desk: SupportDesk, user?: Pick<User, "lanaya_seller"> | null): readonly SupportKind[] {
+  if (desk.id !== "seller" || (user && sellerSeesLanaya(user))) return desk.kinds;
+  return desk.kinds.filter((kind) => !kind.value.startsWith("lanaya:"));
+}
 
 /** The fields Laravel reads for the kind chosen in the form. */
 export function kindFields(desk: SupportDesk, value: string): Record<string, string> {

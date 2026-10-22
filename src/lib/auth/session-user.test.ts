@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canEnterSpace, homePathFor, lanabagaCanWork, mapRole, postLoginPath, sessionMaxAge, spaceHomePath, spaceOfPath, toSessionUser, courierCanWork, isOpenToEveryCourier } from "./session-user";
+import { canEnterSpace, homePathFor, lanabagaCanWork, mapRole, postLoginPath, sellerSeesLanaya, sessionMaxAge, spaceHomePath, spaceOfPath, toSessionUser, courierCanWork, isOpenToEveryCourier } from "./session-user";
 
 describe("mapRole", () => {
   it("maps the backend user types of the pro portal", () => {
@@ -183,5 +183,15 @@ describe("SUGU Lanaya — one session, several spaces (ADR-03)", () => {
     expect(postLoginPath(seller, "/lanabaga/application")).toBe("/lanabaga/application");
     expect(postLoginPath(seller, "/lanabaga/dashboard")).toBe("/vendor/dashboard");
     expect(postLoginPath(seller, "/vendor/lanaya?invitation=abc123abc123abc123")).toBe("/vendor/lanaya?invitation=abc123abc123abc123");
+  });
+
+  it("shows the programme to a seller only once the profile says they are linked to it (DEC-38)", () => {
+    const base = { id: 1, name: "Awa", email: "a@x.test", user_type: "seller", store: { id: "s1", name: "Chez Awa" } };
+    expect(sellerSeesLanaya(toSessionUser(base)!)).toBe(false);
+    expect(sellerSeesLanaya(toSessionUser({ ...base, lanaya_seller: null })!)).toBe(false);
+    expect(sellerSeesLanaya(toSessionUser({ ...base, lanaya_seller: { linked: false } })!)).toBe(false);
+    expect(sellerSeesLanaya(toSessionUser({ ...base, lanaya_seller: { linked: true } })!)).toBe(true);
+    // Only `true` itself: a malformed answer shows nothing.
+    expect(sellerSeesLanaya(toSessionUser({ ...base, lanaya_seller: { linked: "yes" } })!)).toBe(false);
   });
 });

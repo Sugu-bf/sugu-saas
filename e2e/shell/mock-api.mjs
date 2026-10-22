@@ -178,9 +178,12 @@ const routes = {
 // A domain smoke can plug its own endpoints in front of the empty-collection
 // fallback: MOCK_API_EXTENSION points to a module whose default export is
 // `(context) => boolean | Promise<boolean>` (true once it has answered).
-const extension = process.env.MOCK_API_EXTENSION
-  ? (await import(pathToFileURL(resolve(process.env.MOCK_API_EXTENSION)).href)).default
-  : null;
+// Its `profiles` export, if any, adds fields to the accounts above.
+const extensionModule = process.env.MOCK_API_EXTENSION ? await import(pathToFileURL(resolve(process.env.MOCK_API_EXTENSION)).href) : null;
+const extension = extensionModule?.default ?? null;
+for (const [email, fields] of Object.entries(extensionModule?.profiles ?? {})) {
+  if (PROFILES[email]) Object.assign(PROFILES[email], fields);
+}
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
