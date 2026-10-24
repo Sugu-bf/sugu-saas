@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { SearchX } from "lucide-react";
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <div className="animate-fade-in">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 text-4xl dark:bg-gray-800">
-          🔍
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 dark:bg-gray-800">
+          <SearchX className="size-9" aria-hidden="true" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Page introuvable</h1>
         <p className="mt-3 max-w-md text-gray-500 dark:text-gray-400">

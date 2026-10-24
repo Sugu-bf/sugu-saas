@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, Eye, EyeOff, CreditCard } from "lucide-react";
+import { ShieldAlert, Eye, EyeOff, CreditCard, BriefcaseBusiness, MapPin } from "lucide-react";
 import { Field, PillInput, PillSelect } from "@/components/shared/settings-ui";
 import type { CommercialFormData, CommercialCategory, CommercialCountry } from "../types/commercial.types";
 
@@ -23,7 +23,7 @@ export default function StepReview({ data, onChange, categories, countries, erro
 
   const getCountryName = () => {
     const c = countries.find((country) => country.code === data.country);
-    return c ? `${c.flag_emoji} ${c.name}` : data.country;
+    return c ? c.name : data.country;
   };
 
   const paymentProviders = [
@@ -48,7 +48,7 @@ export default function StepReview({ data, onChange, categories, countries, erro
         {/* Agent & Store Info */}
         <div className="bg-white/30 dark:bg-white/5 border border-white/40 dark:border-white/5 rounded-2xl p-4 space-y-2.5">
           <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 border-b border-gray-100 dark:border-gray-800/40 pb-1.5">
-            👨‍💼 Agent & Boutique
+            <BriefcaseBusiness className="size-4" aria-hidden="true" /> Agent & Boutique
           </h3>
           <div>
             <span className="text-gray-400 dark:text-gray-500">Commercial:</span>{" "}
@@ -67,7 +67,7 @@ export default function StepReview({ data, onChange, categories, countries, erro
         {/* Vendor & Location Info */}
         <div className="bg-white/30 dark:bg-white/5 border border-white/40 dark:border-white/5 rounded-2xl p-4 space-y-2.5">
           <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 border-b border-gray-100 dark:border-gray-800/40 pb-1.5">
-            📍 Propriétaire & Localisation
+            <MapPin className="size-4" aria-hidden="true" /> Propriétaire & Localisation
           </h3>
           <div>
             <span className="text-gray-400 dark:text-gray-500">Vendeur:</span>{" "}

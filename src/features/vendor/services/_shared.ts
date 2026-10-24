@@ -84,34 +84,6 @@ export function formatDateFr(isoDate: string): string {
   }
 }
 
-/** Category → emoji mapping */
-export const CATEGORY_EMOJIS: Record<string, string> = {
-  "alimentaire": "🍽️",
-  "huile": "🫒",
-  "café": "☕",
-  "boisson": "🥤",
-  "épices": "🌶️",
-  "céréale": "🌾",
-  "miel": "🍯",
-  "cosmétique": "🧴",
-  "savon": "🧼",
-  "tissu": "🧵",
-  "riz": "🍚",
-  "fruits": "🍎",
-  "légumes": "🥬",
-};
-
-/** Derive an emoji from product name or category */
-export function deriveEmoji(name: string, category: string): string {
-  const lowerName = name.toLowerCase();
-  const lowerCat = category.toLowerCase();
-
-  for (const [key, emoji] of Object.entries(CATEGORY_EMOJIS)) {
-    if (lowerName.includes(key) || lowerCat.includes(key)) return emoji;
-  }
-  return "📦";
-}
-
 /** Parse a number from a formatted string like "487 200 XOF" */
 export function parseAmountFromLabel(label: string | undefined | null): number {
   if (!label) return 0;

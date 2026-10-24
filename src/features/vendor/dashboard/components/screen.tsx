@@ -256,9 +256,9 @@ function TrendChip({ figure }: { figure: Compared }) {
         flat ? "bg-neutral-bg text-neutral-fg" : up ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg",
       )}
     >
-      <span aria-hidden="true">{flat ? "=" : up ? "↗" : "↘"}</span>
+      {/* No arrow: phones draw the arrow characters as emoji. The sign and the colour say the direction. */}
       <span className="sr-only">{flat ? "Stable" : up ? "En hausse de" : "En baisse de"} </span>
-      {flat ? "0" : `${up ? "" : "−"}${rate}`} %<span className="sr-only"> par rapport à la période précédente</span>
+      {flat ? "0" : `${up ? "+" : "−"}${rate}`} %<span className="sr-only"> par rapport à la période précédente</span>
     </span>
   );
 }

@@ -1,4 +1,4 @@
-import { CheckCircle2, Store, Mail, ArrowRight } from "lucide-react";
+import { CheckCircle2, Store, Mail, ArrowRight, Lightbulb } from "lucide-react";
 import { SectionCard, PillButton } from "@/components/shared/settings-ui";
 
 interface SuccessScreenProps {
@@ -48,8 +48,9 @@ export default function SuccessScreen({
             </div>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-4 text-left text-xs text-amber-800 dark:text-amber-400 mb-8">
-            {"💡 Un email de bienvenue contenant un lien de réinitialisation de mot de passe a été envoyé au propriétaire pour lui permettre d'accéder à son portail vendeur."}
+          <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-4 text-left text-xs text-amber-800 dark:text-amber-400 mb-8">
+            <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {"Un email de bienvenue contenant un lien de réinitialisation de mot de passe a été envoyé au propriétaire pour lui permettre d'accéder à son portail vendeur."}
           </div>
 
           <div className="flex justify-center">

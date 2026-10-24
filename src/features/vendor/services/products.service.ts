@@ -26,7 +26,6 @@ import {
   type BackgroundRemovalAcceptResponse,
 } from "../schema";
 import { api } from "@/lib/http/client";
-import { deriveEmoji } from "./_shared";
 import {
   transformProductRequest,
   type ProductMutationFormData,
@@ -147,7 +146,7 @@ const PRODUCT_STATUS_LABELS: Record<string, string> = {
   archived: "Archivé",
 };
 
-// Origin label ↔ ISO 3166-1 alpha-2 code.
+// Origin label to and from ISO 3166-1 alpha-2 code.
 // Keep in sync with ORIGINS in app/(vendor)/vendor/products/new/_components/types.ts
 const ORIGIN_LABEL_TO_CODE: Record<string, string> = {
   Mali: "ML",
@@ -546,7 +545,6 @@ function _transformProductListItem(raw: RawProductItem): Record<string, unknown>
     id: raw.id,
     name: raw.name ?? "Produit",
     sku: raw.sku ?? "",
-    emoji: deriveEmoji(raw.name ?? "", raw.category ?? ""),
     image: raw.image || raw.main_image || undefined,
     category: raw.category ?? "",
     subcategory: "",

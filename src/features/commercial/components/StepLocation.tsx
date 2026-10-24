@@ -52,7 +52,7 @@ export default function StepLocation({ data, onChange, countries, errors }: Step
 
   const countryOptions = countries.map((c) => ({
     value: c.code,
-    label: `${c.flag_emoji} ${c.name} (${c.code})`
+    label: `${c.name} (${c.code})`
   }));
 
   return (
@@ -67,7 +67,7 @@ export default function StepLocation({ data, onChange, countries, errors }: Step
           <PillSelect
             value={data.country}
             onChange={(v) => onChange("country", v)}
-            options={countryOptions.length > 0 ? countryOptions : [{ value: "BF", label: "🇧🇫 Burkina Faso" }]}
+            options={countryOptions.length > 0 ? countryOptions : [{ value: "BF", label: "Burkina Faso (BF)" }]}
           />
         </Field>
 

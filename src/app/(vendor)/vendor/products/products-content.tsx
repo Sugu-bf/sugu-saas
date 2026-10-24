@@ -66,7 +66,7 @@ const SORT_OPTIONS: { value: string; label: string; sort: ProductSortKey; direct
   { value: "stock-desc", label: "Stock décroissant", sort: "stock", direction: "desc" },
 ];
 
-/** Table column ↔ sort key of the API. */
+/** Table column to sort key of the API, and back. */
 const SORT_COLUMN: Record<ProductSortKey, string> = { created: "created", name: "product", price: "price", stock: "stock" };
 const SORT_KEY: Record<string, ProductSortKey> = { created: "created", product: "name", price: "price", stock: "stock" };
 

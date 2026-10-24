@@ -13,6 +13,7 @@ import {
   Hash,
   MapPin,
   Locate,
+  Check,
   MessageCircle,
   Mail,
   Globe,
@@ -1339,7 +1340,7 @@ export function LandingPageV3() {
             {/* Seller Form */}
             {isSellerSubmitted ? (
               <div className="successBox" style={{ margin: "40px 10px" }}>
-                <div className="successIcon">✓</div>
+                <div className="successIcon"><Check size={28} aria-hidden="true" /></div>
                 <h3 className="successTitle">Demande envoyée !</h3>
                 <p className="successSub">
                   {"Merci de votre intérêt. Notre équipe d'intégration va vous contacter très prochainement sur WhatsApp."}
@@ -1442,21 +1443,21 @@ export function LandingPageV3() {
                     <option value="" disabled hidden>
                       Pays
                     </option>
-                    <option value="BF">Burkina Faso 🇧🇫</option>
-                    <option value="CI">{"Côte d'Ivoire 🇨🇮"}</option>
-                    <option value="SN">Sénégal 🇸🇳</option>
-                    <option value="ML">Mali 🇲🇱</option>
-                    <option value="TG">Togo 🇹🇬</option>
-                    <option value="BJ">Bénin 🇧🇯</option>
-                    <option value="NE">Niger 🇳🇪</option>
-                    <option value="GW">Guinée-Bissau 🇬🇼</option>
+                    <option value="BF">Burkina Faso</option>
+                    <option value="CI">{"Côte d'Ivoire"}</option>
+                    <option value="SN">Sénégal</option>
+                    <option value="ML">Mali</option>
+                    <option value="TG">Togo</option>
+                    <option value="BJ">Bénin</option>
+                    <option value="NE">Niger</option>
+                    <option value="GW">Guinée-Bissau</option>
                   </select>
                 </div>
 
                 <div className="sBtnGpsWrap">
                   <button type="button" className="sBtnGps" onClick={handleGetLocation}>
                     <Locate size={16} />
-                    {sellerData.useLocation ? "Localisation trouvée ✓" : "Utiliser mon GPS (Automatique)"}
+                    {sellerData.useLocation ? "Localisation trouvée" : "Utiliser mon GPS (Automatique)"}
                   </button>
                 </div>
 

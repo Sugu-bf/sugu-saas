@@ -10,7 +10,7 @@ import StepLocation from "./StepLocation";
 import StepReview from "./StepReview";
 import SuccessScreen from "./SuccessScreen";
 import { SectionCard, PillButton } from "@/components/shared/settings-ui";
-import { ArrowLeft, ArrowRight, Save, ClipboardCheck, Store, MapPin, UserCheck, UserPlus } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Save, ClipboardCheck, Store, MapPin, UserCheck, UserPlus } from "lucide-react";
 
 interface CommercialFormProps {
   categories: CommercialCategory[];
@@ -159,8 +159,9 @@ export default function CommercialForm({ categories, countries }: CommercialForm
             {renderStepComponent()}
 
             {submitError && (
-              <div className="bg-red-50 dark:bg-red-950/10 border border-red-200 dark:border-red-900/30 rounded-2xl p-4 text-sm text-red-600 dark:text-red-400">
-                ⚠️ {submitError}
+              <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/10 border border-red-200 dark:border-red-900/30 rounded-2xl p-4 text-sm text-red-600 dark:text-red-400">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <span>{submitError}</span>
               </div>
             )}
 
