@@ -40,6 +40,9 @@ export const userSchema = z.object({
     .nullable()
     .optional()
     .default(null),
+  // A seller linked to the Lanaya programme (DEC-38). Without this key Zod
+  // stripped the flag from /api/auth/me and no seller ever saw "Lanaya".
+  lanaya_seller: z.boolean().optional().default(false),
 });
 
 export const loginResponseSchema = z.object({
