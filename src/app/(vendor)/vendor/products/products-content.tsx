@@ -34,6 +34,7 @@ import { replaceUrlQuery } from "@/lib/utils/replace-url-query";
 import { PRODUCTS_PAGE_SIZE, type ProductListFilters, type ProductSortKey } from "@/features/vendor/catalog/api";
 import { ProductThumb, StockCell, formatUnits } from "@/features/vendor/catalog/components/product-bits";
 import { ProductGrid } from "@/features/vendor/catalog/components/product-grid";
+import { usePublicationActions } from "@/features/vendor/catalog/components/publication-actions";
 import { PRODUCT_STATUS_CODES, type ProductListItem, type StockLevel } from "@/features/vendor/catalog/contract";
 import { describeFailure } from "@/features/vendor/catalog/errors";
 import { useDeleteProduct, useProductCounts, useProducts } from "@/features/vendor/catalog/hooks";
@@ -217,6 +218,7 @@ export function ProductsContent() {
   const counts = useProductCounts();
   const remove = useDeleteProduct();
   const [toDelete, setToDelete] = useState<ProductListItem | null>(null);
+  const publication = usePublicationActions();
   const [view, setView] = useProductsView();
 
   const page = products.data;
@@ -269,6 +271,12 @@ export function ProductsContent() {
       <DropdownMenuItem icon={Pencil} onSelect={() => router.push(`/vendor/products/${product.id}/edit`)}>
         Modifier
       </DropdownMenuItem>
+      {product.publicationActions.length > 0 && <DropdownMenuSeparator />}
+      {publication.entries(product).map((entry) => (
+        <DropdownMenuItem key={entry.action} icon={entry.icon} onSelect={entry.onSelect}>
+          {entry.label}
+        </DropdownMenuItem>
+      ))}
       <DropdownMenuSeparator />
       <DropdownMenuItem icon={Trash2} tone="danger" onSelect={() => setToDelete(product)}>
         Supprimer
@@ -453,6 +461,8 @@ export function ProductsContent() {
         tone="danger"
         onConfirm={() => (toDelete ? deleteProduct(toDelete) : undefined)}
       />
+
+      {publication.dialog}
     </div>
   );
 }

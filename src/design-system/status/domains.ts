@@ -228,6 +228,7 @@ export const productStatus = defineStatusRegistry({
     archived: { label: "Archivé", tone: "neutral", icon: Archive },
     changes_requested: { label: "À corriger", tone: "warning", icon: MessageSquareWarning, description: "Corrections demandées par la modération avant la mise en ligne." },
     suspended: { label: "Suspendu", tone: "danger", icon: Ban },
+    unpublished: { label: "Hors ligne", tone: "neutral", icon: EyeOff, description: "Approuvé, retiré de la vente par le vendeur." },
   },
   aliases: {
     "0": "draft",
@@ -237,6 +238,7 @@ export const productStatus = defineStatusRegistry({
     "4": "archived",
     "5": "changes_requested",
     "6": "suspended",
+    "7": "unpublished",
   },
 });
 

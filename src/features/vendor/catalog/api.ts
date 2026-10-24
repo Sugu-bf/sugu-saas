@@ -10,6 +10,7 @@ import {
   type ProductCounts,
   type ProductDetail,
   type ProductListPage,
+  type PublicationAction,
   type StockLevel,
 } from "./contract";
 
@@ -64,6 +65,14 @@ export async function fetchProductCounts(): Promise<ProductCounts> {
 export async function fetchProduct(id: string): Promise<ProductDetail> {
   const response = await api.get<{ data: unknown }>(`sellers/products/${encodeURIComponent(id)}`);
   return parseProductDetail(response.data);
+}
+
+/**
+ * A publication change the seller makes alone: offline, back online, back to
+ * draft, archived. The server checks it against the product's status.
+ */
+export async function changeProductStatus(id: string, status: PublicationAction): Promise<void> {
+  await api.post(`sellers/products/${encodeURIComponent(id)}/status`, { status });
 }
 
 /** Removes the product from the catalogue (soft delete on the server). */

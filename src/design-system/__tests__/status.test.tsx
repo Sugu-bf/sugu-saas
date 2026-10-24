@@ -28,7 +28,7 @@ const BACKEND_ENUMS = [
   ["PaymentStatus", paymentStatus, ["pending", "authorized", "captured", "failed", "canceled", "partially_refunded", "refunded"]],
   ["paymentStatusCode", orderPaymentStatus, ["paid", "partial", "cod_pending", "pending", "hold", "refunded", "failed"]],
   ["ShipmentStatus", deliveryStatus, ["pending", "awaiting_fee_payment", "assigned", "picked_up", "in_transit", "arrived", "delivery_failed", "delivered"]],
-  ["ProductStatus", productStatus, ["draft", "submitted", "active", "rejected", "archived", "changes_requested", "suspended"]],
+  ["ProductStatus", productStatus, ["draft", "submitted", "active", "rejected", "archived", "changes_requested", "suspended", "unpublished"]],
   ["PayoutStatus", payoutStatus, ["pending", "approved", "processing", "paid", "failed", "rejected", "canceled"]],
   ["KycDocumentStatus", kycDocumentStatus, ["pending", "approved", "rejected"]],
   ["VerificationRequestStatus", kycRequestStatus, ["pending", "approved", "rejected", "needs_more_info"]],

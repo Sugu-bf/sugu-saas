@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { queryKeys } from "@/lib/query";
 import {
   adjustStock,
+  changeProductStatus,
   deleteProduct,
   fetchInventory,
   fetchProduct,
@@ -16,6 +17,7 @@ import {
   type ProductListQuery,
   type StockAdjustment,
 } from "./api";
+import type { PublicationAction } from "./contract";
 
 // ── Reads ───────────────────────────────────────────────────
 
@@ -97,6 +99,14 @@ export function useSaveProduct() {
   const invalidate = useInvalidateCatalogue();
   return useMutation({
     mutationFn: ({ body, id }: { body: FormData; id?: string }) => saveProduct(body, id),
+    onSettled: invalidate,
+  });
+}
+
+export function useChangeProductStatus() {
+  const invalidate = useInvalidateCatalogue();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: PublicationAction }) => changeProductStatus(id, status),
     onSettled: invalidate,
   });
 }

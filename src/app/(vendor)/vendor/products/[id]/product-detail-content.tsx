@@ -19,6 +19,7 @@ import {
 } from "@/design-system";
 import { formatOrderDateTime } from "@/features/vendor/orders/components/order-bits";
 import { ProductImage, formatUnits } from "@/features/vendor/catalog/components/product-bits";
+import { usePublicationActions } from "@/features/vendor/catalog/components/publication-actions";
 import type { ProductDetail, ProductVariant } from "@/features/vendor/catalog/contract";
 import { describeFailure } from "@/features/vendor/catalog/errors";
 import { ORIGIN_COUNTRIES } from "@/features/vendor/catalog/form/model";
@@ -69,6 +70,16 @@ const MODERATION: Record<string, { tone: "info" | "warning" | "danger"; title: s
     title: "Ce produit est suspendu",
     body: "Il a été retiré de la vente par l'équipe SUGU.",
   },
+  unpublished: {
+    tone: "info",
+    title: "Hors ligne",
+    body: "Ce produit est approuvé mais les acheteurs ne le voient pas. Remettez-le en ligne quand vous voulez, sans nouvelle validation.",
+  },
+  archived: {
+    tone: "info",
+    title: "Archivé",
+    body: "Ce produit n'est plus proposé aux acheteurs. Restaurez-le en brouillon pour le remettre en vente.",
+  },
 };
 
 const millimetres = (value: number | null) => (value === null ? "—" : `${formatUnits(value / 10)} cm`);
@@ -82,6 +93,11 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
   const submit = useSubmitProduct();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const publication = usePublicationActions();
+  const publicationEntries = publication.entries(product);
+  // Back online is the obvious next step for a product the seller took offline.
+  const backOnline = publicationEntries.find((entry) => entry.action === "published");
+  const otherPublication = publicationEntries.filter((entry) => entry !== backOnline);
 
   const moderation = MODERATION[product.status];
   const main = product.pictures.find((picture) => picture.isMain) ?? product.pictures[0] ?? null;
@@ -141,10 +157,13 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
         primaryAction={
           product.canSubmit
             ? { label: "Soumettre à validation", icon: Send, onSelect: () => setConfirmSubmit(true), disabled: submit.isPending }
-            : { label: "Modifier", icon: Pencil, href: `/vendor/products/${product.id}/edit` }
+            : backOnline
+              ? { label: backOnline.label, icon: backOnline.icon, onSelect: backOnline.onSelect, disabled: publication.isPending }
+              : { label: "Modifier", icon: Pencil, href: `/vendor/products/${product.id}/edit` }
         }
         secondaryActions={[
-          ...(product.canSubmit ? [{ label: "Modifier", icon: Pencil, href: `/vendor/products/${product.id}/edit` }] : []),
+          ...(product.canSubmit || backOnline ? [{ label: "Modifier", icon: Pencil, href: `/vendor/products/${product.id}/edit` }] : []),
+          ...otherPublication.map((entry) => ({ label: entry.label, icon: entry.icon, onSelect: entry.onSelect, disabled: publication.isPending })),
           { label: "Gérer le stock", icon: Boxes, href: inventoryHref },
           { label: "Supprimer", icon: Trash2, onSelect: () => setConfirmDelete(true), disabled: remove.isPending },
         ]}
@@ -317,6 +336,8 @@ export function ProductDetailContent({ product }: { product: ProductDetail }) {
         tone="danger"
         onConfirm={deleteProduct}
       />
+
+      {publication.dialog}
     </div>
   );
 }

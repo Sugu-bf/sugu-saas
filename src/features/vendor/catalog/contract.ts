@@ -24,8 +24,23 @@ export const PRODUCT_STATUS_CODES = [
   "changes_requested",
   "rejected",
   "suspended",
+  "unpublished",
   "archived",
 ] as const;
+
+/**
+ * Publication changes the seller makes alone (POST sellers/products/{id}/status),
+ * as ProductResource `sellerActions` lists them for each product:
+ * `unpublished` takes an approved product offline, `published` puts it back
+ * online without a new review, `draft` and `archived` are what they say.
+ */
+export const PUBLICATION_ACTIONS = ["published", "unpublished", "draft", "archived"] as const;
+export type PublicationAction = (typeof PUBLICATION_ACTIONS)[number];
+
+function publicationActionsOf(raw: string[] | null | undefined): PublicationAction[] {
+  // An older backend says nothing: no action rather than one it would refuse.
+  return (raw ?? []).filter((code): code is PublicationAction => (PUBLICATION_ACTIONS as readonly string[]).includes(code));
+}
 
 export const STOCK_LEVELS = ["in_stock", "low_stock", "out_of_stock"] as const;
 export type StockLevel = (typeof STOCK_LEVELS)[number];
@@ -65,6 +80,7 @@ const rawListItemSchema = z.object({
   stock: z.number().int().nullish(),
   status: nullableString,
   statusCode: nullableString,
+  sellerActions: z.array(z.string()).nullish(),
   stockStatus: nullableString,
   category: nullableString,
   variants: z.array(z.unknown()).nullish(),
@@ -84,6 +100,8 @@ export interface ProductListItem {
   stock: number | null;
   stockLevel: string | null;
   status: string;
+  /** Publication changes the seller may make now, said by the backend. */
+  publicationActions: PublicationAction[];
   category: string | null;
   hasVariants: boolean;
   variantCount: number;
@@ -102,6 +120,7 @@ export function parseProductListItem(raw: unknown): ProductListItem {
     stock: item.stock ?? null,
     stockLevel: item.stockStatus,
     status: statusOf(item.statusCode, item.status),
+    publicationActions: publicationActionsOf(item.sellerActions),
     category: item.category,
     hasVariants: Boolean(item.hasVariants),
     variantCount: item.variants?.length ?? 0,
