@@ -83,6 +83,7 @@ export {
   deliveryPaymentStatus,
   deliveryStatus,
   discountStatus,
+  groupBuyStatus,
   kycDocumentStatus,
   kycRequestStatus,
   lanayaAccountStatus,

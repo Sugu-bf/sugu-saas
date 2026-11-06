@@ -406,6 +406,18 @@ export const discountStatus = defineStatusRegistry({
   },
 });
 
+/** `App\Domain\GroupBuying\Enums\GroupBuyStatus` — the life of a group buy; labels are the backend's own. */
+export const groupBuyStatus = defineStatusRegistry({
+  domain: "group-buy",
+  statuses: {
+    open: { label: "En cours", tone: "info", icon: Hourglass, description: "Les clients rejoignent le groupe ; le prix baisse à chaque palier atteint." },
+    locked: { label: "Prix obtenu", tone: "success", icon: CheckCircle2, description: "Le prix est figé : chaque membre commande sa part avant la date limite." },
+    failed: { label: "Non atteint", tone: "neutral", icon: CircleSlash, description: "Clos sans palier atteint : personne n'a eu le prix de groupe." },
+    finished: { label: "Terminé", tone: "neutral", icon: Archive, description: "La période de commande est terminée." },
+    cancelled: { label: "Annulé", tone: "neutral", icon: Ban, description: "Arrêté avant la fin. Les acheteurs ne paient rien." },
+  },
+});
+
 /**
  * `App\Enums\Support\TicketStatus`, as a seller reads it. How the support
  * team handles a ticket inside (waiting on a colleague, escalated) is one
@@ -568,6 +580,7 @@ export const statusRegistries = {
   suguBoxMovement: suguBoxMovementType,
   customerSegment,
   discount: discountStatus,
+  groupBuy: groupBuyStatus,
   ticket: ticketStatus,
   lanayaApplication: lanayaApplicationStatus,
   lanayaAccount: lanayaAccountStatus,

@@ -228,6 +228,7 @@ Fichier : `src/design-system/status/domains.ts`.
 | `kycRequest` | `Enums\VerificationRequestStatus` |
 | `courier` | `Enums\Delivery\CourierStatus` |
 | `suguBoxInbound`, `suguBoxOutbound`, `suguBoxListing` | `Domain\SuguBox\Enums\*` |
+| `groupBuy` | `Domain\GroupBuying\Enums\GroupBuyStatus` |
 
 - Un code inconnu s'affiche « Statut inconnu » (bordure en pointillés, code brut en infobulle). Il n'est jamais ramené à « En attente ».
 - Commande, paiement et livraison sont trois axes : `cod_pending` n'est pas un statut de commande, `shipped` n'est pas un statut de livraison.

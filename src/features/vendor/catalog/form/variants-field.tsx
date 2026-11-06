@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Users, X } from "lucide-react";
 import { Badge, Button, Checkbox, FormField, IconButton, Input, cn } from "@/design-system";
 import {
   MAX_VARIANTS,
@@ -41,6 +41,10 @@ export function TiersEditor({ tiers, onChange, error, legend }: { tiers: PriceTi
       <Button size="compact" icon={Plus} className="self-start" onClick={() => onChange([...tiers, { id: localKey("tier"), minQuantity: "", price: "" }])}>
         Ajouter un palier
       </Button>
+      <p className="flex items-start gap-1.5 text-meta text-foreground-muted">
+        <Users className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+        Vos prix par quantité permettent aussi à des clients de se regrouper pour les atteindre (achat groupé).
+      </p>
     </fieldset>
   );
 }

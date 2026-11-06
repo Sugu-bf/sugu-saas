@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function VendorSettingsPage() {
   // The open section is read from the address (?section=…).
   return (
-    <Suspense fallback={<SettingsPageLoading sections={10} />}>
+    <Suspense fallback={<SettingsPageLoading sections={11} />}>
       <VendorSettingsScreen />
     </Suspense>
   );

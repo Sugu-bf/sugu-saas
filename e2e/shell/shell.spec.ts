@@ -32,6 +32,7 @@ const NAVIGATION: Record<Role, Entry[]> = {
     { label: "Statistiques", href: "/vendor/statistics" },
     { label: "Finances", href: "/vendor/wallet", tab: "Finances" },
     { label: "Marketing", href: "/vendor/marketing" },
+    { label: "Achats groupés", href: "/vendor/group-buys" },
     { label: "Messages", href: "/vendor/messages" },
     // No « Lanaya »: this seller is not linked to the programme (DEC-38, e2e/lanaya).
     { label: "Vue d'ensemble", href: "/vendor/sugubox" },
