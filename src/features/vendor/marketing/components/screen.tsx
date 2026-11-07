@@ -138,6 +138,11 @@ export function MarketingScreen() {
     <MarketingPage>
       {header}
 
+      {/* SUGU no longer pays for the reductions a seller creates: the seller is told before creating one. */}
+      <Alert tone="info" title="Ces remises sont à votre charge">
+        Les coupons et promotions que vous créez sont déduits de votre part au règlement.
+      </Alert>
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList label="Sections du marketing">
           <TabsTrigger value="codes" count={summary.coupons.total}>

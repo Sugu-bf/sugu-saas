@@ -218,6 +218,17 @@ describe("Marketing", () => {
     expect(screen.getAllByText("Actif").length).toBeGreaterThan(0);
   });
 
+  it("dit que les remises créées par le vendeur sont déduites de sa part, sur les deux onglets", () => {
+    server.board = ok(board());
+    const { unmount } = render(<MarketingScreen />);
+    expect(screen.getByText("Les coupons et promotions que vous créez sont déduits de votre part au règlement.")).toBeInTheDocument();
+    unmount();
+
+    nav.params = new URLSearchParams("onglet=promotions");
+    render(<MarketingScreen />);
+    expect(screen.getByText("Les coupons et promotions que vous créez sont déduits de votre part au règlement.")).toBeInTheDocument();
+  });
+
   it("prévient qu'un code de livraison gratuite n'est pas appliqué au paiement", () => {
     const b = board();
     b.couponList[0] = { ...b.couponList[0], code: "FRAISOFF", type: "free_shipping", value: 0, appliedAtCheckout: false };

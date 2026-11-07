@@ -131,6 +131,8 @@ const vendor: WorkspaceNavigation = {
         // Commandes, Finances, Catalogue. Messages are kept, in the menu.
         { id: "vendor-wallet", label: "Finances", href: "/vendor/wallet", icon: Wallet, mobilePriority: 3 },
         { id: "vendor-marketing", label: "Marketing", href: "/vendor/marketing", icon: BadgePercent },
+        // Achat groupé: the groups customers run on the seller's products, for every seller (the server scopes them).
+        { id: "vendor-group-buys", label: "Achats groupés", href: "/vendor/group-buys", icon: Users },
         { id: "vendor-messages", label: "Messages", href: "/vendor/messages", icon: MessagesSquare, badge: "messages" },
         // SUGU Lanaya (maquette 4) : qui a présenté chaque boutique, invitations reçues.
         // Only to a seller linked to the programme (DEC-38); an invitation opens the page by its link.

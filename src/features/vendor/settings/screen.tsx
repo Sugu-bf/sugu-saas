@@ -1,21 +1,23 @@
 "use client";
 
-import { Bell, CreditCard, Crown, Palette, Puzzle, Scale, Shield, Trash2, Truck, User } from "lucide-react";
+import { Bell, CreditCard, Crown, Palette, Puzzle, Scale, Shield, Trash2, Truck, User, Users } from "lucide-react";
 import { Card, ErrorState, Skeleton } from "@/design-system";
 import { SettingsFrame, describeSettingsLoadFailure, type SettingsSection } from "@/features/settings";
+import { GroupBuyingSection } from "./group-buying-section";
 import { useVendorSettingsModel } from "./hooks";
 import { PaymentsSection } from "./payments-section";
 import { ProfileSection } from "./profile-section";
 import { CloseVendorAccount, DeliverySection, DisplaySection, IntegrationsSection, LegalSection, NotificationsSection, SecuritySettings, SubscriptionSection } from "./sections";
 
-// `/vendor/settings`: the ten sections of the seller's settings (V9).
+// `/vendor/settings`: the eleven sections of the seller's settings (V9, and group buying).
 
-type VendorSection = "profile" | "payments" | "delivery" | "notifications" | "security" | "integrations" | "display" | "subscription" | "legal" | "delete";
+type VendorSection = "profile" | "payments" | "delivery" | "group-buying" | "notifications" | "security" | "integrations" | "display" | "subscription" | "legal" | "delete";
 
 export const VENDOR_SECTIONS: SettingsSection<VendorSection>[] = [
   { key: "profile", label: "Mon profil", icon: User },
   { key: "payments", label: "Paiements & Facturation", icon: CreditCard },
   { key: "delivery", label: "Livraison", icon: Truck },
+  { key: "group-buying", label: "Achat groupé", icon: Users },
   { key: "notifications", label: "Notifications", icon: Bell },
   { key: "security", label: "Sécurité", icon: Shield },
   { key: "integrations", label: "Intégrations", icon: Puzzle },
@@ -35,6 +37,7 @@ export function VendorSettingsScreen() {
       render={(key) => {
         // The sections that only read other sources do not wait for the settings.
         if (key === "payments") return <PaymentsSection />;
+        if (key === "group-buying") return <GroupBuyingSection />;
         if (key === "integrations") return <IntegrationsSection />;
         if (key === "subscription") return <SubscriptionSection />;
         if (key === "delete") return <CloseVendorAccount />;

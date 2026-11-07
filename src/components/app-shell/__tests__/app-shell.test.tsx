@@ -193,6 +193,7 @@ describe("AppShell — phone tab bar and menus", () => {
       "Inventaire",
       "Statistiques",
       "Marketing",
+      "Achats groupés",
       "Messages",
       // No « Lanaya »: a seller who is not linked to the programme does not see it (DEC-38).
       "Vue d'ensemble",
