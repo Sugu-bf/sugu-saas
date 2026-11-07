@@ -38,7 +38,7 @@ const BACKEND_ENUMS = [
   ["SuguBox OutboundStatus", suguBoxOutboundStatus, ["pending", "picking", "packed", "shipped", "cancelled"]],
   ["SuguBox ListingStatus", suguBoxListingStatus, ["draft", "published", "unpublished", "out_of_stock"]],
   ["SuguBox MovementType", suguBoxMovementType, ["inbound", "outbound", "transfer", "adjustment"]],
-  ["GroupBuyStatus", groupBuyStatus, ["open", "locked", "failed", "finished", "cancelled"]],
+  ["GroupBuyStatus", groupBuyStatus, ["open", "confirming", "locked", "failed", "finished", "cancelled"]],
 ] as const;
 
 describe("status registries — parity with backend enums", () => {

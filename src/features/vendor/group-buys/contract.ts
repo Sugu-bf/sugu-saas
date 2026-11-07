@@ -80,9 +80,9 @@ export function parseSettingsUpdate(payload: unknown): StoreOptionSaved {
 // ── The groups ──────────────────────────────────────────────
 
 /** `App\Domain\GroupBuying\Enums\GroupBuyStatus`. Kept as answered: an unknown code shows as unknown. */
-export const GROUP_BUY_STATUSES = ["open", "locked", "failed", "finished", "cancelled"] as const;
+export const GROUP_BUY_STATUSES = ["open", "confirming", "locked", "failed", "finished", "cancelled"] as const;
 
-/** The two lists of the page: `running` (open, locked), `past` (failed, finished, cancelled). */
+/** The two lists of the page: `running` (open, confirming, locked), `past` (failed, finished, cancelled). */
 export const GROUP_BUY_LISTS = ["running", "past"] as const;
 export type GroupBuyList = (typeof GROUP_BUY_LISTS)[number];
 
@@ -105,6 +105,8 @@ const groupSchema = z
       .transform((tier) => (tier ? { minQty: tier.min_qty, unitPrice: tier.unit_price, missingQty: tier.missing_qty, savingPercent: tier.saving_percent } : null)),
     closes_at: text,
     order_deadline_at: text,
+    // Set while the large reservations pay first (status `confirming`).
+    confirm_deadline_at: text.optional().transform((value) => value ?? null),
     opens_at: text,
     delivery_mode: z.string().catch("individual"),
     base_unit_price: int,
@@ -144,6 +146,8 @@ const groupSchema = z
     tiers: group.tiers,
     closesAt: group.closes_at,
     orderDeadlineAt: group.order_deadline_at,
+    /** While `confirming`: the large reservations pay first, before this moment. */
+    confirmDeadlineAt: group.confirm_deadline_at,
     opensAt: group.opens_at,
     /** `grouped`: the person who started the group orders the whole quantity, once. */
     grouped: group.delivery_mode === "grouped",
