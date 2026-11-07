@@ -133,7 +133,7 @@ function StoreOptions({ store }: { store: StoreGroupBuying }) {
         <ToggleRow
           icon={Boxes}
           title="Minimum de commande partagé"
-          description="Pour un produit à quantité minimale élevée : chacun commande sa part, le minimum se compte sur le total du groupe. Sinon, seule la personne qui a lancé le groupe commande, pour tous."
+          description="Pour un produit à quantité minimale élevée : chacun commande sa part, le minimum se compte sur le total du groupe. Sans cette option, ces produits ne sont pas proposés en achat groupé."
           checked={store.sharedMoq}
           onCheckedChange={switchSharedMoq}
           disabled={save.isPending}
