@@ -70,6 +70,8 @@ export function priceFact(group: GroupBuy): Fact {
       return { label: "Prix obtenu", value: money(group.lockedUnitPrice ?? group.currentUnitPrice), hint: saving(group) };
     case "open":
       return { label: "Prix actuel", value: money(group.currentUnitPrice), hint: group.currentTierMinQty !== null ? saving(group) : "Prix normal : aucun palier atteint" };
+    case "confirming":
+      return { label: "Prix provisoire", value: money(group.lockedUnitPrice ?? group.currentUnitPrice), hint: "Recalculé sur les grosses réservations payées" };
     case "failed":
       return { label: "Prix de groupe", value: "Non atteint", hint: `Prix normal : ${money(group.baseUnitPrice)}` };
     default:
@@ -81,6 +83,7 @@ export function priceFact(group: GroupBuy): Fact {
 /** Orders come once the price is obtained: before, there is nothing to count. */
 export function ordersFact(group: GroupBuy): Fact {
   if (group.status === "open") return { label: "Commandes passées", value: "Après la clôture" };
+  if (group.status === "confirming") return { label: "Commandes passées", value: formatUnits(group.orderedCount), hint: "Grosses réservations, payées en ligne" };
   if (group.grouped) return { label: "Commandes passées", value: formatUnits(group.orderedCount), hint: "Une seule commande pour tout le groupe" };
   return { label: "Commandes passées", value: `${formatUnits(group.orderedCount)} sur ${formatUnits(group.membersCount)}` };
 }
@@ -93,6 +96,12 @@ export function timeFact(group: GroupBuy, serverNow: number | null): Fact | null
       const left = remainingUntil(group.closesAt, serverNow);
       if (left === null) return null;
       return { label: "Clôture dans", value: formatRemaining(left) ?? "En cours de clôture", hint: formatWith(MOMENT, group.closesAt) };
+    }
+    case "confirming": {
+      if (serverNow === null) return null;
+      const left = remainingUntil(group.confirmDeadlineAt, serverNow);
+      if (left === null) return null;
+      return { label: "Confirmation encore", value: formatRemaining(left) ?? "En cours de calcul", hint: formatWith(MOMENT, group.confirmDeadlineAt) };
     }
     case "locked": {
       if (serverNow === null) return null;

@@ -411,6 +411,7 @@ export const groupBuyStatus = defineStatusRegistry({
   domain: "group-buy",
   statuses: {
     open: { label: "En cours", tone: "info", icon: Hourglass, description: "Les clients rejoignent le groupe ; le prix baisse à chaque palier atteint." },
+    confirming: { label: "Confirmation", tone: "warning", icon: Clock, description: "Le prix est atteint : les grosses réservations paient d'abord, en ligne. Le palier est recalculé sur ce qui est payé." },
     locked: { label: "Prix obtenu", tone: "success", icon: CheckCircle2, description: "Le prix est figé : chaque membre commande sa part avant la date limite." },
     failed: { label: "Non atteint", tone: "neutral", icon: CircleSlash, description: "Clos sans palier atteint : personne n'a eu le prix de groupe." },
     finished: { label: "Terminé", tone: "neutral", icon: Archive, description: "La période de commande est terminée." },
