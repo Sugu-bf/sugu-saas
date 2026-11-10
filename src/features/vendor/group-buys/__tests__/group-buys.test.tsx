@@ -48,7 +48,7 @@ const SERVER_NOW = "2026-11-06T10:00:00+00:00";
 /** An instant `minutes` after the server's "now". */
 const at = (minutes: number, now = SERVER_NOW) => new Date(Date.parse(now) + minutes * 60_000).toISOString();
 
-const store = (fields: Record<string, unknown> = {}) => ({ id: "s1", name: "Boutique Awa", enabled: true, shared_moq: false, products_with_tiers: 3, ...fields });
+const store = (fields: Record<string, unknown> = {}) => ({ id: "s1", name: "Boutique Awa", enabled: true, shared_moq: true, products_with_tiers: 3, ...fields });
 
 /** A group as `SellerGroupBuyController::index` answers it. Amounts in centimes. */
 const group = (fields: Record<string, unknown> = {}) => ({
@@ -299,7 +299,7 @@ describe("Achat groupé : le réglage de la boutique", () => {
   });
 
   it("active l'option par le serveur et reprend sa phrase", async () => {
-    const sent = serveSetting({ enabled: false });
+    const sent = serveSetting({ enabled: false, shared_moq: false });
     wrap(<GroupBuyingSection />);
 
     const toggle = await screen.findByRole("switch", { name: "Autoriser l'achat groupé" });
@@ -312,7 +312,7 @@ describe("Achat groupé : le réglage de la boutique", () => {
   });
 
   it("demande confirmation avant de désactiver, puis arrête les groupes par le serveur", async () => {
-    const sent = serveSetting({ enabled: true, shared_moq: true });
+    const sent = serveSetting();
     wrap(<GroupBuyingSection />);
 
     await userEvent.click(await screen.findByRole("switch", { name: "Autoriser l'achat groupé" }));
@@ -333,7 +333,7 @@ describe("Achat groupé : le réglage de la boutique", () => {
   });
 
   it("change le minimum partagé seul, l'option restant active", async () => {
-    const sent = serveSetting({ enabled: true });
+    const sent = serveSetting({ enabled: true, shared_moq: false });
     wrap(<GroupBuyingSection />);
 
     await userEvent.click(await screen.findByRole("switch", { name: "Minimum de commande partagé" }));

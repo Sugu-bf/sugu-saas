@@ -25,8 +25,8 @@ const storeOptionSchema = z
   .object({
     id: z.union([z.string(), z.number()]).transform(String),
     name: z.string(),
-    enabled: z.boolean(),
-    shared_moq: z.boolean().catch(false),
+    enabled: z.boolean().catch(true),
+    shared_moq: z.boolean().catch(true),
     products_with_tiers: int.catch(0),
   })
   .transform((store) => ({
@@ -62,7 +62,7 @@ const updateSchema = z.object({
   data: z.object({
     id: z.union([z.string(), z.number()]).transform(String),
     enabled: z.boolean(),
-    shared_moq: z.boolean().catch(false),
+    shared_moq: z.boolean().catch(true),
   }),
 });
 
